@@ -2,8 +2,8 @@ using SqlSugar;
 
 namespace Entity.Models;
 
-[SugarTable("t_users")]
-public class User
+[SugarTable("users")]
+public class User : EntityBase
 {
     [SugarColumn(IsPrimaryKey = true, IsIdentity = true)]
     public long Id { get; set; }
@@ -14,7 +14,8 @@ public class User
     [SugarColumn(Length = 256, IsNullable = false)]
     public string PasswordHash { get; set; } = string.Empty;
 
-    public DateTime CreatedAt { get; set; }
+    [SugarColumn(Length = 256, IsNullable = false)]
+    public string Password { get; set; } = string.Empty;
 
     public DateTime? LastLoginAt { get; set; }
 }
