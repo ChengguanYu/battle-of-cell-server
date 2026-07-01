@@ -1,0 +1,32 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+*.nupkg
+*.DotSettings.user
+
+# IDE
+.idea/
+.vs/
+.vscode/
+
+# Environment
+.env
+
+# Logs
+Logs/
+**/Logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.dll
+*.exe
+*.pdb
+*.so
+*.dylib
+*.a
