@@ -1,4 +1,4 @@
-namespace Entity.Database;
+namespace Main.Database;
 
 public readonly record struct DbConfig(
     string Host,

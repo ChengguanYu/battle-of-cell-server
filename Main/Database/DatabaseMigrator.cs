@@ -1,7 +1,7 @@
 using SqlSugar;
 using Entity.Models;
 
-namespace Entity.Database;
+namespace Main.Database;
 
 public static class DatabaseMigrator
 {

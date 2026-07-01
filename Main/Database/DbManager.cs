@@ -1,6 +1,6 @@
 using SqlSugar;
 
-namespace Entity.Database;
+namespace Main.Database;
 
 public static class DbManager
 {

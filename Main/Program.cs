@@ -13,6 +13,7 @@
 
 using DotNetEnv;
 using Fantasy;
+using Main.Database;
 
 // 加载 .env 文件（从可执行文件所在目录）
 var envPath = Path.Combine(AppContext.BaseDirectory, ".env");
@@ -34,7 +35,7 @@ try
 
     // 执行数据库迁移（创建/检查数据库和表结构）
     // 在 Fantasy 框架启动前完成，失败则阻止服务器启动
-    Entity.Database.DatabaseMigrator.Initialize();
+    DatabaseMigrator.Initialize();
 
     // 启动 Fantasy.Net 框架（使用 NLog）
     await Fantasy.Platform.Net.Entry.Start(logger);
