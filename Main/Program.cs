@@ -22,6 +22,17 @@ if (File.Exists(envPath))
     Env.Load(envPath);
 }
 
+// 检查 MACHINE_ID 环境变量，未配置则拒绝启动
+var machineId = Environment.GetEnvironmentVariable("MACHINE_ID");
+if (string.IsNullOrWhiteSpace(machineId))
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.Error.WriteLine("致命错误：未检测到 MACHINE_ID，请在 .env 中配置 MACHINE_ID=1 (或其他唯一编号)");
+    Console.ResetColor();
+    Environment.Exit(1);
+    return;
+}
+
 try
 {
     // 初始化引用的程序集，确保 ModuleInitializer 执行
