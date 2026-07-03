@@ -1,7 +1,7 @@
 using Entity.Models;
 using Hotfix.Database;
 
-namespace Hotfix.Repositories;
+namespace Hotfix.Scene.Http.Repositories;
 
 public static class UserDao
 {

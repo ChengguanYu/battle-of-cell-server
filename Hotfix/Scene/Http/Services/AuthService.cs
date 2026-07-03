@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using Entity.DTOs;
 using Entity.Models;
-using Hotfix.Repositories;
+using Hotfix.Scene.Http.Repositories;
 using Hotfix.Utils;
 
-namespace Hotfix.Services;
+namespace Hotfix.Scene.Http.Services;
 
 public class AuthService
 {

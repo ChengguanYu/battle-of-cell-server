@@ -1,8 +1,8 @@
 using Entity.DTOs;
-using Hotfix.Services;
+using Hotfix.Scene.Http.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Hotfix.Controllers.V1;
+namespace Hotfix.Scene.Http.Controllers.V1;
 
 [ApiController]
 [Route("api/v1/auth")]
