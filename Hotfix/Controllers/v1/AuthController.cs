@@ -11,9 +11,10 @@ public class AuthController : ControllerBase
     private readonly AuthService _authService = new();
 
     [HttpPost("login")]
-    public IActionResult Login()
+    public IActionResult Login([FromBody] LoginRequest request)
     {
-        return Ok(new {});
+        var resp = _authService.Login(request);
+        return (int)resp["code"]! == 0 ? Ok(resp) : BadRequest(resp);
     }
 
     [HttpPost("register")]

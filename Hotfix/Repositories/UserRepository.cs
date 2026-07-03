@@ -10,6 +10,11 @@ public static class UserDao
         return DbManager.GetInstance().Queryable<User>().First(u => u.Email == email);
     }
 
+    public static User? FindById(long id)
+    {
+        return DbManager.GetInstance().Queryable<User>().First(u => u.Id == id);
+    }
+
     public static void Insert(User user)
     {
         DbManager.GetInstance().Insertable(user).ExecuteCommand();
