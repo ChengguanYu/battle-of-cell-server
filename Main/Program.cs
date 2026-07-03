@@ -13,6 +13,7 @@
 
 using DotNetEnv;
 using Fantasy;
+using Hotfix.Database;
 using Main.Database;
 
 // 加载 .env 文件（从可执行文件所在目录）

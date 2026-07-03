@@ -22,7 +22,7 @@ public class User : EntityBase
     public string PasswordHash { get; set; } = string.Empty;
 
     [SugarColumn(Length = 256, IsNullable = false)]
-    public string Password { get; set; } = string.Empty;
+    public string Salt { get; set; } = string.Empty;
 
     public DateTime? LastLoginAt { get; set; }
 }

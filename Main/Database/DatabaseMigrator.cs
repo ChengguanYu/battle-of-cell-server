@@ -1,5 +1,6 @@
-using SqlSugar;
 using Entity.Models;
+using Hotfix.Database;
+using SqlSugar;
 
 namespace Main.Database;
 

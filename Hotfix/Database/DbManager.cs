@@ -1,6 +1,6 @@
 using SqlSugar;
 
-namespace Main.Database;
+namespace Hotfix.Database;
 
 public static class DbManager
 {

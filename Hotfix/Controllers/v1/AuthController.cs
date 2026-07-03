@@ -1,3 +1,5 @@
+using Entity.DTOs;
+using Hotfix.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Hotfix.Controllers.V1;
@@ -6,6 +8,8 @@ namespace Hotfix.Controllers.V1;
 [Route("api/v1/auth")]
 public class AuthController : ControllerBase
 {
+    private readonly AuthService _authService = new();
+
     [HttpPost("login")]
     public IActionResult Login()
     {
@@ -13,8 +17,15 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public IActionResult Register()
+    public IActionResult Register([FromBody] RegisterRequest request)
     {
-        return Ok(new {});
+        var (success, message) = _authService.Register(request);
+
+        if (!success)
+        {
+            return BadRequest(new { code = (int)ResponseCode.Success, message });
+        }
+
+        return Ok(new { code = (int)ResponseCode.Success, message });
     }
 }

@@ -1,4 +1,4 @@
-namespace Main.Database;
+namespace Hotfix.Database;
 
 public readonly record struct DbConfig(
     string Host,
