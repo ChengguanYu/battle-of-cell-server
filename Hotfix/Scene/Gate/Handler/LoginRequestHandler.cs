@@ -6,13 +6,13 @@ using Fantasy.Protocol;
 
 namespace Fantasy;
 
-public sealed class C2G_LoginRequestHandler : Message<C2G_LoginRequest>
+public sealed class LoginRequestHandler : Message<LoginRequest>
 {
-    protected override async FTask Run(Session session, C2G_LoginRequest request)
+    protected override async FTask Run(Session session, LoginRequest request)
     {
         Log.Info($"[Gate] Login request account={request.Account}");
 
-        var response = new G2C_LoginResponse();
+        var response = new LoginResponse();
         response.ErrorCode = 0;
         response.Token = $"token-{request.Account}-{Random.Shared.NextInt64()}";
 

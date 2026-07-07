@@ -14,6 +14,16 @@
     <CompilerVisibleProperty Include="MemoryPackGenerator_TypeScriptOutputDirectory" />
   </ItemGroup>
 
+  <Target Name="CleanTypeScriptOutput" BeforeTargets="CoreCompile">
+    <RemoveDir Directories="$([System.IO.Path]::GetFullPath('$(MemoryPackGenerator_TypeScriptOutputDirectory)'))" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)_force_tsgen_.cs"
+      Lines="// $(MSBuildProjectFullPath) $([System.DateTime]::Now.Ticks)"
+      Overwrite="true" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)_force_tsgen_.cs" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="Fantasy-Net" Version="*" />
     <PackageReference Include="SqlSugarCore" Version="5.1.4.215" />

@@ -13,7 +13,7 @@ namespace Fantasy.Protocol;
 
 [MemoryPackable]
 [GenerateTypeScript]
-public partial class G2C_LoginResponse
+public partial class LoginResponse
 {
     [MemoryPackOrder(0)]
     public string Token { get; set; }
@@ -26,8 +26,8 @@ public partial class G2C_LoginResponse
 // Framework 兼容（Fantasy 接口绑定）
 // ==================================================================
 
-public partial class G2C_LoginResponse : AMessage, IResponse
+public partial class LoginResponse : AMessage, IResponse
 {
-    public uint OpCode() { return OuterOpcode.G2C_LoginResponse; }
+    public uint OpCode() { return OuterOpcode.LoginResponse; }
     public void Dispose() { Token = default; ErrorCode = 0; }
 }

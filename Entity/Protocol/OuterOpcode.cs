@@ -7,7 +7,7 @@ namespace Fantasy.Protocol
     /// </summary>
     public static partial class OuterOpcode
     {
-        public const uint C2G_LoginRequest = 285222673;
-        public const uint G2C_LoginResponse = 419440401;
+        public const uint LoginRequest = 285222673;
+        public const uint LoginResponse = 419440401;
     }
 }

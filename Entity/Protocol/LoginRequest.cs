@@ -13,7 +13,7 @@ namespace Fantasy.Protocol;
 
 [MemoryPackable]
 [GenerateTypeScript]
-public partial class C2G_LoginRequest
+public partial class LoginRequest
 {
     [MemoryPackOrder(0)]
     public string Account { get; set; }
@@ -26,11 +26,11 @@ public partial class C2G_LoginRequest
 // Framework 兼容（Fantasy 接口绑定）
 // ==================================================================
 
-public partial class C2G_LoginRequest : AMessage, IRequest
+public partial class LoginRequest : AMessage, IRequest
 {
     [MemoryPackIgnore]
-    public G2C_LoginResponse ResponseType { get; set; }
+    public LoginResponse ResponseType { get; set; }
 
-    public uint OpCode() { return OuterOpcode.C2G_LoginRequest; }
+    public uint OpCode() { return OuterOpcode.LoginRequest; }
     public void Dispose() { Account = default; Password = default; }
 }
