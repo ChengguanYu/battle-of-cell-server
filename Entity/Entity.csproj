@@ -6,7 +6,13 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    <MemoryPackGenerator_TypeScriptOutputDirectory>$(MSBuildProjectDirectory)\..\ts-protocol</MemoryPackGenerator_TypeScriptOutputDirectory>
   </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="MemoryPackGenerator_TypeScriptOutputDirectory" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Fantasy-Net" Version="*" />

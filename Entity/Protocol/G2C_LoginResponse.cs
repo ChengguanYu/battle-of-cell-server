@@ -12,6 +12,7 @@ namespace Fantasy.Protocol;
 // ==================================================================
 
 [MemoryPackable]
+[GenerateTypeScript]
 public partial class G2C_LoginResponse
 {
     [MemoryPackOrder(0)]
@@ -27,6 +28,6 @@ public partial class G2C_LoginResponse
 
 public partial class G2C_LoginResponse : AMessage, IResponse
 {
-    public uint OpCode() => OuterOpcode.G2C_LoginResponse;
+    public uint OpCode() { return OuterOpcode.G2C_LoginResponse; }
     public void Dispose() { Token = default; ErrorCode = 0; }
 }

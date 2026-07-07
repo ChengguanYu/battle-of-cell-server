@@ -12,6 +12,7 @@ namespace Fantasy.Protocol;
 // ==================================================================
 
 [MemoryPackable]
+[GenerateTypeScript]
 public partial class C2G_LoginRequest
 {
     [MemoryPackOrder(0)]
@@ -30,6 +31,6 @@ public partial class C2G_LoginRequest : AMessage, IRequest
     [MemoryPackIgnore]
     public G2C_LoginResponse ResponseType { get; set; }
 
-    public uint OpCode() => OuterOpcode.C2G_LoginRequest;
+    public uint OpCode() { return OuterOpcode.C2G_LoginRequest; }
     public void Dispose() { Account = default; Password = default; }
 }
