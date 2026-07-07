@@ -1,7 +1,7 @@
 using Fantasy.Async;
 using Fantasy.Event;
 using Fantasy.Network.HTTP;
-using Microsoft.Extensions.DependencyInjection;
+using Hotfix.Scene.Http.Configuration;
 
 namespace Hotfix;
 
@@ -9,22 +9,7 @@ public sealed class OnConfigureHttpServicesEvent : AsyncEventSystem<OnConfigureH
 {
     protected override async FTask Handler(OnConfigureHttpServices self)
     {
-        self.Builder.Services.AddCors(options =>
-        {
-            options.AddDefaultPolicy(policy =>
-            {
-                policy.SetIsOriginAllowed(origin =>
-                    {
-                        var uri = new Uri(origin);
-                        var host = uri.Host;
-                        return host is "localhost" or "127.0.0.1";
-                    })
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials();
-            });
-        });
-
+        CorsConfiguration.ConfigureServices(self.Builder.Services);
         await FTask.CompletedTask;
     }
 }

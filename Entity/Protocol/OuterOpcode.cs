@@ -1,5 +1,5 @@
 // ReSharper disable InconsistentNaming
-namespace Fantasy
+namespace Fantasy.Protocol
 {
     /// <summary>
     /// 外部消息 OpCode，手动维护

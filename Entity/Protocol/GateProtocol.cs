@@ -9,7 +9,7 @@ using Fantasy.Network.Interface;
 // ReSharper disable InconsistentNaming
 // ReSharper disable CheckNamespace
 
-namespace Fantasy
+namespace Fantasy.Protocol
 {
     [Serializable]
     [MemoryPackable]

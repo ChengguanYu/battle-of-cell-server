@@ -1,7 +1,7 @@
 using Fantasy.Async;
 using Fantasy.Event;
 using Fantasy.Network.HTTP;
-using Microsoft.AspNetCore.Builder;
+using Hotfix.Scene.Http.Configuration;
 
 namespace Hotfix;
 
@@ -9,8 +9,7 @@ public sealed class OnConfigureHttpApplicationEvent : AsyncEventSystem<OnConfigu
 {
     protected override async FTask Handler(OnConfigureHttpApplication self)
     {
-        self.Application.UseCors();
-
+        CorsConfiguration.ConfigureApplication(self.Application);
         await FTask.CompletedTask;
     }
 }

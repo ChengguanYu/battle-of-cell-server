@@ -11,8 +11,11 @@
 //   5. 启动 Fantasy.Net 框架（传入 NLog 日志实例）
 // ================================================================================
 
+using System.Reflection;
+using System.Runtime.Loader;
 using DotNetEnv;
 using Fantasy;
+using Fantasy.Helper;
 using Hotfix.Database;
 using Main.Database;
 
@@ -36,11 +39,12 @@ if (string.IsNullOrWhiteSpace(machineId))
 
 try
 {
-    // 初始化引用的程序集，确保 ModuleInitializer 执行
-    // .NET 采用延迟加载机制 - 仅当类型被引用时才加载程序集
-    // 通过访问 AssemblyMarker 强制加载程序集并调用 ModuleInitializer
-    // 注意：Native AOT 不存在延迟加载问题，所有程序集在编译时打包
-    AssemblyHelper.Initialize();
+    // 加载 Hotfix 程序集到独立的 AssemblyLoadContext（支持热重载）
+    var hotfixAlc = new AssemblyLoadContext("Hotfix", true);
+    var hotfixDllBytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Hotfix.dll"));
+    var hotfixPdbBytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Hotfix.pdb"));
+    var hotfixAssembly = hotfixAlc.LoadFromStream(new MemoryStream(hotfixDllBytes), new MemoryStream(hotfixPdbBytes));
+    hotfixAssembly.EnsureLoaded();
 
     // 创建 NLog 日志实例（迁移前创建，确保错误输出有日志着色）
     var logger = new Fantasy.NLog("Server");

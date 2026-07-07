@@ -1,6 +1,8 @@
+using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
 using Fantasy.Network.Interface;
+using Fantasy.Protocol;
 
 namespace Fantasy;
 
