@@ -1,12 +1,16 @@
 using MemoryPack;
+using Fantasy;
+using Fantasy.Network.Interface;
 
 #pragma warning disable CS8618
+#pragma warning disable CS8625
 
 namespace Fantasy.Protocol;
 
-/// <summary>
-/// 客户端 → 网关 登录请求
-/// </summary>
+// ==================================================================
+// 协议实体（MemoryPack 序列化字段）
+// ==================================================================
+
 [MemoryPackable]
 public partial class C2G_LoginRequest
 {
@@ -15,4 +19,17 @@ public partial class C2G_LoginRequest
 
     [MemoryPackOrder(1)]
     public string Password { get; set; }
+}
+
+// ==================================================================
+// Framework 兼容（Fantasy 接口绑定）
+// ==================================================================
+
+public partial class C2G_LoginRequest : AMessage, IRequest
+{
+    [MemoryPackIgnore]
+    public G2C_LoginResponse ResponseType { get; set; }
+
+    public uint OpCode() => OuterOpcode.C2G_LoginRequest;
+    public void Dispose() { Account = default; Password = default; }
 }
