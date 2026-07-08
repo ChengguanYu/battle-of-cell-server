@@ -3,7 +3,7 @@ using Entity.Models;
 
 namespace Entity.VOs.session;
 
-public class Session
+public class WsSession
 {
    
     private uint _id;
@@ -22,8 +22,9 @@ public class Session
 
     public uint GetId => _id;
     
-    public Session(User user)
+    public WsSession(User user)
     {
         _id = (uint)user.Id;
     }
+    
 }
