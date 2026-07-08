@@ -32,4 +32,41 @@ public static class JwtHelper
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    /// <summary>验证 token 有效性，失败返回 null</summary>
+    public static ClaimsPrincipal? ValidateToken(string token)
+    {
+        var secret = LoadSecret();
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            return handler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = key,
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out _);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>从 token 中取出 userId，无效返回 null</summary>
+    public static long? GetUserIdFromToken(string token)
+    {
+        var principal = ValidateToken(token);
+        if (principal == null) return null;
+
+        var claim = principal.FindFirst(ClaimTypes.NameIdentifier);
+        if (claim == null) return null;
+
+        return long.Parse(claim.Value);
+    }
 }
