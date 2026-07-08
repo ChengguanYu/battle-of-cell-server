@@ -30,3 +30,6 @@ Thumbs.db
 *.so
 *.dylib
 *.a
+
+# Protocol export tooling (precompiled, obtained from upstream Fantasy repo)
+Tools/
