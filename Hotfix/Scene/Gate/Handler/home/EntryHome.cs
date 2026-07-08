@@ -2,7 +2,6 @@
 using Fantasy.Async;
 using Fantasy.Network;
 using Fantasy.Network.Interface;
-using Fantasy.Protocol;
 using Hotfix.Utils;
 
 namespace Hotfix.Scene.Gate.Handler.Home;

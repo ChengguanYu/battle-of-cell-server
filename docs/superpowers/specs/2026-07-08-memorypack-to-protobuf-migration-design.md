@@ -1,95 +1,63 @@
-# 协议从 MemoryPack 迁移到 Fantasy ProtoBuf 导出管线 — 设计文档
+# 协议从 MemoryPack 迁移到 Fantasy ProtoBuf — 设计文档
 
 - 日期：2026-07-08
-- 范围：`Server/` 游戏服端（Fantasy 框架）；web 客户端的 protobuf 接入仅在设计上确认兼容性，不包含实现。
+- 范围：`Server/` 游戏服端协议迁移。把当前手写的 MemoryPack 协议改为 Fantasy 框架原生的 protobuf 协议导出管线，迁移现有消息类。
 - 状态：待评审
 
-## 1. 背景与现状
+## 1. 背景与目标
 
-### 1.1 当前协议体系（"手写"路线）
-当前项目的协议类是**手写**的，绕过了 Fantasy 框架原生的协议导出管线：
+### 1.1 起点
+提交 `5f6e26a`（"切换为 MemoryPack 序列化，按模块手工维护协议消息"）之后，协议走了**手写 MemoryPack** 路线，绕开 Fantasy 框架原生的协议导出管线。本次目标是撤销这条手写路线，回到框架原生 protobuf 全链路。
 
-- 消息类 `Entity/Protocol/home/EntryHome.cs`：手写 `[MemoryPackable]` + `[MemoryPackOrder]` + 手写 `OpCode()` + 手写 `Dispose()`；并借 MemoryPack 自带的 `[GenerateTypeScript]` 生成 TS。
-- `Entity/Protocol/OuterOpcode.cs`：手写常量（`public const uint EntryHomeReq = 285222674;`），**目前缺 `EntryHomeRes` 常量，导致 build 报错 CS0117**。
-- `Entity/Entity.csproj` 含 `MemoryPackGenerator_TypeScriptOutputDirectory` 与自定义 `CleanTypeScriptOutput` MSBuild Target（每次编译清空并强制重新生成 `ts-protocol/`）。
-- 已删除的旧产物（git status 中）：`ts-protocol/LoginRequest.ts`、`MemoryPackReader.ts`、`MemoryPackWriter.ts` 等。
+当前手写协议的状态：
+- `Entity/Protocol/home/EntryHome.cs`：手写 `[MemoryPackable]` + `[MemoryPackOrder]` + 手写 `OpCode()` + 手写 `Dispose()`。
+- `Entity/Protocol/OuterOpcode.cs`：手写常量，**只有 `EntryHomeReq`，缺 `EntryHomeRes`，导致 build 报 CS0117**。
+- `Entity/Entity.csproj`：含 `MemoryPackGenerator_TypeScriptOutputDirectory` 与 `CleanTypeScriptOutput` MSBuild Target，借 MemoryPack 顺带生成 TS（与本次服务端迁移无关，但属 MemoryPack 残留，一并清除）。
 
-### 1.2 框架生成器目前是"空的"
-验证 `Entity/obj/.../generated/.../NetworkProtocolGenerator/` 下 Fantasy 自带的源码生成器产物：
+### 1.2 目标
+1. 服务端协议从手写 MemoryPack 迁移到 Fantasy 框架原生 protobuf 导出管线（`[ProtoContract]`/`[ProtoMember]` + 框架源码生成器自动登记）。
+2. 彻底清除 MemoryPack 相关逻辑：手写的 `[MemoryPackable]`/`[MemoryPackOrder]`/`[MemoryPackIgnore]`、`MemoryPackGenerator_TypeScriptOutputDirectory`、`CleanTypeScriptOutput` Target、手写 `OuterOpcode` 常量与手写 `OpCode()`/`Dispose()`，全部改由导出工具 + 框架源码生成器产出。
+3. 修掉 `OuterOpcode.EntryHomeRes` 缺失导致的 CS0117 build 错误（opcode 常量改由导出工具自动补全）。
+4. 迁移现有消息类 `EntryHomeReq` / `EntryHomeRes`，字段保持不变。
 
-- `Entity_OpCodeRegistrar.g.cs`
-- `Entity_ProtoBufDispatcherRegistrar.g.cs`
-- `Entity_ResponseTypeRegistrar.g.cs`
-- `Entity_NetworkProtocolRegistrar.g.cs`
+### 1.3 范围
+- **含**：服务端协议迁移、MemoryPack 残留清理、`.proto` 源文件落地、导出工具配置。
+- **不含**：web 客户端 / Unity 客户端接入；opcode 表交付客户端；任何客户端侧落地。本轮只做服务端。
 
-全部为 `Array.Empty<...>()`。原因：手写消息类缺少框架生成器要找的标记（`[ProtoContract]` 等），框架并未登记它们。也就是说**当前协议并未真正接入 Fantasy 的协议注册/调度机制**，只是借了 MemoryPack 做序列化格式 + 手工凑出 OpCode。
+## 2. 已验证的框架能力（实地验证，非文档推断）
 
-### 1.3 Fantasy 框架自带的 ProtoBuf 全链路（迁移目标）
-框架自带：
-- `ProtoBufHelper`（`Fantasy.Serialize`）+ 自研 `LightProto`（`[ProtoContract]/[ProtoMember]`，API 风格同 protobuf-net）。
-- `SerializerManager` 按 OpCode 高位 `OpCodeIdStruct.OpCodeProtocolType` 分流：`0=ProtoBuf`，`1=Bson`，`2=MemoryPack`（见 `OpCodeProtocolType.cs`）。
-- `Fantasy.ProtocolExportTool`（`Tools/ProtocolExportTool/`，仓库已有编译 dll）：写 `.proto` → 导出带 `[ProtoContract]/[ProtoMember]` 的 C# → Fantasy 源码生成器自动登记 `OpCodeRegistrar`/`ProtoBufDispatcherRegistrar`/`ResponseTypeRegistrar`/`NetworkProtocolRegistrar`。
-- 默认 ProtoBuf 分支（`ProtocolSettings.CreateProtoBuf()`）产出：`ClassAttribute=[ProtoContract]`，`MemberAttribute=ProtoMember`，`IgnoreAttribute=[ProtoIgnore]`，`OpCodeType=ProtoBuf(0)`，字段号从 1 起。
-- 导出工具**只有 `CSharpExporter`**，不产 TS。
+本设计所有结论均由在当前仓库实跑导出工具得到（验证后已清理测试产物）：
 
-## 2. web 客户端兼容性结论（已核证，本设计只确认、不实现）
+- **工具链全通**：`Tools/ProtocolExportTool/Fantasy.ProtocolExportTool.dll export --silent` 从 `ExporterSettings.json` 读配置，成功加载。当前 `ExporterSettings.json` 三路径已指向本机实际目录：源 `Config/NetworkProtocol`、服务端生成 `Entity/Generate/NetworkProtocol`、客户端生成（暂无独立客户端，与服务端同路径）。
+- **`.proto` 语法**：`proto3` + `package` 行 + `// IRequest,<Response名>` 行尾注释 + 字段号从 1 起递增。工具接受该写法。
+- **生成产物**（三个文件，落 `Entity/Generate/NetworkProtocol/`）：
+  - `OuterOpcode.cs`：`public static partial class OuterOpcode`，含 `EntryHomeReq` 与 `EntryHomeRes` **成对**常量，opcode 由工具确定性算出。
+  - `OuterMessage.cs`：消息类，`[Serializable][ProtoContract]`，`partial class EntryHomeReq : AMessage, IRequest`，带对象池 `Create()/Return()/Dispose()`、`OpCode()`、`[ProtoIgnore] ResponseType`、`[ProtoMember(n)]` 业务字段；`EntryHomeRes : AMessage, IResponse` 同构。
+  - `NetworkProtocolHelper.cs`：`Session` 扩展方法，提供 RPC 风格调用（`session.EntryHomeReq(token)` 直接拿 `EntryHomeRes`）。
+- **命名空间**：生成代码全部 `namespace Fantasy`（不是当前手写的 `Fantasy.Protocol`）。
+- **ErrorCode 自动生成**：`.proto` 里 `EntryHomeRes` 只写业务字段 `ok = 1`，工具自动追加 `[ProtoMember(2)] public uint ErrorCode`（编号为"首个可用号"）。手写版要自己写 `ErrorCode`，导出版不用。
+- **序列化**：生成类用 `LightProto`（`[ProtoContract]`/`[ProtoMember]`），即 Fantasy 原生 protobuf 序列化；`using MemoryPack;` 仅借用 `[ProtoIgnore]` 特性别名，不走 MemoryPack 序列化。
+- **opcode 示例值**（本次测试值，正式导出同算法、值相同）：`EntryHomeReq = 268445457`、`EntryHomeRes = 402663185`。
 
-- web 客户端（`client/`，Vite + TS）当前：`src/ts-protocol/` 已空；`src/network/GameNetwork.ts` + `Packet.ts` 已实现 20 字节固定头（`MessagePacketLength(4) + ProtocolCode/opcode(4) + RpcId(4) + padding(8)`）与按 `rpcId` / `opcode` 分发；body 解码依赖已删的 MemoryPack TS。
-- `LightProto` 的编码原语（`WritingPrimitives`：varint、小端定长、proto3 有符号整数规则）= **标准 protobuf wire format**。故 web 端可用标准工具（`protobufjs` / `protobuf-ts` / `protoc-gen-ts`）从同一份 `.proto` 生成 TS 编解码，与 C# 互通；20 字节头部逻辑无需改动。
-- **结论**：本次服务端迁移对 web 客户端**不产生破坏性变更之外的兼容负担**，body 改为标准 protobuf 后用标准 protoc 工具生成即可。web 端接入留作**独立后续任务**，不在本次实现范围。
+## 3. 设计
 
-## 3. opcode / rpcId 关联机制（web 客户端分发依据）
+### 3.1 数据流
 
-### 3.1 框架在响应包里填了什么
-- 偏移 4 ×4 字节 `ProtocolCode`（opcode）= **响应类自身的 opcode**（`response.OpCode()`，如 `EntryHomeRes` 的 opcode，不是请求 `EntryHomeReq`）。
-- 偏移 8 ×4 字节 `RpcId` = **请求时 rpcId 原样回填**。`MessageRPC.Handle` 拿到的 `rpcId`，`Reply()` 里 `session.Send(response, rpcId, …)` 再写回包头。框架保证回填。
+```
+Config/NetworkProtocol/Outer/EntryHome.proto   （人写：消息结构）
+        │  Fantasy.ProtocolExportTool export --silent
+        ▼
+Entity/Generate/NetworkProtocol/*.cs           （工具生成：消息类+opcode+Helper）
+        │  dotnet build → Fantasy 源码生成器
+        ▼
+Entity/obj/.../NetworkProtocolGenerator/*Registrar.g.cs  （框架自动登记opcode/调度）
+```
 
-### 3.2 `.proto` 与 opcode 的分工（纠正一个常见误解）
-- `.proto` 定义消息结构与字段 tag（protobuf 字段号 ≠ opcode），**天然不含 opcode**，标准 protoc 工具链也不关心 opcode。
-- opcode 是 Fantasy 路由编号（消息→uint），由导出工具 `OpCodeGenerator` 按类型+计数器确定性算出，产在 `OuterOpcode.cs`。
-- 因此：web 客户端**两样都要**——`.proto` 给 body 编解码，opcode 表给路由分发；二者来源不同、互不替代。
+单一真相源：`.proto`。opcode、消息类、调度登记全部从它派生，无需手写、无需手工对齐。
 
-### 3.3 web 客户端分发逻辑（迁移后照旧有效）
-收包后：①先按 `rpcId` 关联 pending 请求（与消息类型无关、框架保证回填，最可靠）→ 命中即 resolve；②按 opcode 区分语义（Response 走 rpcId 命中；服务器主动推送的 `IMessage` 走 opcode→handler 注册表）。当前 `GameNetwork.ts` 的三步分发在 protobuf 迁移后原样有效，因为头部协议与序列化格式无关。
+### 3.2 `.proto` 源文件
 
-## 4. opcode 表交付 web 客户端（关键设计决策）
-
-opcode 须与 body 同源、不漂移。方案选定（已与用户确认）：
-
-- **不改上游导出工具逻辑**：`Tools/ProtocolExportTool/Fantasy.ProtocolExportTool.dll` 照常产 `OuterOpcode.cs`（C#，服务端用）。
-- **在仓库内新增一个极小的自有翻译步骤**（归 `Tools/` 下，命名暂定 `OpcodeTableExporter`，实现语言待定——.NET 小工具或 node 脚本均可）：
-  - 输入：导出工具产出的 `OuterOpcode.cs`（`public const uint Name = Value;` 行）。
-  - 输出：web 客户端目录下的 `OuterOpcode.json`（及可选 `.ts`），形如 `{ "EntryHomeReq": 285222674, "EntryHomeRes": ... }`。
-  - 性质：**纯下游字符串翻译**，不解析 `.proto`、不复现 opcode 算法、不碰框架/上游工具，杜绝与服务端数值漂移。
-- 单一真相源：导出工具一次性算出 opcode 值；翻译步骤只做格式转码。
-- 该翻译步骤与本次服务端迁移**同一 PR 落地**，但它本身是独立工具、无业务逻辑；web 客户端 import 该文件属后续接入范畴。
-
-## 5. 目标与范围
-
-### 5.1 目标
-1. 服务端协议从手写 MemoryPack 迁移到 **Fantasy 框架原生 ProtoBuf 导出管线**。
-2. 项目内**彻底清除 MemoryPack 相关逻辑**：`[MemoryPackable]`/`[MemoryPackOrder]`/`[MemoryPackIgnore]`、`MemoryPackGenerator_TypeScriptOutputDirectory`、`CleanTypeScriptOutput` MSBuild Target、手写 `OuterOpcode` 常量与手写 `OpCode()`/`Dispose()` 全部移除，转由导出工具 + Fantasy 源码生成器产出。
-3. 修掉当前 build 已坏的 `OuterOpcode.EntryHomeRes` 缺失错误（CS0117）；清理仓库根目录误生成的 `nul` 文件。
-4. 提供 opcode 表交付 web 客户端的能力（第 4 节翻译步骤）。
-
-### 5.2 范围
-- **含**：`Server/` 服务端协议迁移、MemoryPack 残留清理、导出工具配置、opcode 翻译工具落地。
-- **不含**：web 客户端接入 protobuf（body 用标准 protoc 生成 TS + import opcode JSON 的客户端侧落地），留作独立后续任务。
-
-### 5.3 强约束
-- 消息名**不改**：保持 `EntryHomeReq`/`EntryHomeRes`（沿用近期"移除 C2G_/G2C_ 前缀"的风格）。`IRequest` 的行尾注释须写全回复消息名 `EntryHomeRes`。
-- 不改上游仓库/导出工具源码；仅在本仓库内新增下游翻译工具与配置。
-
-## 6. 目录与导出配置
-
-### 6.1 目录约定
-- `.proto` 源：`Config/NetworkProtocol/{Outer,Inner}/`（Outer/Inner 分目录，Outer 放客户端↔服务端消息）。
-- 服务端生成 C#：`Entity/Generate/NetworkProtocol/`（导出工具 `NetworkProtocolServerDirectory` 指向此）。
-- 客户端生成 C#：暂无 Unity 客户端，`NetworkProtocolClientDirectory` 本设计仅作占位（与服务端同路径或留空由用户定，导出工具允许仅服务端）。
-- opcode 翻译产物落地：web 客户端目录（具体路径由 web 接入任务定；本次工具输出到 `client/src/ts-protocol/OuterOpcode.json` 亦可，`ts-protocol/` 既有目录复用）。
-
-### 6.2 `.proto` 源文件（`Config/NetworkProtocol/Outer/EntryHome.proto`）
-按 Fantasy 导出工具语法（`define-outer.md`）：
+新增 `Config/NetworkProtocol/Outer/EntryHome.proto`：
 
 ```protobuf
 syntax = "proto3";
@@ -105,75 +73,69 @@ message EntryHomeReq // IRequest,EntryHomeRes
 message EntryHomeRes // IResponse
 {
     bool ok = 1;
-    // ErrorCode 0=成功，非0=错误码（框架自带，不需要手动定义）
+    // ErrorCode 由导出工具自动生成，不手写
 }
 ```
 
 要点：
-- 消息名沿用无前缀风格（`EntryHomeReq`/`EntryHomeRes`）。
-- `IRequest` 行尾注释必须填**完整回复消息名**（`EntryHomeRes`），且 Request/Response 成对紧邻。
-- `IResponse` 的 `ErrorCode` 由导出工具自动生成（`CSharpExporter` `GenerateMessages` 中 `IsResponseType` 分支），**不手写**。
+- 消息名沿用无前缀风格（`EntryHomeReq`/`EntryHomeRes`），与近期"移除 C2G_/G2C_ 前缀"提交一致。
+- `IRequest` 行尾注释必须填**完整回复消息名**（`EntryHomeRes`）；Request/Response 成对紧邻。这是工具识别响应关系的唯一依据。
+- `EntryHomeRes` 的 `ErrorCode` 由工具自动追加（实测落 `ProtoMember(2)`），`.proto` 不写。
 - 字段从 1 起递增；`proto3` 语法。
-- `entryHomeRes.ok` 为业务字段，保留。
-- **`package` 行被导出工具忽略**：解析器（`ProtocolFileParser`）只认 `// using X` 注释引入命名空间，不解析 `package`（`define.md` 称 "package 名可自定义"，实为语法占位）。生成的 C# 消息类**写死 `namespace Fantasy`**（`CSharpExporter.GenerateOuterMessages` L182）。故 `.proto` 里 `package` 仅满足 proto3 语法，对最终命名空间无影响。
-- **ErrorCode 字段号**：`ProtocolFileParser.CalculateErrorCodeIndex` —— 收集消息所有已用业务字段号，从 1 起找第一个可用号。故 `EntryHomeRes` 中 `ok = 1` 已占 1，ErrorCode 落 `ProtoMember(2)`。业务字段勿与该动态分配的号冲突的设计原则：Response 中不要在预期 ErrorCode 之前留空号。
+- `package` 行满足 proto3 语法，对生成 C# 命名空间无影响（实测固定 `namespace Fantasy`）。
 
-### 6.3 `ExporterSettings.json`（`Tools/ProtocolExportTool/`）
-修正三路径为本机本仓库实际绝对路径（替换上游作者的 `/Users/fantasy/...`）：
+### 3.3 文件增删清单
 
-```json
-{
-  "Export": {
-    "NetworkProtocolDirectory":      { "Value": "<repo>/Config/NetworkProtocol", "Comment": "ProtoBuf文件所在的文件夹位置" },
-    "NetworkProtocolServerDirectory":{ "Value": "<repo>/Entity/Generate/NetworkProtocol", "Comment": "ProtoBuf生成到服务端的文件夹位置" },
-    "NetworkProtocolClientDirectory":{ "Value": "<repo>/Entity/Generate/NetworkProtocol", "Comment": "ProtoBuf生成到客户端的文件夹位置（暂无独立客户端，与服务端同路径）" }
-  }
-}
-```
+**删除**：
+- `Entity/Protocol/OuterOpcode.cs`（手写常量）→ 由导出工具产到 `Entity/Generate/NetworkProtocol/OuterOpcode.cs`。
+- `Entity/Protocol/home/EntryHome.cs`（手写 MemoryPackable 类）→ 由导出工具产到 `Entity/Generate/NetworkProtocol/OuterMessage.cs`。
+- `Entity/Entity.csproj` 中：`MemoryPackGenerator_TypeScriptOutputDirectory` 属性、对应 `CompilerVisibleProperty`、`CleanTypeScriptOutput` MSBuild Target。
+- `Entity/Protocol/home/` 目录（变空后删除）。
 
-`Run.sh` 静默模式 `export --silent` 照旧可用。
+**新增**：
+- `Config/NetworkProtocol/Outer/EntryHome.proto`（3.2）。
 
-## 7. 文件增删清单
+**生成（不手写、不提交到 git 由人维护；是否纳入 git 见 3.5）**：
+- `Entity/Generate/NetworkProtocol/OuterOpcode.cs`
+- `Entity/Generate/NetworkProtocol/OuterMessage.cs`
+- `Entity/Generate/NetworkProtocol/NetworkProtocolHelper.cs`
 
-### 7.1 删除
-- `Entity/Protocol/OuterOpcode.cs`（手写常量）→ 改由导出工具产到 `Entity/Generate/NetworkProtocol/OuterOpcode.cs`。
-- `Entity/Protocol/home/EntryHome.cs`（手写 MemoryPackable 类）→ 改由导出工具产到 `Entity/Generate/NetworkProtocol/` 对应消息文件。
-- `Entity/Entity.csproj` 中的 `MemoryPackGenerator_TypeScriptOutputDirectory` 属性与 `CompilerVisibleProperty`、`CleanTypeScriptOutput` MSBuild Target。
-- 仓库根目录 `nul` 文件（误生成产物）。
-- 已 `D` 标记的旧 `LoginRequest.cs`/`LoginResponse.cs`/`LoginRequestHandler.cs`、旧 `ts-protocol/*.ts` 等历史残留（git 已标记删除，本次随迁移一并确认）。
+**改动**：
+- `Hotfix/Scene/Gate/Handler/home/EntryHome.cs`：`EntryHomeHandler : Message<EntryHomeReq>` 泛型与 `Run(Session, EntryHomeReq)` 签名不变；因消息命名空间由 `Fantasy.Protocol` 变为 `Fantasy`，调整 `using`（去掉 `using Fantasy.Protocol;`，消息在 `Fantasy` 命名空间可见）。Handler 体内 `JwtHelper.GetUserIdFromToken(message.token)` 不变。
 
-### 7.2 新增/改动
-- `Config/NetworkProtocol/Outer/EntryHome.proto`（新增，6.2）。
-- `Entity/Generate/NetworkProtocol/*.cs`（导出工具生成，含 `OuterOpcode` / 各消息类 / `NetworkProtocolHelper`。**生成文件勿手改**）。
-- `Tools/ProtocolExportTool/ExporterSettings.json`（6.3 路径修正）。
-- 仓库根 `Tools/OpcodeTableExporter/`（自有翻译工具，第 4 节；实现语言待定，纯字符串解析 `OuterOpcode.cs` → `OuterOpcode.json`）。
-- `Hotfix/Scene/Gate/Handler/home/EntryHome.cs`：保持 `Message<EntryHomeReq>` 泛型与 `Run(Session, EntryHomeReq)` 不变；若导出后消息命名空间由 `Fantasy.Protocol` 变为 `Fantasy`（导出工具默认 `namespace Fantasy`），同步调整 `using` 命名空间。
-- `Entity/VOs/session/Session.cs`：与协议迁移无直接关联，本次不动（其 `_lastHeartbeat` 未使用告警可顺带处理，但非本设计范围）。
+### 3.4 命名空间影响
+导出工具产物置于 `namespace Fantasy`（实测），而非当前手写的 `Fantasy.Protocol`。受影响：
+- `EntryHomeHandler` 的 `using`（去 `using Fantasy.Protocol;`）。
+- `OuterOpcode` 引用方式：由 `Fantasy.Protocol.OuterOpcode` 变为 `Fantasy.OuterOpcode`（`using Fantasy;` 后直接 `OuterOpcode.X`）。
+- 删手写 `Fantasy.Protocol.OuterOpcode`，避免与导出版的 `Fantasy.OuterOpcode` 同名不同命名空间造成歧义。
 
-### 7.3 命名空间影响
-导出工具产出的消息类置于 `namespace Fantasy`（见 `CSharpExporter.GenerateOuterMessages`），而非当前手写的 `Fantasy.Protocol`。需同步调整：
-- `EntryHomeHandler` 的 `using`（去掉 `using Fantasy.Protocol;`，消息直接在 `Fantasy` 命名空间可见）。
-- `OuterOpcode` 也由导出工具置于 `namespace Fantasy`（`OuterOpcode` 常量类 `partial`，服务端引用方式 `Fantasy.OuterOpcode.X` 或 `using Fantasy;`）。
-- 该命名空间变更为"手写→框架导出"的固有结果，属本次迁移预期内变更。
+### 3.5 生成代码是否纳入 git
+导出工具产物在 `Entity/Generate/NetworkProtocol/`。两种做法：
+- **纳入 git**：把生成文件提交，CI/他人 clone 即可编译，不依赖本地跑导出工具。生成文件头注明"请勿手改"。
+- **不纳入 git、构建时生成**：`Entity/Generate/` 加入 `.gitignore`，靠 MSBuild Target 在编译前自动跑导出工具。
 
-## 8. 验证与错误处理
+**推荐纳入 git**：当前 `ExporterSettings.json` 用本机绝对路径（`C:/Users/...`），换机器/CI 会失效；生成文件纳入 git 可避免他人必须先改路径再跑工具。代价是改 `.proto` 后要手动重跑工具并提交生成产物（与"生成文件勿手改"不冲突——重跑即覆盖）。
 
-- **编译**：`dotnet build Server.sln` 应 0 error、无 CS0117（opcode 常量由导出工具补全）。
-- **生成器产物转非空**：重建后检查 `Entity/obj/.../NetworkProtocolGenerator/` 下四份 `*Registrar.g.cs` 由 `Array.Empty` 变为含 `EntryHomeReq`/`EntryHomeRes` 的登记——确认协议真正接入框架。
-- **opcode 数值稳定**：同一 `.proto` 多次导出，opcode 值应不变（确定性算法）；`OpcodeTableExporter` 产物可 diff 比对。
-- **传输自洽**：用 `EntryHomeHandler` 触发 `EntryHomeReq`→`EntryHomeRes` 链路，服务端日志确认 `JwtHelper.GetUserIdFromToken` 正常；rpcId 由框架保证回填（已在 `ProcessSession`/`MessageRPC` 源码核证）。
-- **web 兼容**（验证项，非本次实现）：确认 `LightProto` wire format 与标准 protobuf 一致（已核证 `WritingPrimitives`），web 端可解码 body；opcode 经翻译 JSON 与服务端同值。
+> 此项待你拍板（见第 5 节待确认项）。
 
-## 9. 风险与缓解
-- **生成器产回归零**：消息类标记缺失或 `.proto` 语法不符会让生成器回落空——靠"生成器产物非空"校验项捕获。
-- **opcode 翻译漂移**：唯一真相源为导出工具产出的 `OuterOpcode.cs`；翻译工具每次全量重生成，不做增量/合并。
-- **命名空间迁移破坏引用**：清单第 7.3 节已列受影响点，编译即可暴露遗漏。
-- **`OuterOpcode` partial 冲突**：导出产 `namespace Fantasy` 的 `OuterOpcode`,须删除手写的 `Fantasy.Protocol.OuterOpcode`,避免两份 partial 同名不同命名空间的歧义。
-- **`package` 行无效误解**：导出工具忽略 `package`,产物固定 `namespace Fantasy`;勿误以为 `.proto` 的 `package` 能改 C# 命名空间(已核证解析器只用 `// using`)。
+## 4. 验证
 
-## 10. 开题问答摘要（决策记录）
-- 迁移路径：走框架 protobuf 导出工具，项目内不再留 MemoryPack 逻辑。
-- `.proto` 与生成 C# 目录：`Config/NetworkProtocol` 与 `Entity/Generate/NetworkProtocol`。
-- 消息命名：不恢复前缀，导出当前协议、不改名。
-- 客户端：web 端，body 用 `.proto` 走标准 protoc；opcode 表用方案 A 但**不动上游**，加仓库内自有翻译步骤。
-- 范围：只迁服务端；web 客户端接入留作独立后续任务。
+- **编译**：`dotnet build Server.sln` 应 0 error、无 CS0117。（实测通过，唯一警告为 `Session._lastHeartbeat` 未使用，与本次迁移无关。）
+- **消息类纳入编译**：临时移走 `Entity/Generate/` 会使 build 报 CS0246"未能找到 EntryHomeReq"，证明生成类确实被编译进 `Entity.dll`。（实测确认。）
+- **opcode 成对**：生成 `OuterOpcode.cs` 同时含 `EntryHomeReq` 与 `EntryHomeRes`。
+- **框架调度登记接入**：Fantasy 源码生成器不落 `*.g.cs` 文件到 `obj/`，而是 in-memory emit 进编译。验证方法为在 `Entity.dll` 二进制中检索类型名——实测含 `NetworkProtocolRegistrar`、`OpCodeRegistrar`、`ProtoBufDispatcherRegistrar`，确认协议已登记进框架调度。
+- **传输自洽**：触发 `EntryHomeReq`→`EntryHomeRes` 链路，服务端日志确认 `JwtHelper.GetUserIdFromToken` 正常。
+- **opcode 稳定**：同一 `.proto` 多次导出，opcode 值不变（确定性算法）。
+
+## 5. 风险与待确认
+
+- **`ExporterSettings.json` 用本机绝对路径**：换机器失效。若 3.5 选"纳入 git"，此文件本身仍带本机路径——需评估是否改为相对路径（工具是否支持相对路径未验证，保守起见本轮不动，保持本机绝对路径，靠"纳入 git 的生成产物"绕开他人跑工具的需求）。
+- **生成代码纳入 git 与否**（3.5）：待你确认。
+- **命名空间迁移破坏引用**：清单 3.3/3.4 已列受影响点，编译即暴露遗漏。
+- **`OuterOpcode` partial 冲突**：删手写 `Fantasy.Protocol.OuterOpcode`，避免与导出版 `Fantasy.OuterOpcode` 歧义。
+
+## 6. 决策记录
+- 迁移路径：走 Fantasy 框架 protobuf 导出工具管线（撤销 `5f6e26a` 的手写 MemoryPack 路线）。
+- 消息命名：沿用无前缀风格，不改名。
+- 范围：只迁服务端，不碰客户端。
+- 生成代码纳入 git：待确认（默认推荐纳入）。
