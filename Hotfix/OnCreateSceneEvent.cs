@@ -18,6 +18,9 @@ public sealed class OnCreateSceneEvent : AsyncEventSystem<OnCreateScene>
             case SceneType.Http:
                 Log.Info($"[Http] server started. sceneId={scene.SceneConfigId}");
                 break;
+            case SceneType.Game:
+                Log.Info($"[Game] scene started. sceneId={scene.SceneConfigId}");
+                break;
         }
         await FTask.CompletedTask;
     }

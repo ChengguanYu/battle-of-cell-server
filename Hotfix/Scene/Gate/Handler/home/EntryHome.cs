@@ -1,35 +1,35 @@
-﻿using Entity.Models;
-
-using Fantasy;
+﻿using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
 using Fantasy.Network.Interface;
-using Hotfix.Database;
 using Hotfix.Scene.Gate.Service;
 using Hotfix.Utils;
-using Entity.VOs.session;
-using Hotfix.Scene.Http.Repositories;
 
 namespace Hotfix.Scene.Gate.Handler.Home;
-public class EntryHomeHandler : Message<EntryHomeReq>
+public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
 {
-    protected override async FTask Run(Session session, EntryHomeReq message)
+    protected override async FTask Run(Session session, EntryHomeReq request, EntryHomeRes response, Action reply)
     {
-        var userId = JwtHelper.GetUserIdFromToken(message.token);
+        // 1. 验证 token
+        var userId = JwtHelper.GetUserIdFromToken(request.token);
         if (userId == null)
         {
-            session.Dispose();
+            response.ErrorCode = 1; // 错误码
+            reply(); // 必须回复，即使失败
             return;
         }
-        Log.Info($" 用户 {userId} ws 连接建立 , session.address {session.Address}");
-        var user = UserDao.FindById(userId.Value);
-        if (user == null)
+
+        Log.Info($"用户 {userId} ws 连接建立, remoteEndPoint {session.RemoteEndPoint}");
+
+        if (!await SessionService.EntryHome(userId.Value))
         {
-            Log.Warning($"用户 {userId} 不存在，断开连接");
-            session.Dispose();
+            response.ErrorCode = 2;
+            reply();
             return;
         }
-        var usession = new WsSession(user);
-        SessionManger.Instance.Add(usession);
+        // 成功
+        response.ok = true;
+        response.ErrorCode = 0;
+        reply(); // 发送响应
     }
 }
