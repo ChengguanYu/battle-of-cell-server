@@ -1,3 +1,4 @@
+using Entity.Managers;
 using Entity.Models;
 using Entity.VOs.session;
 using Fantasy;
@@ -17,7 +18,7 @@ public static class SessionService
             return false;
         }
         var wsSession = new WsSession(user);
-        SessionManger.Instance.Add(wsSession);
+        SessionManager.Instance.Add(wsSession);
         return true;
     }
 }
