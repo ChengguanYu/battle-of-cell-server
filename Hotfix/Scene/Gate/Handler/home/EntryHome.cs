@@ -2,6 +2,7 @@ using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
 using Fantasy.Network.Interface;
+using Fantasy.Platform.Net;
 using Hotfix.Scene.Gate.Service;
 using Hotfix.Utils;
 
@@ -24,14 +25,6 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
 
         // 从 Scene 取全局组件（OnCreateScene 时挂上）
         var sessionService = session.Scene.GetComponent<SessionService>();
-        if (sessionService == null)
-        {
-            Log.Error("Gate Scene 未挂载 SessionService，请检查 OnCreateSceneEvent");
-            response.ErrorCode = 2;
-            reply();
-            return;
-        }
-
         if (!await sessionService.EntryHome(userId.Value))
         {
             response.ErrorCode = 2;

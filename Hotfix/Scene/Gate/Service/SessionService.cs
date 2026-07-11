@@ -14,6 +14,7 @@ public sealed class SessionService : Fantasy.Entitas.Entity
 {
     public async FTask<bool> EntryHome(long userId)
     {
+        //TODO: 是否有必要查出整个User？毕竟只是用ID
         var user = await UserDao.FindByIdAsync(userId);
         if (user == null)
         {
