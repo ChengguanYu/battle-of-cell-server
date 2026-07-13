@@ -2,7 +2,9 @@ using Entity.Managers;
 using Entity.VOs.session;
 using Fantasy;
 using Fantasy.Async;
+using Hotfix.Common.Abstract.Service;
 using Hotfix.Scene.Http.Repositories;
+using FScene = Fantasy.Scene;
 
 namespace Hotfix.Scene.Gate.Service;
 
@@ -10,7 +12,7 @@ namespace Hotfix.Scene.Gate.Service;
 /// Gate Scene 级会话服务（挂在 Scene 上，全 Handler 共享同一实例）。
 /// 无请求级状态；在线 Session 仍由 SessionManager 持有。
 /// </summary>
-public sealed class SessionService : Fantasy.Entitas.Entity
+public sealed class SessionService() : ServiceBase()
 {
     public async FTask<bool> EntryHome(long userId)
     {
@@ -22,8 +24,10 @@ public sealed class SessionService : Fantasy.Entitas.Entity
             return false;
         }
 
-        var wsSession = new WsSession(user);
+        var wsSession = new WsSession(user);    
         SessionManager.Instance.Add(wsSession);
+        
+        // var response = await this.Scene.Call()
         return true;
     }
 }
