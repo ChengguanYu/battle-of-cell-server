@@ -18,7 +18,7 @@ public class PlayerEntryHandler : MessageRPC<PlayerEntryReq,PlayerEntryResp>
          User? user = await UserDao.FindByIdAsync(req.userId);
          if (user == null)
          {
-             resp.SetError(ErrorCode.PlayerNotFound);
+             resp.SetError(StatusCode.PlayerNotFound);
              reply();
              return;
          }
@@ -28,7 +28,7 @@ public class PlayerEntryHandler : MessageRPC<PlayerEntryReq,PlayerEntryResp>
 
          if (!result.IsSuccess)
          {
-             resp.SetError(ErrorCode.LoadPlayerFailed);
+             resp.SetError(StatusCode.LoadPlayerFailed);
              reply();
              return;
          }

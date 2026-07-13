@@ -10,5 +10,5 @@ message EntryHomeReq // IRequest,EntryHomeRes
 /// 客户端进家园响应
 message EntryHomeRes // IResponse
 {
-    bool ok = 1;
+    uint32 status = 1;
 }

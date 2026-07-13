@@ -8,7 +8,7 @@ namespace Entity.Common;
 /// - Battle: 2000-2999
 /// 0 固定为成功（框架 IResponse 约定），不在此定义。
 /// </summary>
-public enum ErrorCode : uint
+public enum StatusCode : uint
 {
     Ok = 0,
     // ===== Gate / 通用 (1-999) =====

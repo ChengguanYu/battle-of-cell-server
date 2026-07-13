@@ -10,11 +10,11 @@ namespace Hotfix.Utils;
 /// </summary>
 public static class ResponseErrorCodeExtensions
 {
-    /// <summary>给响应设置错误码。</summary>
-    public static void SetError(this IResponse response, ErrorCode code)
+    /// <summary>给响应设置错误码。(仅Inner有效)</summary>
+    public static void SetError(this IResponse response, StatusCode code)
         => response.ErrorCode = (uint)code;
 
-    /// <summary>标记响应成功（ErrorCode = 0，框架约定的成功值）。</summary>
+    /// <summary>标记响应成功（ErrorCode = 0，框架约定的成功值）(仅Inner有效)。</summary>
     public static void SetOk(this IResponse response)
-        => response.ErrorCode = (uint)ErrorCode.Ok;
+        => response.ErrorCode = (uint)StatusCode.Ok;
 }

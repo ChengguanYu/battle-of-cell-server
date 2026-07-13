@@ -8,7 +8,7 @@ using Hotfix.Scene.Gate.Service;
 using Hotfix.Utils;
 
 namespace Hotfix.Scene.Gate.Handler.Home;
-
+// 由于不是使用的官方客户端，ErrorCode 无法使用，在对客户端的响应中需要手动的携带状态码
 public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
 {
     protected override async FTask Run(Session session, EntryHomeReq request, EntryHomeRes response, Action reply)
@@ -17,7 +17,7 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
         var userId = JwtHelper.GetUserIdFromToken(request.token);
         if (userId == null)
         {
-            response.SetError(ErrorCode.TokenInvalid);
+            response.Status = (uint)StatusCode.TokenInvalid;
             reply(); // 必须回复，即使失败
             return;
         }
@@ -28,14 +28,14 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
         var sessionService = session.Scene.GetComponent<SessionService>();
         if (!await sessionService.EntryHome(userId.Value))
         {
-            response.SetError(ErrorCode.SessionEntryFailed);
+            response.Status = (uint)StatusCode.SessionEntryFailed;
             reply();
             return;
         }
-
-        // 成功
-        response.ok = true;
-        response.SetOk();
+        
+        
+        response.Status = (uint)StatusCode.Ok;
+        // response.SetOk();
         reply(); // 发送响应
     }
 }
