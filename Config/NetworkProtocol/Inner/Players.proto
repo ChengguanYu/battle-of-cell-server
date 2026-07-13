@@ -1,0 +1,13 @@
+syntax = "proto3";
+package BattleOfCell.Message;
+
+/// 玩家进入请求
+message PlayerEntryReq // IRequest,PlayerEntryResp
+{
+    int64 userId = 1;
+}
+/// 玩家进入响应
+message PlayerEntryResp // IResponse
+{
+    bool ok = 1;
+}

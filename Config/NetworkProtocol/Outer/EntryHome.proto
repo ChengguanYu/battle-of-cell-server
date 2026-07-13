@@ -11,5 +11,4 @@ message EntryHomeReq // IRequest,EntryHomeRes
 message EntryHomeRes // IResponse
 {
     bool ok = 1;
-    // ErrorCode 由导出工具自动生成，不手写
 }
