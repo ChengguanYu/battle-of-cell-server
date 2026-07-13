@@ -1,3 +1,4 @@
+using Entity.Common;
 using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
@@ -16,7 +17,7 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
         var userId = JwtHelper.GetUserIdFromToken(request.token);
         if (userId == null)
         {
-            response.ErrorCode = 1; // 错误码
+            response.SetError(ErrorCode.TokenInvalid);
             reply(); // 必须回复，即使失败
             return;
         }
@@ -27,14 +28,14 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
         var sessionService = session.Scene.GetComponent<SessionService>();
         if (!await sessionService.EntryHome(userId.Value))
         {
-            response.ErrorCode = 2;
+            response.SetError(ErrorCode.SessionEntryFailed);
             reply();
             return;
         }
 
         // 成功
         response.ok = true;
-        response.ErrorCode = 0;
+        response.SetOk();
         reply(); // 发送响应
     }
 }
