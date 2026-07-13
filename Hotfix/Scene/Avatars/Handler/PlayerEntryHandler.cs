@@ -5,11 +5,9 @@ using Fantasy.Async;
 using Fantasy.Network;
 using Fantasy.Network.Interface;
 using Hotfix.Scene.Http.Repositories;
-using Hotfix.Scene.Players.Service;
+using Hotfix.Scene.Avatars.Service;
 using Hotfix.Utils;
-using Microsoft.AspNetCore.SignalR;
-
-namespace Hotfix.Scene.Players.Handler;
+namespace Hotfix.Scene.Avatars.Handler;
 
 public class PlayerEntryHandler : MessageRPC<PlayerEntryReq,PlayerEntryResp>
 {
@@ -22,7 +20,7 @@ public class PlayerEntryHandler : MessageRPC<PlayerEntryReq,PlayerEntryResp>
              reply();
              return;
          }
-         var srv  = session.Scene.GetComponent<PlayersService>();
+         var srv  = session.Scene.GetComponent<AvatarsService>();
          // 加载到内存中
          var result = await srv.LoadPlayer(user.Id);
 

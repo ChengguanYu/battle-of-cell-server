@@ -4,8 +4,8 @@ using Entity.Domains;
 using Fantasy;
 using Hotfix.Scene.Http.Repositories;
 
-namespace Hotfix.Scene.Players.Service;
-public class PlayersService : Fantasy.Entitas.Entity
+namespace Hotfix.Scene.Avatars.Service;
+public class AvatarsService : Fantasy.Entitas.Entity
 {
     public async Task<InnerResult> LoadPlayer(long userId)
     {
@@ -14,9 +14,9 @@ public class PlayersService : Fantasy.Entitas.Entity
         {
             return InnerResult.Fail("未找到用户");
         }
-        var player = new PlayerDomainPrototype(user);
+        var player = new AvatarDomainPrototype(user);
         
-        PlayerDomain.Inst.Load(player);
+        AvatarDomain.Inst.Load(player);
         
         return InnerResult.Ok();
     }

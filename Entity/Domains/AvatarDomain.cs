@@ -4,10 +4,10 @@ using Entity.Models;
 
 namespace Entity.Domains;
 
-public class PlayerDomainPrototype : User
+public class AvatarDomainPrototype : User
 {
     // 使用基类实例化自己
-    public PlayerDomainPrototype(User user)
+    public AvatarDomainPrototype(User user)
     {
         ArgumentNullException.ThrowIfNull(user);
 
@@ -24,12 +24,12 @@ public class PlayerDomainPrototype : User
 }
 
 
-// Player 只允许交给 PlayersService 管理，切勿跨Scene调用
-public class PlayerDomain : Singleton<PlayerDomain> , IDomainBase<PlayerDomainPrototype>
+// Avatar 只允许交给 AvatarsService 管理，切勿跨Scene调用
+public class AvatarDomain : Singleton<AvatarDomain> , IDomainBase<AvatarDomainPrototype>
 {
-    private Dictionary<long ,PlayerDomainPrototype> _memCache = new();
+    private Dictionary<long ,AvatarDomainPrototype> _memCache = new();
 
-    public void Load(PlayerDomainPrototype player)
+    public void Load(AvatarDomainPrototype player)
     {
         _memCache[player.Id] =  player;
     }

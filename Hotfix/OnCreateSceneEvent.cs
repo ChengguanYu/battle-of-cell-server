@@ -2,7 +2,7 @@ using Fantasy;
 using Fantasy.Async;
 using Fantasy.Event;
 using Hotfix.Scene.Gate.Service;
-using Hotfix.Scene.Players.Service;
+using Hotfix.Scene.Avatars.Service;
 
 namespace Hotfix;
 
@@ -22,9 +22,9 @@ public sealed class OnCreateSceneEvent : AsyncEventSystem<OnCreateScene>
             case SceneType.Http:
                 Log.Info($"[Http] server started. sceneId={scene.SceneConfigId}");
                 break;
-            case SceneType.Players:
-                scene.AddComponent<PlayersService>();
-                Log.Info($"[Players] scene started. sceneId={scene.SceneConfigId}");
+            case SceneType.Avatars:
+                scene.AddComponent<AvatarsService>();
+                Log.Info($"[Avatars] scene started. sceneId={scene.SceneConfigId}");
                 break;
         }
 
