@@ -6,7 +6,7 @@ namespace Fantasy
     /// </summary>
     public static partial class InnerOpcode
     {
-        public const uint PlayerEntryReq = 671098641;
-        public const uint PlayerEntryResp = 805316369;
+        public const uint PlayerEntryReq = 1073751825;
+        public const uint PlayerEntryResp = 1207969553;
     }
 }

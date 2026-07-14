@@ -29,7 +29,7 @@ namespace Fantasy
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class PlayerEntryReq : AMessage, IRequest
+    public partial class PlayerEntryReq : AMessage, IAddressRequest
     {
         public static PlayerEntryReq Create(bool autoReturn = true)
         {
@@ -75,7 +75,7 @@ namespace Fantasy
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class PlayerEntryResp : AMessage, IResponse
+    public partial class PlayerEntryResp : AMessage, IAddressResponse
     {
         public static PlayerEntryResp Create(bool autoReturn = true)
         {
@@ -108,13 +108,13 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             ErrorCode = 0;
-            ok = default;
+            status = default;
             MessageObjectPool<PlayerEntryResp>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.PlayerEntryResp; } 
         [ProtoMember(2)]
         public uint ErrorCode { get; set; }
         [ProtoMember(1)]
-        public bool ok { get; set; }
+        public uint status { get; set; }
     }
 }

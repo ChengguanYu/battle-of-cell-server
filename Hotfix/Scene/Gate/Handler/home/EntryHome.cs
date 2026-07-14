@@ -16,7 +16,7 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
         var userId = JwtHelper.GetUserIdFromToken(request.token);
         if (userId == null)
         {
-            response.Status = (uint)StatusCode.TokenInvalid;
+            response.status = (uint)StatusCode.TokenInvalid;
             reply();
             session.Dispose();
             return;
@@ -27,14 +27,14 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
         var sessionService = session.Scene.GetComponent<SessionService>();
         if (!await sessionService.EntryHome(userId.Value))
         {
-            response.Status = (uint)StatusCode.SessionEntryFailed;
+            response.status = (uint)StatusCode.SessionEntryFailed;
             reply();
             session.Dispose();
             return;
         }
 
 
-        response.Status = (uint)StatusCode.Ok;
+        response.status = (uint)StatusCode.Ok;
         // response.SetOk();
         reply(); // 发送响应
     }

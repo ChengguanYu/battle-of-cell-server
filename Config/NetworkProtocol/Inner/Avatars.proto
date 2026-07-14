@@ -2,12 +2,24 @@ syntax = "proto3";
 package BattleOfCell.Message;
 
 /// 玩家进入请求
-message PlayerEntryReq // IRequest,PlayerEntryResp
+message PlayerEntryReq // IAddressRequest,PlayerEntryResp
 {
     int64 userId = 1;
 }
 /// 玩家进入响应
-message PlayerEntryResp // IResponse
+message PlayerEntryResp // IAddressResponse
 {
-    bool ok = 1;
+    uint32 status = 1;
 }
+//
+///// Gate -> Avatars 加载玩家地址请求
+//message LoadPlayerReq // IAddressRequest,LoadPlayerRes
+//{
+//    int64 userId = 1;
+//}
+//
+///// Gate -> Avatars 加载玩家地址响应
+//message LoadPlayerRes // IAddressResponse
+//{
+//    uint32 status = 1;
+//}
