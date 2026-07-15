@@ -1,5 +1,5 @@
 
-using Entity.Common;
+using Entity.DTOs;
 using Entity.Domains;
 using Fantasy;
 using Hotfix.Scene.Http.Repositories;

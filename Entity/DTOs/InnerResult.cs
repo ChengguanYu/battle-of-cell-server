@@ -1,4 +1,4 @@
-namespace Entity.Common;
+namespace Entity.DTOs;
 
 /// <summary>
 /// 内部调用结果状态（进程内 Domain / Service 之间传递，非网络协议）。
