@@ -1,3 +1,4 @@
+using Entity.DTOs;
 using Entity.Managers;
 using Entity.VOs.session;
 using Fantasy;
@@ -15,19 +16,18 @@ namespace Hotfix.Scene.Gate.Service;
 /// </summary>
 public sealed class SessionService() : ServiceBase()
 {
-    public async FTask<bool> EntryHome(long userId)
+    public async FTask<InnerResult> EntryHome(long userId)
     {
-        //TODO: 是否有必要查出整个User？毕竟只是用ID
         var user = await UserDao.FindByIdAsync(userId);
         if (user == null)
         {
             Log.Warning($"用户 {userId} 不存在，断开连接");
-            return false;
+            return InnerResult.Fail("用户不存在", userId);
         }
 
         var wsSession = new WsSession(user);
         SessionManager.Instance.Add(wsSession);
-        
+
         PlayerEntryResp? resp = null;
         try
         {
@@ -36,18 +36,19 @@ public sealed class SessionService() : ServiceBase()
             // PlayerEntryHandle.cs
             var address = Scene.GetSceneAddress(SceneType.Avatars);
             resp = await Call<PlayerEntryReq, PlayerEntryResp>(address, req);
-            
-            var ok = resp.ErrorCode == (uint)StatusCode.Ok;
-            if (!ok)
+
+            if (resp.ErrorCode != (uint)StatusCode.Ok)
             {
                 Log.Warning($"用户 {userId} PlayerEntry 失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("PlayerEntry 失败", resp.ErrorCode);
             }
-            return ok;
+
+            return InnerResult.Ok();
         }
         catch (InvalidOperationException)
         {
             Log.Warning($"未找到 Avatars Scene，用户 {userId} 进入失败");
-            return false;
+            return InnerResult.Fail("未找到 Avatars Scene", userId);
         }
         finally
         {
