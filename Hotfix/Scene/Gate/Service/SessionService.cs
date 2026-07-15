@@ -28,24 +28,21 @@ public sealed class SessionService() : ServiceBase()
 
         var wsSession = new WsSession(user);
         SessionManager.Instance.Add(wsSession);
-
-        // 跨 Scene 调用 Avatars 的 PlayerEntry，加载玩家到内存。
-        // 目标 Scene 的 Address = 其 RuntimeId，可从 SceneConfig 静态获得。
-        // GetSceneAddress 在未配置 Avatars Scene 时抛 InvalidOperationException，这里捕获降级为业务失败（返回 false）。
-        PlayerEntryReq? req = null;
+        
+        PlayerEntryResp? resp = null;
         try
         {
-            var address = Scene.GetSceneAddress(SceneType.Avatars);
-            req = PlayerEntryReq.Create();
+            var req = PlayerEntryReq.Create();
             req.userId = userId;
-
-            var resp = (PlayerEntryResp)await Scene.Call(address, req);
+            
+            var address = Scene.GetSceneAddress(SceneType.Avatars);
+            resp = await Call<PlayerEntryReq, PlayerEntryResp>(address, req);
+            
             var ok = resp.status == (uint)StatusCode.Ok;
-            if (!ok)
+            if (resp.status != (uint)StatusCode.Ok)
             {
                 Log.Warning($"用户 {userId} PlayerEntry 失败，status={resp.status}");
             }
-            resp.Dispose();
             return ok;
         }
         catch (InvalidOperationException)
@@ -55,7 +52,7 @@ public sealed class SessionService() : ServiceBase()
         }
         finally
         {
-            req?.Dispose();
+            resp?.Dispose();
         }
     }
 }

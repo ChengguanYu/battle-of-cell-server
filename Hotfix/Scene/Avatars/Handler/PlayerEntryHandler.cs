@@ -31,7 +31,7 @@ public sealed class PlayerEntryHandler : AddressRPC<FScene, PlayerEntryReq, Play
             reply();
             return;
         }
-
+    
         resp.SetOk();
         reply();
     }

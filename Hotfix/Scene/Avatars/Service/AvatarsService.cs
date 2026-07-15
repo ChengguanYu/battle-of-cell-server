@@ -15,7 +15,6 @@ public class AvatarsService : Fantasy.Entitas.Entity
             return InnerResult.Fail("未找到用户");
         }
         var player = new AvatarDomainPrototype(user);
-        
         AvatarDomain.Inst.Load(player);
         
         return InnerResult.Ok();
