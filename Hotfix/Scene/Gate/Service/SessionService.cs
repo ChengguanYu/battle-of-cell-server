@@ -36,11 +36,10 @@ public sealed class SessionService() : ServiceBase()
             // PlayerEntryHandle.cs
             var address = Scene.GetSceneAddress(SceneType.Avatars);
             resp = await Call<PlayerEntryReq, PlayerEntryResp>(address, req);
-
-            if (resp.ErrorCode != (uint)StatusCode.Ok)
+            if (!resp.IsOk())
             {
                 Log.Warning($"用户 {userId} PlayerEntry 失败，status={resp.ToMessage()}");
-                return InnerResult.Fail("PlayerEntry 失败", resp.ErrorCode);
+                return InnerResult.Fail("PlayerEntry 失败", resp.ToMessage());
             }
 
             return InnerResult.Ok();

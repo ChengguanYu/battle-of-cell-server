@@ -12,5 +12,4 @@ message EntryHomeResp // IResponse
 {
     MetaData meta = 1;
     repeated RespError error = 2;
-    bool ok = 3;
 }

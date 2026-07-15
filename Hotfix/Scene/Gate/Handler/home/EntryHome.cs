@@ -30,6 +30,7 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeResp>
         }
 
         ReplyOk(response, reply);
+        response.ok = true;
     }
 
     /// <summary>标记响应成功并回复。</summary>
