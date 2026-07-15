@@ -13,6 +13,8 @@ public sealed class SessionManager
     public static SessionManager Instance => _instance;
 
     private readonly ConcurrentDictionary<uint, WsSession> _sessions = new();
+    private readonly ConcurrentDictionary<uint, uint> _userIdToSessionId = new();
+    private readonly ConcurrentDictionary<uint, uint> _sessionIdToUserId = new();
 
     private SessionManager()
     {
@@ -34,14 +36,49 @@ public sealed class SessionManager
         return _sessions.TryAdd(session.GetId, session);
     }
 
+    /// <summary>
+    /// 绑定 userId 与 sessionId。当前两者相等，预留未来由网关独立分配 sessionId。
+    /// 仅在 PlayerEntry 成功后调用。
+    /// </summary>
+    public void Bind(uint userId, uint sessionId)
+    {
+        _userIdToSessionId[userId] = sessionId;
+        _sessionIdToUserId[sessionId] = userId;
+    }
+
     public bool TryGet(uint sessionId, out WsSession? session)
     {
         return _sessions.TryGetValue(sessionId, out session);
     }
 
+    /// <summary>
+    /// 经 userId -> sessionId 映射查找 Session。
+    /// </summary>
+    public bool TryGetByUserId(uint userId, out WsSession? session)
+    {
+        session = null;
+        return _userIdToSessionId.TryGetValue(userId, out var sessionId)
+               && _sessions.TryGetValue(sessionId, out session);
+    }
+
+    public bool TryGetSessionId(uint userId, out uint sessionId)
+    {
+        return _userIdToSessionId.TryGetValue(userId, out sessionId);
+    }
+
     public bool Remove(uint sessionId)
     {
-        return _sessions.TryRemove(sessionId, out _);
+        if (!_sessions.TryRemove(sessionId, out _))
+        {
+            return false;
+        }
+
+        // 经反向映射清理 userId -> sessionId，session 自身不持有 userId。
+        if (_sessionIdToUserId.TryRemove(sessionId, out var userId))
+        {
+            _userIdToSessionId.TryRemove(userId, out _);
+        }
+        return true;
     }
 
     public bool Contains(uint sessionId)

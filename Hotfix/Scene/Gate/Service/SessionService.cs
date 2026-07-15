@@ -42,6 +42,10 @@ public sealed class SessionService() : ServiceBase()
                 return InnerResult.Fail("PlayerEntry 失败", resp.ToMessage());
             }
 
+            // PlayerEntry 成功，绑定 userId 与 sessionId。userId 取自鉴权上下文，
+            // sessionId 取自连接；当前两者相等，预留未来由网关独立分配 sessionId。
+            SessionManager.Instance.Bind((uint)userId, wsSession.GetId);
+
             return InnerResult.Ok();
         }
         catch (InvalidOperationException)

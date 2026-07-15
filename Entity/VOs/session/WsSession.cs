@@ -5,7 +5,7 @@ namespace Entity.VOs.session;
 
 public class WsSession
 {
-   
+  
     private uint _id;
     private string _clientIp = string.Empty;
     private short _clientPort;
