@@ -8,13 +8,19 @@ namespace Hotfix.Utils;
 public static class StatusCodeExtensions
 {
     /// <summary>返回状态码对应的中文消息，未登记的码返回兜底文案。</summary>
-    public static string ToMessage(this StatusCode code) => code switch
+    public static string ToMessage(this StatusCode code) => ToMessage((uint)code);
+
+    /// <summary>
+    /// 按原始状态码(uint)查询消息。协议线上 status 字段为 uint32，
+    /// 调用点无需强转即可翻译，如 <c>resp.status.ToMessage()</c>。
+    /// </summary>
+    public static string ToMessage(this uint code) => code switch
     {
-        StatusCode.Ok => "成功",
-        StatusCode.TokenInvalid => "Token无效",
-        StatusCode.SessionEntryFailed => "会话进入失败",
-        StatusCode.PlayerNotFound => "玩家不存在",
-        StatusCode.LoadPlayerFailed => "加载玩家失败",
-        _ => $"未知状态码({(uint)code})",
+        (uint)StatusCode.Ok => "成功",
+        (uint)StatusCode.TokenInvalid => "Token无效",
+        (uint)StatusCode.SessionEntryFailed => "会话进入失败",
+        (uint)StatusCode.PlayerNotFound => "玩家不存在",
+        (uint)StatusCode.LoadPlayerFailed => "加载玩家失败",
+        _ => $"未知状态码({code})",
     };
 }

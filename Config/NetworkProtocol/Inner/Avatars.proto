@@ -9,7 +9,6 @@ message PlayerEntryReq // IAddressRequest,PlayerEntryResp
 /// 玩家进入响应
 message PlayerEntryResp // IAddressResponse
 {
-    uint32 status = 1;
 }
 //
 ///// Gate -> Avatars 加载玩家地址请求

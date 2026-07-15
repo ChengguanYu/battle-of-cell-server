@@ -37,10 +37,10 @@ public sealed class SessionService() : ServiceBase()
             var address = Scene.GetSceneAddress(SceneType.Avatars);
             resp = await Call<PlayerEntryReq, PlayerEntryResp>(address, req);
             
-            var ok = resp.status == (uint)StatusCode.Ok;
-            if (resp.status != (uint)StatusCode.Ok)
+            var ok = resp.ErrorCode == (uint)StatusCode.Ok;
+            if (resp.ErrorCode != (uint)StatusCode.Ok)
             {
-                Log.Warning($"用户 {userId} PlayerEntry 失败，status={resp.status}");
+                Log.Warning($"用户 {userId} PlayerEntry 失败，status={resp.ErrorCode.ToMessage()}");
             }
             return ok;
         }
