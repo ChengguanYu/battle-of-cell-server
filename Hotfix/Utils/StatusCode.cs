@@ -1,4 +1,4 @@
-namespace Entity.Common;
+namespace Hotfix.Utils;
 
 /// <summary>
 /// 网络协议响应错误码。
