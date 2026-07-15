@@ -38,9 +38,9 @@ public sealed class SessionService() : ServiceBase()
             resp = await Call<PlayerEntryReq, PlayerEntryResp>(address, req);
             
             var ok = resp.ErrorCode == (uint)StatusCode.Ok;
-            if (resp.ErrorCode != (uint)StatusCode.Ok)
+            if (!ok)
             {
-                Log.Warning($"用户 {userId} PlayerEntry 失败，status={resp.ErrorCode.ToMessage()}");
+                Log.Warning($"用户 {userId} PlayerEntry 失败，status={resp.ToMessage()}");
             }
             return ok;
         }
