@@ -1,14 +1,16 @@
 syntax = "proto3";
 package BattleOfCell.Message;
+import "Outer/Meta.proto";
 
 /// 客户端进家园请求
-message EntryHomeReq // IRequest,EntryHomeRes
+message EntryHomeReq // IRequest,EntryHomeResp
 {
     string token = 1;
 }
 
-/// 客户端进家园响应
-message EntryHomeRes // IResponse
+message EntryHomeResp // IResponse
 {
-    uint32 status = 1;
+    MetaData meta = 1;
+    repeated RespError error = 2;
+    bool ok = 3;
 }

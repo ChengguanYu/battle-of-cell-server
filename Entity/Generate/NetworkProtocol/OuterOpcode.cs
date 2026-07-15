@@ -7,6 +7,8 @@ namespace Fantasy
     public static partial class OuterOpcode
     {
         public const uint EntryHomeReq = 268445457;
-        public const uint EntryHomeRes = 402663185;
+        public const uint EntryHomeResp = 402663185;
+        public const uint MetaData = 134227729;
+        public const uint RespError = 134227730;
     }
 }

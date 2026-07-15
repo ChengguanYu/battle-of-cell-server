@@ -108,13 +108,10 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             ErrorCode = 0;
-            status = default;
             MessageObjectPool<PlayerEntryResp>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.PlayerEntryResp; } 
-        [ProtoMember(2)]
-        public uint ErrorCode { get; set; }
         [ProtoMember(1)]
-        public uint status { get; set; }
+        public uint ErrorCode { get; set; }
     }
 }

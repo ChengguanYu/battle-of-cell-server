@@ -65,28 +65,25 @@ namespace Fantasy
         }
         public uint OpCode() { return OuterOpcode.EntryHomeReq; } 
         [ProtoIgnore]
-        public EntryHomeRes ResponseType { get; set; }
+        public EntryHomeResp ResponseType { get; set; }
         [ProtoMember(1)]
         public string token { get; set; }
     }
-    /// <summary>
-    /// 客户端进家园响应
-    /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class EntryHomeRes : AMessage, IResponse
+    public partial class EntryHomeResp : AMessage, IResponse
     {
-        public static EntryHomeRes Create(bool autoReturn = true)
+        public static EntryHomeResp Create(bool autoReturn = true)
         {
-            var entryHomeRes = MessageObjectPool<EntryHomeRes>.Rent();
-            entryHomeRes.AutoReturn = autoReturn;
+            var entryHomeResp = MessageObjectPool<EntryHomeResp>.Rent();
+            entryHomeResp.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                entryHomeRes.SetIsPool(false);
+                entryHomeResp.SetIsPool(false);
             }
             
-            return entryHomeRes;
+            return entryHomeResp;
         }
         
         public void Return()
@@ -107,13 +104,112 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             ErrorCode = 0;
-            status = default;
-            MessageObjectPool<EntryHomeRes>.Return(this);
+            if (meta != null)
+            {
+                meta.Dispose();
+                meta = null;
+            }
+            foreach (var __t in error) __t.Dispose();
+            error.Clear();
+            ok = default;
+            MessageObjectPool<EntryHomeResp>.Return(this);
         }
-        public uint OpCode() { return OuterOpcode.EntryHomeRes; } 
-        [ProtoMember(2)]
+        public uint OpCode() { return OuterOpcode.EntryHomeResp; } 
+        [ProtoMember(4)]
         public uint ErrorCode { get; set; }
         [ProtoMember(1)]
-        public uint status { get; set; }
+        public MetaData meta { get; set; }
+        [ProtoMember(2)]
+        public List<RespError> error { get; set; } = new List<RespError>();
+        [ProtoMember(3)]
+        public bool ok { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class MetaData : AMessage, IMessage
+    {
+        public static MetaData Create(bool autoReturn = true)
+        {
+            var metaData = MessageObjectPool<MetaData>.Rent();
+            metaData.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                metaData.SetIsPool(false);
+            }
+            
+            return metaData;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            status_code = default;
+            timestamp = default;
+            MessageObjectPool<MetaData>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.MetaData; } 
+        [ProtoMember(1)]
+        public uint status_code { get; set; }
+        [ProtoMember(2)]
+        public long timestamp { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class RespError : AMessage, IMessage
+    {
+        public static RespError Create(bool autoReturn = true)
+        {
+            var respError = MessageObjectPool<RespError>.Rent();
+            respError.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                respError.SetIsPool(false);
+            }
+            
+            return respError;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            message = default;
+            args.Clear();
+            MessageObjectPool<RespError>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.RespError; } 
+        [ProtoMember(1)]
+        public string message { get; set; }
+        [ProtoMember(2)]
+        public List<string> args { get; set; } = new List<string>();
     }
 }

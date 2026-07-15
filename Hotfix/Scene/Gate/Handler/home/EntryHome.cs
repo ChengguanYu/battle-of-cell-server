@@ -8,14 +8,14 @@ using Hotfix.Utils;
 
 namespace Hotfix.Scene.Gate.Handler.Home;
 // 由于不是使用的官方客户端，ErrorCode 无法使用，在对客户端的响应中需要手动的携带状态码
-public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
+public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeResp>
 {
-    protected override async FTask Run(Session session, EntryHomeReq request, EntryHomeRes response, Action reply)
+    protected override async FTask Run(Session session, EntryHomeReq request, EntryHomeResp response, Action reply)
     {
         var userId = JwtHelper.GetUserIdFromToken(request.token);
         if (userId == null)
         {
-            response.status = (uint)StatusCode.TokenInvalid;
+            response.SetStatus(StatusCode.TokenInvalid);
             reply();
             session.Dispose();
             return;
@@ -26,14 +26,13 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeRes>
         var sessionService = session.Scene.GetComponent<SessionService>();
         if (!await sessionService.EntryHome(userId.Value))
         {
-            response.status = (uint)StatusCode.SessionEntryFailed;
+            response.SetStatus(StatusCode.SessionEntryFailed);
             reply();
             session.Dispose();
             return;
         }
 
-
-        response.status = (uint)StatusCode.Ok;
+        response.SetOk();
         // response.SetOk();
         reply(); // 发送响应
     }
