@@ -1,12 +1,14 @@
 ﻿
 using Entity.Models;
+using Fantasy.Network;
 
 namespace Entity.VOs.session;
 
 public class WsSession
 {
-  
+ 
     private uint _id;
+    private Session? _session;
     private string _clientIp = string.Empty;
     private short _clientPort;
     
@@ -20,11 +22,22 @@ public class WsSession
         _clientPort = port;
     }
 
+    public Session? GetSession => _session;
+
+    /// <summary>
+    /// 绑定 EntryHome 建立的 Fantasy 网络连接（RPC session）。
+    /// </summary>
+    public void SetSession(Session session)
+    {
+        _session = session;
+    }
+
     public uint GetId => _id;
     
-    public WsSession(User user)
+    public WsSession(User user, Session session)
     {
         _id = (uint)user.Id;
+        _session = session;
     }
     
 }

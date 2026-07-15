@@ -3,6 +3,7 @@ using Entity.Managers;
 using Entity.VOs.session;
 using Fantasy;
 using Fantasy.Async;
+using Fantasy.Network;
 using Hotfix.Common.Abstract.Service;
 using Hotfix.Scene.Http.Repositories;
 using Hotfix.Utils;
@@ -16,7 +17,7 @@ namespace Hotfix.Scene.Gate.Service;
 /// </summary>
 public sealed class SessionService() : ServiceBase()
 {
-    public async FTask<InnerResult> EntryHome(long userId)
+    public async FTask<InnerResult> EntryHome(long userId, Session session)
     {
         var user = await UserDao.FindByIdAsync(userId);
         if (user == null)
@@ -25,7 +26,7 @@ public sealed class SessionService() : ServiceBase()
             return InnerResult.Fail("用户不存在", userId);
         }
 
-        var wsSession = new WsSession(user);
+        var wsSession = new WsSession(user, session);
         SessionManager.Instance.Add(wsSession);
 
         PlayerEntryResp? resp = null;
