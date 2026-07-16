@@ -21,16 +21,16 @@ public sealed class PlayerEntryHandler : AddressRPC<FScene, PlayerEntryReq, Play
             reply();
             return;
         }
-        var srv = scene.GetComponent<AvatarsService>();
+        IAvatarsService avatarsService = scene.GetComponent<AvatarsService>();
         // 加载到内存中
-        var result = await srv.LoadPlayer(user.Id);
+        var result = await avatarsService.LoadPlayer(user.Id);
         if (!result.IsSuccess)
         {
             resp.SetError(StatusCode.LoadPlayerFailed);
             reply();
             return;
         }
-    
+
         resp.SetOk();
         reply();
     }
