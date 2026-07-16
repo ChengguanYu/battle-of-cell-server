@@ -59,4 +59,35 @@ public sealed class SessionService() : ServiceBase()
             resp?.Dispose();
         }
     }
+
+    /// <summary>
+    /// 发起匹配请求：通过内部 RPC 转发到 Avatars Scene 处理。
+    /// </summary>
+    public async FTask<InnerResult> PlayerMatch(long userId)
+    {
+        AvatarMatchResp? resp = null;
+        try
+        {
+            var req = AvatarMatchReq.Create();
+            req.userId = userId;
+            var address = Scene.GetSceneAddress(SceneType.Avatars);
+            resp = await Call<AvatarMatchReq, AvatarMatchResp>(address, req);
+            if (!resp.IsOk())
+            {
+                Log.Warning($"用户 {userId} AvatarMatch 失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("AvatarMatch 失败", resp.ToMessage());
+            }
+
+            return InnerResult.Ok();
+        }
+        catch (InvalidOperationException)
+        {
+            Log.Warning($"未找到 Avatars Scene，用户 {userId} 匹配失败");
+            return InnerResult.Fail("未找到 Avatars Scene", userId);
+        }
+        finally
+        {
+            resp?.Dispose();
+        }
+    }
 }
