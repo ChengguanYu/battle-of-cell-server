@@ -39,6 +39,8 @@ public sealed class WsSession
         _userId = userId;
         _session = session;
         _state = WsSessionState.Online;
+        _lastHeartbeatUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        Log.Trace($"WsSession 绑定成功 New->Online: userId={_userId}");
         return true;
     }
 
@@ -55,6 +57,7 @@ public sealed class WsSession
         }
 
         _state = WsSessionState.Kicked;
+        Log.Trace($"WsSession 被踢下线 Online->Kicked: userId={_userId}, reason={reason}");
         return true;
     }
 
@@ -81,6 +84,7 @@ public sealed class WsSession
 
         ClearBoundData();
         _state = WsSessionState.Closed;
+        Log.Trace($"WsSession 正常关闭 Online->Closed: userId={_userId}");
         return true;
     }
 
@@ -92,6 +96,7 @@ public sealed class WsSession
     {
         if (_state == WsSessionState.Closed)
         {
+            Log.Trace($"WsSession 关闭跳过: 已是 Closed 状态, userId={_userId}");
             return true;
         }
 
@@ -103,6 +108,7 @@ public sealed class WsSession
 
         ClearBoundData();
         _state = WsSessionState.Closed;
+        Log.Trace($"WsSession 踢下线清理完成 Kicked->Closed: userId={_userId}");
         return true;
     }
 
@@ -112,6 +118,7 @@ public sealed class WsSession
     /// </summary>
     public bool UpdateHeartbeat()
     {
+        Log.Trace($"WsSession 心跳更新: userId={_userId}, 上次心跳={_lastHeartbeatUnixMs}, 当前={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
         if (_state != WsSessionState.Online)
         {
             return false;
@@ -123,6 +130,7 @@ public sealed class WsSession
 
     private void ClearBoundData()
     {
+        Log.Trace($"WsSession 清空绑定数据: userId={_userId}, 有Session={_session != null}");
         _userId = 0;
         _session = null;
     }
