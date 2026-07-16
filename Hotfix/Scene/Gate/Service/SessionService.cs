@@ -1,6 +1,5 @@
 using Entity.DTOs;
 using Entity.Managers;
-using Entity.VOs.session;
 using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
@@ -13,7 +12,7 @@ namespace Hotfix.Scene.Gate.Service;
 
 /// <summary>
 /// Gate Scene 级会话服务（挂在 Scene 上，全 Handler 共享同一实例）。
-/// 无请求级状态；在线 Session 仍由 SessionManager 持有。
+/// 无请求级状态；在线绑定由 SessionManager 持有。
 /// </summary>
 public sealed class SessionService() : ServiceBase()
 {
@@ -25,9 +24,6 @@ public sealed class SessionService() : ServiceBase()
             Log.Warning($"用户 {userId} 不存在，断开连接");
             return InnerResult.Fail("用户不存在", userId);
         }
-
-        var wsSession = new WsSession(user, session);
-        SessionManager.Instance.Add(wsSession);
 
         PlayerEntryResp? resp = null;
         try
@@ -43,9 +39,8 @@ public sealed class SessionService() : ServiceBase()
                 return InnerResult.Fail("PlayerEntry 失败", resp.ToMessage());
             }
 
-            // PlayerEntry 成功，绑定 userId 与 sessionId。userId 取自鉴权上下文，
-            // sessionId 取自连接；当前两者相等，预留未来由网关独立分配 sessionId。
-            SessionManager.Instance.Bind((uint)userId, wsSession.GetId);
+            // PlayerEntry 成功后才绑定：写入 WsSession 并建立 userId <-> Session 索引
+            SessionManager.Instance.Bind(userId, session);
 
             return InnerResult.Ok();
         }

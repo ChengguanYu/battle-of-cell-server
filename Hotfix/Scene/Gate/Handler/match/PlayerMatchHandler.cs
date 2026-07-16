@@ -10,16 +10,16 @@ namespace Hotfix.Scene.Gate.Handler.Match;
 
 /// <summary>
 /// 客户端发起匹配请求。
-/// 鉴权后通过内部 RPC 转发到 Avatars Scene 处理匹配逻辑。
+/// 仅解析是否已 Bind（取 userId），鉴权在 EntryHome 完成；再内部 RPC 到 Avatars。
 /// </summary>
 public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchResp>
 {
     protected override async FTask Run(Session session, PlayerMatchReq request, PlayerMatchResp response, Action reply)
     {
-        // 从 SessionManager 反查鉴权时绑定的 userId
+        // 解析已绑定用户；未绑定 = 未进入，不是在此做 JWT 鉴权
         if (!SessionManager.Instance.TryGetUserIdBySession(session, out var userId))
         {
-            ReplyAuthError(session, response, reply);
+            ReplyNotBound(session, response, reply);
             return;
         }
 
@@ -40,8 +40,8 @@ public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchR
         reply();
     }
 
-    /// <summary>鉴权失败：设置错误状态、回复并断开连接。</summary>
-    private static void ReplyAuthError(Session session, PlayerMatchResp response, Action reply)
+    /// <summary>未绑定在线态：回复并断开。</summary>
+    private static void ReplyNotBound(Session session, PlayerMatchResp response, Action reply)
     {
         response.SetStatus(StatusCode.NotAuthenticated);
         var error = RespError.Create();

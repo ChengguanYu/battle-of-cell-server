@@ -5,104 +5,112 @@ using Fantasy.Network;
 namespace Entity.Managers;
 
 /// <summary>
-/// 进程级 WebSocket Session 缓存。
+/// 进程级在线会话缓存。
 /// 定义在 Entity 程序集，不随 Hotfix 热更卸载；仅进程退出时释放。
+/// 索引：userId 与框架 Session（以 Session.Id 为键）双向关联；WsSession 经 Bind 写入内部值。
+/// 重连/顶号由本 Manager 负责，当前未实现完整重连策略。
 /// </summary>
 public sealed class SessionManager
 {
     private static readonly SessionManager _instance = new();
     public static SessionManager Instance => _instance;
 
-    private readonly ConcurrentDictionary<uint, WsSession> _sessions = new();
-    private readonly ConcurrentDictionary<uint, uint> _userIdToSessionId = new();
-    private readonly ConcurrentDictionary<uint, uint> _sessionIdToUserId = new();
+    /// <summary>userId 到 WsSession（在线态主存）。</summary>
+    private readonly ConcurrentDictionary<long, WsSession> _wsByUserId = new();
+
+    /// <summary>userId 到框架 Session（推送/踢人入口）。</summary>
+    private readonly ConcurrentDictionary<long, Session> _sessionByUserId = new();
+
+    /// <summary>框架 Session.Id 到 userId（Handler 解析已绑定用户）。</summary>
+    private readonly ConcurrentDictionary<long, long> _userIdBySessionId = new();
 
     private SessionManager()
     {
     }
 
     /// <summary>
-    /// 添加或覆盖 Session（同 userId 重连时覆盖旧连接）。
+    /// 鉴权成功后绑定：写入 WsSession 内部值，并建立 userId 与 Session 双向索引。
     /// </summary>
-    public void Add(WsSession session)
+    public void Bind(long userId, Session session)
     {
-        _sessions[session.GetId] = session;
+        //TODO:重连冲突逻辑 同 user 已有绑定：先摘掉旧索引（完整重连策略后续再做）
+        if (_wsByUserId.TryRemove(userId, out var oldWs))
+        {
+            oldWs.ClearBind();
+        }
+
+        if (_sessionByUserId.TryRemove(userId, out var oldSession))
+        {
+            _userIdBySessionId.TryRemove(oldSession.Id, out _);
+        }
+
+        var ws = new WsSession();
+        ws.ApplyBind(userId, session);
+
+        _wsByUserId[userId] = ws;
+        _sessionByUserId[userId] = session;
+        _userIdBySessionId[session.Id] = userId;
     }
 
     /// <summary>
-    /// 仅当不存在时添加；已存在则返回 false。
-    /// </summary>
-    public bool TryAdd(WsSession session)
-    {
-        return _sessions.TryAdd(session.GetId, session);
-    }
-
-    /// <summary>
-    /// 绑定 userId 与 sessionId。当前两者相等，预留未来由网关独立分配 sessionId。
-    /// 仅在 PlayerEntry 成功后调用。
-    /// </summary>
-    public void Bind(uint userId, uint sessionId)
-    {
-        _userIdToSessionId[userId] = sessionId;
-        _sessionIdToUserId[sessionId] = userId;
-    }
-
-    public bool TryGet(uint sessionId, out WsSession? session)
-    {
-        return _sessions.TryGetValue(sessionId, out session);
-    }
-
-    /// <summary>
-    /// 经 Fantasy Session 反查 userId（线性扫描匹配 WsSession.GetSession）。
+    /// 经框架 Session 解析已绑定的 userId。未绑定返回 false。
+    /// Handler 用此做“是否已进入”，不做鉴权。
     /// </summary>
     public bool TryGetUserIdBySession(Session session, out long userId)
     {
-        userId = 0;
-        foreach (var ws in _sessions.Values)
-        {
-            if (ws.GetSession == session)
-            {
-                userId = ws.GetId;
-                return true;
-            }
-        }
-        return false;
+        return _userIdBySessionId.TryGetValue(session.Id, out userId);
     }
 
-    /// <summary>
-    /// 经 userId -> sessionId 映射查找 Session。
-    /// </summary>
-    public bool TryGetByUserId(uint userId, out WsSession? session)
+    /// <summary>经 userId 取框架 Session。</summary>
+    public bool TryGetSessionByUserId(long userId, out Session? session)
     {
-        session = null;
-        return _userIdToSessionId.TryGetValue(userId, out var sessionId)
-               && _sessions.TryGetValue(sessionId, out session);
+        return _sessionByUserId.TryGetValue(userId, out session);
     }
 
-    public bool TryGetSessionId(uint userId, out uint sessionId)
+    /// <summary>经 userId 取在线态。</summary>
+    public bool TryGetByUserId(long userId, out WsSession? wsSession)
     {
-        return _userIdToSessionId.TryGetValue(userId, out sessionId);
+        return _wsByUserId.TryGetValue(userId, out wsSession);
     }
 
-    public bool Remove(uint sessionId)
+    /// <summary>解绑并移除索引。</summary>
+    public bool RemoveByUserId(long userId)
     {
-        if (!_sessions.TryRemove(sessionId, out _))
+        if (!_wsByUserId.TryRemove(userId, out var ws))
         {
             return false;
         }
 
-        // 经反向映射清理 userId -> sessionId，session 自身不持有 userId。
-        if (_sessionIdToUserId.TryRemove(sessionId, out var userId))
+        ws.ClearBind();
+        if (_sessionByUserId.TryRemove(userId, out var session))
         {
-            _userIdToSessionId.TryRemove(userId, out _);
+            _userIdBySessionId.TryRemove(session.Id, out _);
         }
+
         return true;
     }
 
-    public bool Contains(uint sessionId)
+    /// <summary>经框架 Session 解绑。</summary>
+    public bool RemoveBySession(Session session)
     {
-        return _sessions.ContainsKey(sessionId);
+        if (!_userIdBySessionId.TryRemove(session.Id, out var userId))
+        {
+            return false;
+        }
+
+        _sessionByUserId.TryRemove(userId, out _);
+        if (_wsByUserId.TryRemove(userId, out var ws))
+        {
+            ws.ClearBind();
+        }
+
+        return true;
     }
 
-    public int Count => _sessions.Count;
+    public bool ContainsUserId(long userId)
+    {
+        return _wsByUserId.ContainsKey(userId);
+    }
+
+    public int Count => _wsByUserId.Count;
 }
