@@ -12,4 +12,6 @@ message PlayerMatchResp // IResponse
 {
   MetaData meta = 1;
   repeated RespError error = 2;
+  /// 业务是否成功（与 meta 同级；true 时 LightProto 会写出该字段）
+  bool ok = 3;
 }

@@ -9,20 +9,20 @@ namespace Hotfix.Utils;
 
 /// <summary>
 /// <see cref="ICommonResponse"/> 状态码/错误赋值的语义化封装。
-/// 自动填充 <see cref="MetaData.status_code"/> 和 <see cref="MetaData.timestamp"/>。
+/// 自动填充 <see cref="MetaData.status_code"/>、<see cref="MetaData.timestamp"/> 与同级 <c>ok</c>。
 /// </summary>
 public static class CommonRespExtensions
 {
-    
-    /// <summary>设置响应状态码并自动填充毫秒级时间戳。</summary>
+    /// <summary>设置响应状态码、ok 标志，并自动填充毫秒级时间戳。</summary>
     public static void SetStatus(this ICommonResponse commonResponse, StatusCode code)
     {
         commonResponse.meta ??= MetaData.Create();
         commonResponse.meta.status_code = (uint)code;
         commonResponse.meta.timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        commonResponse.ok = code == StatusCode.Ok;
     }
-    
-    /// <summary>便捷方法：标记响应成功（<see cref="StatusCode.Ok"/>）。</summary>
+
+    /// <summary>便捷方法：标记响应成功（<see cref="StatusCode.Ok"/>，ok = true）。</summary>
     public static void SetOk(this ICommonResponse commonResponse)
         => commonResponse.SetStatus(StatusCode.Ok);
 

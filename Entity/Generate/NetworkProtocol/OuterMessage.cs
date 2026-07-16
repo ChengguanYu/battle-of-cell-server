@@ -111,15 +111,21 @@ namespace Fantasy
             }
             foreach (var __t in error) __t.Dispose();
             error.Clear();
+            ok = default;
             MessageObjectPool<EntryHomeResp>.Return(this);
         }
         public uint OpCode() { return OuterOpcode.EntryHomeResp; } 
-        [ProtoMember(3)]
+        [ProtoMember(4)]
         public uint ErrorCode { get; set; }
         [ProtoMember(1)]
         public MetaData meta { get; set; }
         [ProtoMember(2)]
         public List<RespError> error { get; set; } = new List<RespError>();
+        /// <summary>
+        /// 业务是否成功（与 meta 同级；true 时 LightProto 会写出该字段）
+        /// </summary>
+        [ProtoMember(3)]
+        public bool ok { get; set; }
     }
     [Serializable]
     [ProtoContract]
@@ -294,14 +300,20 @@ namespace Fantasy
             }
             foreach (var __t in error) __t.Dispose();
             error.Clear();
+            ok = default;
             MessageObjectPool<PlayerMatchResp>.Return(this);
         }
         public uint OpCode() { return OuterOpcode.PlayerMatchResp; } 
-        [ProtoMember(3)]
+        [ProtoMember(4)]
         public uint ErrorCode { get; set; }
         [ProtoMember(1)]
         public MetaData meta { get; set; }
         [ProtoMember(2)]
         public List<RespError> error { get; set; } = new List<RespError>();
+        /// <summary>
+        /// 业务是否成功（与 meta 同级；true 时 LightProto 会写出该字段）
+        /// </summary>
+        [ProtoMember(3)]
+        public bool ok { get; set; }
     }
 }
