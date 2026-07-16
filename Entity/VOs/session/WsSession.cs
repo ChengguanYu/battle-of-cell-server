@@ -1,43 +1,127 @@
+using Fantasy;
 using Fantasy.Network;
 
 namespace Entity.VOs.session;
 
 /// <summary>
-/// 玩家在线态。userId 与框架 Session 仅允许经 ApplyBind 写入。
+/// 玩家在线态 VO。userId / Session 仅允许经状态机合法迁移写入。
+/// 非法迁移不抛异常，记录警告并返回 false，内部数据不变。
 /// </summary>
-public class WsSession
+public sealed class WsSession
 {
     private long _userId;
     private Session? _session;
-    private string _clientIp = string.Empty;
-    private short _clientPort;
-    private long _lastHeartbeat;
+    private long _lastHeartbeatUnixMs;
+    private WsSessionState _state = WsSessionState.New;
 
-    public long GetUserId => _userId;
+    public WsSessionState State => _state;
 
-    public Session? GetSession => _session;
+    public bool IsOnline => _state == WsSessionState.Online;
 
-    public string GetAddress => $"{_clientIp}:{_clientPort}";
+    public long UserId => _userId;
 
-    public void SetAddress(string ip, short port)
-    {
-        _clientIp = ip;
-        _clientPort = port;
-    }
+    public Session? Session => _session;
+
+    public long LastHeartbeatUnixMs => _lastHeartbeatUnixMs;
 
     /// <summary>
-    /// 由 SessionManager.Bind 调用，写入绑定结果。
+    /// 状态迁移：New -&gt; Online（完成绑定）。
+    /// 非法迁移返回 false，不抛异常。
     /// </summary>
-    public void ApplyBind(long userId, Session session)
+    public bool TransitNewToOnline(long userId, Session session)
     {
+        if (_state != WsSessionState.New)
+        {
+            Log.Warning($"WsSession 非法迁移 New-&gt;Online：state={_state}, userId={userId}");
+            return false;
+        }
+
         _userId = userId;
         _session = session;
+        _state = WsSessionState.Online;
+        return true;
     }
 
     /// <summary>
-    /// 由 SessionManager 解绑时调用，清空内部绑定。
+    /// 状态迁移：Online -&gt; Kicked（顶号/踢下线）。
+    /// 非法迁移返回 false，不抛异常。
     /// </summary>
-    public void ClearBind()
+    public bool TransitOnlineToKicked(string? reason = null)
+    {
+        if (_state != WsSessionState.Online)
+        {
+            Log.Warning($"WsSession 非法迁移 Online-&gt;Kicked：state={_state}, userId={_userId}, reason={reason}");
+            return false;
+        }
+
+        _state = WsSessionState.Kicked;
+        return true;
+    }
+
+    /// <summary>
+    /// 状态迁移：Online -&gt; TimedOut（心跳超时未续）。
+    /// TODO: 后续补实现。
+    /// </summary>
+    public bool TransitOnlineToTimedOut()
+    {
+        return false;
+    }
+
+    /// <summary>
+    /// 状态迁移：Online -&gt; Closed（正常解绑）。
+    /// 非法迁移返回 false，不抛异常。
+    /// </summary>
+    public bool TransitOnlineToClosed()
+    {
+        if (_state != WsSessionState.Online)
+        {
+            Log.Warning($"WsSession 非法迁移 Online-&gt;Closed：state={_state}, userId={_userId}");
+            return false;
+        }
+
+        ClearBoundData();
+        _state = WsSessionState.Closed;
+        return true;
+    }
+
+    /// <summary>
+    /// 状态迁移：Kicked -&gt; Closed（踢下线后清理）。
+    /// 已 Closed 视为成功；其他非法迁移返回 false，不抛异常。
+    /// </summary>
+    public bool TransitKickedToClosed()
+    {
+        if (_state == WsSessionState.Closed)
+        {
+            return true;
+        }
+
+        if (_state != WsSessionState.Kicked)
+        {
+            Log.Warning($"WsSession 非法迁移 Kicked-&gt;Closed：state={_state}, userId={_userId}");
+            return false;
+        }
+
+        ClearBoundData();
+        _state = WsSessionState.Closed;
+        return true;
+    }
+
+    /// <summary>
+    /// 刷新心跳时间戳（仅 Online 有效）。
+    /// 非 Online 返回 false，不抛异常。
+    /// </summary>
+    public bool UpdateHeartbeat()
+    {
+        if (_state != WsSessionState.Online)
+        {
+            return false;
+        }
+
+        _lastHeartbeatUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        return true;
+    }
+
+    private void ClearBoundData()
     {
         _userId = 0;
         _session = null;

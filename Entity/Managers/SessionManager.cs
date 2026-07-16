@@ -7,21 +7,16 @@ namespace Entity.Managers;
 /// <summary>
 /// 进程级在线会话缓存。
 /// 定义在 Entity 程序集，不随 Hotfix 热更卸载；仅进程退出时释放。
-/// 索引：userId 与框架 Session（以 Session.Id 为键）双向关联；WsSession 经 Bind 写入内部值。
-/// 重连/顶号由本 Manager 负责，当前未实现完整重连策略。
+/// 索引：userId 与框架 Session（以 Session.Id 为键）双向关联；WsSession 经状态机迁移。
+/// 重连策略未完整实现；同 user 再 Bind 时走 Online-&gt;Kicked-&gt;Closed 顶号路径。
 /// </summary>
 public sealed class SessionManager
 {
     private static readonly SessionManager _instance = new();
     public static SessionManager Instance => _instance;
 
-    /// <summary>userId 到 WsSession（在线态主存）。</summary>
     private readonly ConcurrentDictionary<long, WsSession> _wsByUserId = new();
-
-    /// <summary>userId 到框架 Session（推送/踢人入口）。</summary>
     private readonly ConcurrentDictionary<long, Session> _sessionByUserId = new();
-
-    /// <summary>框架 Session.Id 到 userId（Handler 解析已绑定用户）。</summary>
     private readonly ConcurrentDictionary<long, long> _userIdBySessionId = new();
 
     private SessionManager()
@@ -29,14 +24,15 @@ public sealed class SessionManager
     }
 
     /// <summary>
-    /// 鉴权成功后绑定：写入 WsSession 内部值，并建立 userId 与 Session 双向索引。
+    /// 鉴权成功后绑定：TransitNewToOnline，并建立 userId 与 Session 双向索引。
+    /// 同 user 已有在线态时：Online-&gt;Kicked-&gt;Closed 后换新（旧 Session 不在此 Dispose）。
     /// </summary>
     public void Bind(long userId, Session session)
     {
-        //TODO:重连冲突逻辑 同 user 已有绑定：先摘掉旧索引（完整重连策略后续再做）
+        // TODO: 完整重连策略（同连接复用等）后续再做；当前仅顶号摘旧
         if (_wsByUserId.TryRemove(userId, out var oldWs))
         {
-            oldWs.ClearBind();
+            CloseWs(oldWs, kickIfOnline: true, kickReason: "replaced_by_new_bind");
         }
 
         if (_sessionByUserId.TryRemove(userId, out var oldSession))
@@ -45,7 +41,10 @@ public sealed class SessionManager
         }
 
         var ws = new WsSession();
-        ws.ApplyBind(userId, session);
+        if (!ws.TransitNewToOnline(userId, session))
+        {
+            return;
+        }
 
         _wsByUserId[userId] = ws;
         _sessionByUserId[userId] = session;
@@ -81,7 +80,7 @@ public sealed class SessionManager
             return false;
         }
 
-        ws.ClearBind();
+        CloseWs(ws, kickIfOnline: false);
         if (_sessionByUserId.TryRemove(userId, out var session))
         {
             _userIdBySessionId.TryRemove(session.Id, out _);
@@ -101,7 +100,7 @@ public sealed class SessionManager
         _sessionByUserId.TryRemove(userId, out _);
         if (_wsByUserId.TryRemove(userId, out var ws))
         {
-            ws.ClearBind();
+            CloseWs(ws, kickIfOnline: false);
         }
 
         return true;
@@ -109,8 +108,33 @@ public sealed class SessionManager
 
     public bool ContainsUserId(long userId)
     {
-        return _wsByUserId.ContainsKey(userId);
+        return _wsByUserId.TryGetValue(userId, out var ws) && ws.IsOnline;
     }
 
     public int Count => _wsByUserId.Count;
+
+    /// <summary>
+    /// 将 WsSession 收敛到 Closed。
+    /// kickIfOnline 为 true 时走 Online-&gt;Kicked-&gt;Closed；否则 Online 直接 Online-&gt;Closed。
+    /// </summary>
+    private static void CloseWs(WsSession ws, bool kickIfOnline, string? kickReason = null)
+    {
+        switch (ws.State)
+        {
+            case WsSessionState.Online when kickIfOnline:
+                ws.TransitOnlineToKicked(kickReason);
+                ws.TransitKickedToClosed();
+                break;
+            case WsSessionState.Online:
+                ws.TransitOnlineToClosed();
+                break;
+            case WsSessionState.Kicked:
+                ws.TransitKickedToClosed();
+                break;
+            case WsSessionState.Closed:
+            case WsSessionState.New:
+            case WsSessionState.TimedOut:
+                break;
+        }
+    }
 }
