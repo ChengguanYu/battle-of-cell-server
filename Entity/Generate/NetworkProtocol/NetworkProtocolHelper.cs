@@ -21,6 +21,30 @@ namespace Fantasy
 			return (EntryHomeResp)await session.Call(EntryHomeReq_request);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SessionHeartbeatPing(this Session session, SessionHeartbeatPing SessionHeartbeatPing_message)
+		{
+			session.Send(SessionHeartbeatPing_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SessionHeartbeatPing(this Session session, uint sequence)
+		{
+			using var SessionHeartbeatPing_message = Fantasy.SessionHeartbeatPing.Create();
+			SessionHeartbeatPing_message.sequence = sequence;
+			session.Send(SessionHeartbeatPing_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SessionHeartbeatPong(this Session session, SessionHeartbeatPong SessionHeartbeatPong_message)
+		{
+			session.Send(SessionHeartbeatPong_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SessionHeartbeatPong(this Session session, uint sequence)
+		{
+			using var SessionHeartbeatPong_message = Fantasy.SessionHeartbeatPong.Create();
+			SessionHeartbeatPong_message.sequence = sequence;
+			session.Send(SessionHeartbeatPong_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void MetaData(this Session session, MetaData MetaData_message)
 		{
 			session.Send(MetaData_message);

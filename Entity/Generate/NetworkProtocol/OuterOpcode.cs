@@ -12,5 +12,7 @@ namespace Fantasy
         public const uint PlayerMatchReq = 268445458;
         public const uint PlayerMatchResp = 402663186;
         public const uint RespError = 134227730;
+        public const uint SessionHeartbeatPing = 134227731;
+        public const uint SessionHeartbeatPong = 134227732;
     }
 }

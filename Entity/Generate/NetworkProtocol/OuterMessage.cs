@@ -127,6 +127,94 @@ namespace Fantasy
         [ProtoMember(3)]
         public bool ok { get; set; }
     }
+    /// <summary>
+    /// 客户端心跳。sequence 在单次连接内从 1 开始递增，0 保留。
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class SessionHeartbeatPing : AMessage, IMessage
+    {
+        public static SessionHeartbeatPing Create(bool autoReturn = true)
+        {
+            var sessionHeartbeatPing = MessageObjectPool<SessionHeartbeatPing>.Rent();
+            sessionHeartbeatPing.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                sessionHeartbeatPing.SetIsPool(false);
+            }
+            
+            return sessionHeartbeatPing;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            sequence = default;
+            MessageObjectPool<SessionHeartbeatPing>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.SessionHeartbeatPing; } 
+        [ProtoMember(1)]
+        public uint sequence { get; set; }
+    }
+    /// <summary>
+    /// 服务端心跳确认。sequence 原样回显 SessionHeartbeatPing.sequence。
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class SessionHeartbeatPong : AMessage, IMessage
+    {
+        public static SessionHeartbeatPong Create(bool autoReturn = true)
+        {
+            var sessionHeartbeatPong = MessageObjectPool<SessionHeartbeatPong>.Rent();
+            sessionHeartbeatPong.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                sessionHeartbeatPong.SetIsPool(false);
+            }
+            
+            return sessionHeartbeatPong;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            sequence = default;
+            MessageObjectPool<SessionHeartbeatPong>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.SessionHeartbeatPong; } 
+        [ProtoMember(1)]
+        public uint sequence { get; set; }
+    }
     [Serializable]
     [ProtoContract]
     public partial class MetaData : AMessage, IMessage

@@ -1,0 +1,14 @@
+syntax = "proto3";
+package BattleOfCell.Message;
+
+/// 客户端心跳。sequence 在单次连接内从 1 开始递增，0 保留。
+message SessionHeartbeatPing // IMessage
+{
+    uint32 sequence = 1;
+}
+
+/// 服务端心跳确认。sequence 原样回显 SessionHeartbeatPing.sequence。
+message SessionHeartbeatPong // IMessage
+{
+    uint32 sequence = 1;
+}
