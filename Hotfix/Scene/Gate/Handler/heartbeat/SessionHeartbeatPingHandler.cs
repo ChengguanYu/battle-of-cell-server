@@ -25,7 +25,7 @@ public sealed class SessionHeartbeatPingHandler : MessageRPC<SessionHeartbeatPin
             return;
         }
 
-        response.current = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        response.timestamp = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         reply();
         await FTask.CompletedTask;
     }
