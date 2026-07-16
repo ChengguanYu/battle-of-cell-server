@@ -2,11 +2,11 @@ using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
 using Fantasy.Network.Interface;
-using Fantasy.Platform.Net;
 using Hotfix.Scene.Gate.Service;
 using Hotfix.Utils;
 
 namespace Hotfix.Scene.Gate.Handler.Home;
+
 public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeResp>
 {
     protected override async FTask Run(Session session, EntryHomeReq request, EntryHomeResp response, Action reply)
@@ -14,7 +14,7 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeResp>
         var userId = JwtHelper.GetUserIdFromToken(request.token);
         if (userId == null)
         {
-            ReplyError(session, response, reply, StatusCode.TokenInvalid, StatusCode.TokenInvalid.ToMessage());
+            ReplyError(session, response, reply, StatusCode.TokenInvalid);
             return;
         }
 
@@ -40,11 +40,11 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeResp>
     }
 
     /// <summary>设置状态码与错误详情后回复并断开连接。</summary>
-    private static void ReplyError(Session session, EntryHomeResp response, Action reply, StatusCode code, string reason)
+    private static void ReplyError(Session session, EntryHomeResp response, Action reply, StatusCode code, string? reason = null)
     {
         response.SetStatus(code);
         var error = RespError.Create();
-        error.message = reason;
+        error.message = string.IsNullOrEmpty(reason) ? code.ToMessage() : reason;
         response.AddError(error);
         reply();
         session.Dispose();

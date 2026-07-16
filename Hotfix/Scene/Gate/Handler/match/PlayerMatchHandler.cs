@@ -28,26 +28,34 @@ public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchR
         if (!result.IsSuccess)
         {
             Log.Warning($"用户 {userId} 匹配失败：{result.Reason}");
-            response.SetStatus(StatusCode.MatchFailed);
-            var error = RespError.Create();
-            error.message = result.Reason;
-            response.AddError(error);
-            reply();
+            ReplyFail(response, reply, StatusCode.MatchFailed, result.Reason);
             return;
         }
 
+        ReplyOk(response, reply);
+    }
+
+    /// <summary>标记响应成功并回复。</summary>
+    private static void ReplyOk(PlayerMatchResp response, Action reply)
+    {
         response.SetOk();
+        reply();
+    }
+
+    /// <summary>写入状态码与错误文案后回复，不断开连接。</summary>
+    private static void ReplyFail(PlayerMatchResp response, Action reply, StatusCode code, string? reason = null)
+    {
+        response.SetStatus(code);
+        var error = RespError.Create();
+        error.message = string.IsNullOrEmpty(reason) ? code.ToMessage() : reason;
+        response.AddError(error);
         reply();
     }
 
     /// <summary>未绑定在线态：回复并断开。</summary>
     private static void ReplyNotBound(Session session, PlayerMatchResp response, Action reply)
     {
-        response.SetStatus(StatusCode.NotAuthenticated);
-        var error = RespError.Create();
-        error.message = StatusCode.NotAuthenticated.ToMessage();
-        response.AddError(error);
-        reply();
+        ReplyFail(response, reply, StatusCode.NotAuthenticated);
         session.Dispose();
     }
 }
