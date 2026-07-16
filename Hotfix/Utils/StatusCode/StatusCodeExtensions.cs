@@ -19,8 +19,10 @@ public static class StatusCodeExtensions
         (uint)StatusCode.Ok => "成功",
         (uint)StatusCode.TokenInvalid => "Token无效",
         (uint)StatusCode.SessionEntryFailed => "会话进入失败",
+        (uint)StatusCode.NotAuthenticated => "未鉴权",
         (uint)StatusCode.PlayerNotFound => "玩家不存在",
         (uint)StatusCode.LoadPlayerFailed => "加载玩家失败",
+        (uint)StatusCode.MatchFailed => "匹配失败",
         _ => $"未知状态码({code})",
     };
 }

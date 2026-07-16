@@ -14,8 +14,10 @@ public enum StatusCode : uint
     // ===== Gate / 通用 (1-999) =====
     TokenInvalid = 1,
     SessionEntryFailed = 2,
+    NotAuthenticated = 3,
 
     // ===== Players (1000-1999) =====
     PlayerNotFound = 1000,
     LoadPlayerFailed = 1001,
+    MatchFailed = 1002,
 }
