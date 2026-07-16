@@ -14,7 +14,7 @@ namespace Hotfix.Scene.Gate.Service;
 /// Gate Scene 级会话服务（挂在 Scene 上，全 Handler 共享同一实例）。
 /// 无请求级状态；在线绑定由 SessionManager 持有。
 /// </summary>
-public sealed class SessionService() : ServiceBase()
+public sealed class SessionService() : ServiceBase(), ISessionService
 {
     public async FTask<InnerResult> EntryHome(long userId, Session session)
     {

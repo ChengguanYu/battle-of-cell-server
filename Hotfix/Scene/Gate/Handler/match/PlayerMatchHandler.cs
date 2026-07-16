@@ -23,7 +23,7 @@ public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchR
             return;
         }
 
-        var sessionService = session.Scene.GetComponent<SessionService>();
+        ISessionService sessionService = session.Scene.GetComponent<SessionService>();
         var result = await sessionService.PlayerMatch(userId);
         if (!result.IsSuccess)
         {
