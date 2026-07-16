@@ -132,7 +132,7 @@ namespace Fantasy
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class SessionHeartbeatPing : AMessage, IMessage
+    public partial class SessionHeartbeatPing : AMessage, IRequest
     {
         public static SessionHeartbeatPing Create(bool autoReturn = true)
         {
@@ -164,19 +164,21 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            sequence = default;
+            current = default;
             MessageObjectPool<SessionHeartbeatPing>.Return(this);
         }
         public uint OpCode() { return OuterOpcode.SessionHeartbeatPing; } 
+        [ProtoIgnore]
+        public SessionHeartbeatPong ResponseType { get; set; }
         [ProtoMember(1)]
-        public uint sequence { get; set; }
+        public ulong current { get; set; }
     }
     /// <summary>
     /// 服务端心跳确认。sequence 原样回显 SessionHeartbeatPing.sequence。
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class SessionHeartbeatPong : AMessage, IMessage
+    public partial class SessionHeartbeatPong : AMessage, IResponse
     {
         public static SessionHeartbeatPong Create(bool autoReturn = true)
         {
@@ -208,12 +210,15 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            sequence = default;
+            ErrorCode = 0;
+            current = default;
             MessageObjectPool<SessionHeartbeatPong>.Return(this);
         }
         public uint OpCode() { return OuterOpcode.SessionHeartbeatPong; } 
+        [ProtoMember(2)]
+        public uint ErrorCode { get; set; }
         [ProtoMember(1)]
-        public uint sequence { get; set; }
+        public ulong current { get; set; }
     }
     [Serializable]
     [ProtoContract]
