@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Entity.VOs.session;
+using Fantasy.Network;
 
 namespace Entity.Managers;
 
@@ -49,6 +50,23 @@ public sealed class SessionManager
     public bool TryGet(uint sessionId, out WsSession? session)
     {
         return _sessions.TryGetValue(sessionId, out session);
+    }
+
+    /// <summary>
+    /// 经 Fantasy Session 反查 userId（线性扫描匹配 WsSession.GetSession）。
+    /// </summary>
+    public bool TryGetUserIdBySession(Session session, out long userId)
+    {
+        userId = 0;
+        foreach (var ws in _sessions.Values)
+        {
+            if (ws.GetSession == session)
+            {
+                userId = ws.GetId;
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
