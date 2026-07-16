@@ -10,26 +10,3 @@ message PlayerEntryReq // IAddressRequest,PlayerEntryResp
 message PlayerEntryResp // IAddressResponse
 {
 }
-
-/// Gate -> Avatars 匹配请求
-message AvatarMatchReq // IAddressRequest,AvatarMatchResp
-{
-    int64 userId = 1;
-}
-
-/// Gate -> Avatars 匹配响应
-message AvatarMatchResp // IAddressResponse
-{
-}
-//
-///// Gate -> Avatars 加载玩家地址请求
-//message LoadPlayerReq // IAddressRequest,LoadPlayerRes
-//{
-//    int64 userId = 1;
-//}
-//
-///// Gate -> Avatars 加载玩家地址响应
-//message LoadPlayerRes // IAddressResponse
-//{
-//    uint32 status = 1;
-//}

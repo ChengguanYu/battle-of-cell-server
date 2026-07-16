@@ -309,23 +309,23 @@ namespace Fantasy
         public List<string> args { get; set; } = new List<string>();
     }
     /// <summary>
-    /// 客户端发起匹配请求
+    /// 客户端发起房间匹配请求
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class PlayerMatchReq : AMessage, IRequest
+    public partial class PlayerRoomsReq : AMessage, IRequest
     {
-        public static PlayerMatchReq Create(bool autoReturn = true)
+        public static PlayerRoomsReq Create(bool autoReturn = true)
         {
-            var playerMatchReq = MessageObjectPool<PlayerMatchReq>.Rent();
-            playerMatchReq.AutoReturn = autoReturn;
+            var playerRoomsReq = MessageObjectPool<PlayerRoomsReq>.Rent();
+            playerRoomsReq.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                playerMatchReq.SetIsPool(false);
+                playerRoomsReq.SetIsPool(false);
             }
             
-            return playerMatchReq;
+            return playerRoomsReq;
         }
         
         public void Return()
@@ -345,27 +345,27 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            MessageObjectPool<PlayerMatchReq>.Return(this);
+            MessageObjectPool<PlayerRoomsReq>.Return(this);
         }
-        public uint OpCode() { return OuterOpcode.PlayerMatchReq; } 
+        public uint OpCode() { return OuterOpcode.PlayerRoomsReq; } 
         [ProtoIgnore]
-        public PlayerMatchResp ResponseType { get; set; }
+        public PlayerRoomsResp ResponseType { get; set; }
     }
     [Serializable]
     [ProtoContract]
-    public partial class PlayerMatchResp : AMessage, IResponse
+    public partial class PlayerRoomsResp : AMessage, IResponse
     {
-        public static PlayerMatchResp Create(bool autoReturn = true)
+        public static PlayerRoomsResp Create(bool autoReturn = true)
         {
-            var playerMatchResp = MessageObjectPool<PlayerMatchResp>.Rent();
-            playerMatchResp.AutoReturn = autoReturn;
+            var playerRoomsResp = MessageObjectPool<PlayerRoomsResp>.Rent();
+            playerRoomsResp.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                playerMatchResp.SetIsPool(false);
+                playerRoomsResp.SetIsPool(false);
             }
             
-            return playerMatchResp;
+            return playerRoomsResp;
         }
         
         public void Return()
@@ -394,9 +394,9 @@ namespace Fantasy
             foreach (var __t in error) __t.Dispose();
             error.Clear();
             ok = default;
-            MessageObjectPool<PlayerMatchResp>.Return(this);
+            MessageObjectPool<PlayerRoomsResp>.Return(this);
         }
-        public uint OpCode() { return OuterOpcode.PlayerMatchResp; } 
+        public uint OpCode() { return OuterOpcode.PlayerRoomsResp; } 
         [ProtoMember(4)]
         public uint ErrorCode { get; set; }
         [ProtoMember(1)]
