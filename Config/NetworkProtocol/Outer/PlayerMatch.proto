@@ -1,0 +1,15 @@
+syntax = "proto3";
+package BattleOfCell.Message;
+import "Outer/Meta.proto";
+
+/// 客户端发起匹配请求
+message PlayerMatchReq // IRequest,PlayerMatchResp
+{
+
+}
+
+message PlayerMatchResp // IResponse
+{
+  MetaData meta = 1;
+  repeated RespError error = 2;
+}

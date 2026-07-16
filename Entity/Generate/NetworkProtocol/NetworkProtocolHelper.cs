@@ -46,6 +46,17 @@ namespace Fantasy
 			RespError_message.args = args;
 			session.Send(RespError_message);
 		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<PlayerMatchResp> PlayerMatchReq(this Session session, PlayerMatchReq PlayerMatchReq_request)
+		{
+			return (PlayerMatchResp)await session.Call(PlayerMatchReq_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<PlayerMatchResp> PlayerMatchReq(this Session session)
+		{
+			using var PlayerMatchReq_request = Fantasy.PlayerMatchReq.Create();
+			return (PlayerMatchResp)await session.Call(PlayerMatchReq_request);
+		}
 
    }
 }

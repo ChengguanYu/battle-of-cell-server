@@ -9,4 +9,8 @@ namespace Fantasy
     public partial class EntryHomeResp : ICommonResponse
     {
     }
+
+    public partial class PlayerMatchResp : ICommonResponse
+    {
+    }
 }

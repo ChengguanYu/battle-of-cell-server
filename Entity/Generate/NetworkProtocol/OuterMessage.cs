@@ -111,18 +111,15 @@ namespace Fantasy
             }
             foreach (var __t in error) __t.Dispose();
             error.Clear();
-            ok = default;
             MessageObjectPool<EntryHomeResp>.Return(this);
         }
         public uint OpCode() { return OuterOpcode.EntryHomeResp; } 
-        [ProtoMember(4)]
+        [ProtoMember(3)]
         public uint ErrorCode { get; set; }
         [ProtoMember(1)]
         public MetaData meta { get; set; }
         [ProtoMember(2)]
         public List<RespError> error { get; set; } = new List<RespError>();
-        [ProtoMember(3)]
-        public bool ok { get; set; }
     }
     [Serializable]
     [ProtoContract]
@@ -211,5 +208,100 @@ namespace Fantasy
         public string message { get; set; }
         [ProtoMember(2)]
         public List<string> args { get; set; } = new List<string>();
+    }
+    /// <summary>
+    /// 客户端发起匹配请求
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class PlayerMatchReq : AMessage, IRequest
+    {
+        public static PlayerMatchReq Create(bool autoReturn = true)
+        {
+            var playerMatchReq = MessageObjectPool<PlayerMatchReq>.Rent();
+            playerMatchReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                playerMatchReq.SetIsPool(false);
+            }
+            
+            return playerMatchReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            MessageObjectPool<PlayerMatchReq>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.PlayerMatchReq; } 
+        [ProtoIgnore]
+        public PlayerMatchResp ResponseType { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class PlayerMatchResp : AMessage, IResponse
+    {
+        public static PlayerMatchResp Create(bool autoReturn = true)
+        {
+            var playerMatchResp = MessageObjectPool<PlayerMatchResp>.Rent();
+            playerMatchResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                playerMatchResp.SetIsPool(false);
+            }
+            
+            return playerMatchResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            if (meta != null)
+            {
+                meta.Dispose();
+                meta = null;
+            }
+            foreach (var __t in error) __t.Dispose();
+            error.Clear();
+            MessageObjectPool<PlayerMatchResp>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.PlayerMatchResp; } 
+        [ProtoMember(3)]
+        public uint ErrorCode { get; set; }
+        [ProtoMember(1)]
+        public MetaData meta { get; set; }
+        [ProtoMember(2)]
+        public List<RespError> error { get; set; } = new List<RespError>();
     }
 }
