@@ -66,20 +66,18 @@ public sealed class SessionService() : ServiceBase(), ISessionService
             var req = AvatarMatchReq.Create();
             req.userId = userId;
             var address = Scene.GetSceneAddress(SceneType.Avatars);
-            Log.Info($"[MatchFlow] Gate->Avatar 转发匹配 userId={userId} address={address}");
             resp = await Call<AvatarMatchReq, AvatarMatchResp>(address, req);
             if (!resp.IsOk())
             {
-                Log.Warning($"[MatchFlow] Gate<-Avatar 匹配失败 userId={userId} status={resp.ToMessage()}");
+                Log.Warning($"用户 {userId} AvatarMatch 失败，status={resp.ToMessage()}");
                 return InnerResult.Fail("AvatarMatch 失败", resp.ToMessage());
             }
 
-            Log.Info($"[MatchFlow] Gate<-Avatar 匹配成功 userId={userId}");
             return InnerResult.Ok();
         }
         catch (InvalidOperationException)
         {
-            Log.Warning($"[MatchFlow] 未找到 Avatars Scene userId={userId}");
+            Log.Warning($"未找到 Avatars Scene，用户 {userId} 匹配失败");
             return InnerResult.Fail("未找到 Avatars Scene", userId);
         }
         finally

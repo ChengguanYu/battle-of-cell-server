@@ -23,18 +23,15 @@ public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchR
             return;
         }
 
-        Log.Info($"[MatchFlow] Client->Gate 收到匹配请求 userId={userId}");
-
         ISessionService sessionService = session.Scene.GetComponent<SessionService>();
         var result = await sessionService.PlayerMatch(userId);
         if (!result.IsSuccess)
         {
-            Log.Warning($"[MatchFlow] Gate 匹配失败 userId={userId} reason={result.Reason}");
+            Log.Warning($"用户 {userId} 匹配失败：{result.Reason}");
             ReplyFail(response, reply, StatusCode.MatchFailed, result.Reason);
             return;
         }
 
-        Log.Info($"[MatchFlow] Gate 匹配完成 userId={userId}");
         ReplyOk(response, reply);
     }
 

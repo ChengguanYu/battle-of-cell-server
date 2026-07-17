@@ -18,8 +18,6 @@ public class EntryHomeHandler : MessageRPC<EntryHomeReq, EntryHomeResp>
             return;
         }
 
-        Log.Info($"用户 {userId} ws 连接建立, remoteEndPoint {session.RemoteEndPoint}");
-
         ISessionService sessionService = session.Scene.GetComponent<SessionService>();
         var result = await sessionService.EntryHome(userId.Value, session);
         if (!result.IsSuccess)

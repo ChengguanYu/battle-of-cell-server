@@ -1,5 +1,4 @@
 using Entity.DTOs;
-using Fantasy;
 using Fantasy.Async;
 using Hotfix.Common.Abstract.Service;
 
@@ -17,7 +16,6 @@ public sealed class MatchService() : ServiceBase(), IMatchService
     public async FTask<InnerResult> Match(long userId)
     {
         // TODO: 匹配逻辑待实现
-        Log.Info($"[MatchFlow] MatchService 入队占位成功 userId={userId}");
         await FTask.CompletedTask;
         return InnerResult.Ok();
     }

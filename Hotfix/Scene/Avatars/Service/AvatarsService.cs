@@ -33,7 +33,6 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
     {
         if (!AvatarDomain.Inst.TryGet(userId, out _))
         {
-            Log.Warning($"[MatchFlow] Avatar 玩家未加载 userId={userId}");
             return InnerResult.Fail("玩家未加载", userId);
         }
 
@@ -43,20 +42,18 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
             var req = MatchReq.Create();
             req.userId = userId;
             var address = Scene.GetSceneAddress(SceneType.Match);
-            Log.Info($"[MatchFlow] Avatar->Match 转发匹配 userId={userId} address={address}");
             resp = await Call<MatchReq, MatchResp>(address, req);
             if (!resp.IsOk())
             {
-                Log.Warning($"[MatchFlow] Avatar<-Match 匹配失败 userId={userId} status={resp.ToMessage()}");
+                Log.Warning($"用户 {userId} Match 失败，status={resp.ToMessage()}");
                 return InnerResult.Fail("Match 失败", resp.ToMessage());
             }
 
-            Log.Info($"[MatchFlow] Avatar<-Match 匹配成功 userId={userId}");
             return InnerResult.Ok();
         }
         catch (InvalidOperationException)
         {
-            Log.Warning($"[MatchFlow] 未找到 Match Scene userId={userId}");
+            Log.Warning($"未找到 Match Scene，用户 {userId} 匹配失败");
             return InnerResult.Fail("未找到 Match Scene", userId);
         }
         finally

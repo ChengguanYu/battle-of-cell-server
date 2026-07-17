@@ -15,8 +15,6 @@ public sealed class RoomsEnterHandler : AddressRPC<FScene, RoomsEnterReq, RoomsE
 {
     protected override async FTask Run(FScene scene, RoomsEnterReq req, RoomsEnterResp resp, Action reply)
     {
-        Log.Info($"玩家 {req.userId} 发起进入房间请求");
-
         IRoomsService roomsService = scene.GetComponent<RoomsService>();
         var result = await roomsService.Enter(req.userId);
         if (!result.IsSuccess)
