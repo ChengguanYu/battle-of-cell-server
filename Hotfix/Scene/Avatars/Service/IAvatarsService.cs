@@ -13,4 +13,9 @@ public interface IAvatarsService
     /// 将用户对应的 Avatar 加载到内存领域。
     /// </summary>
     FTask<InnerResult> LoadPlayer(long userId);
+
+    /// <summary>
+    /// 代发匹配：由 Avatar 校验玩家状态后，内部 RPC 到 Match Scene。
+    /// </summary>
+    FTask<InnerResult> Match(long userId);
 }

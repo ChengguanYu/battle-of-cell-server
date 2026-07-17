@@ -10,7 +10,7 @@ namespace Hotfix.Scene.Gate.Handler.Match;
 
 /// <summary>
 /// 客户端发起匹配请求。
-/// 仅解析是否已 Bind（取 userId），鉴权在 EntryHome 完成；再内部 RPC 到 Match Scene。
+/// 仅解析是否已 Bind（取 userId），鉴权在 EntryHome 完成；再内部 RPC 到 Avatars Scene。
 /// </summary>
 public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchResp>
 {
@@ -23,15 +23,18 @@ public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchR
             return;
         }
 
+        Log.Info($"[MatchFlow] Client->Gate 收到匹配请求 userId={userId}");
+
         ISessionService sessionService = session.Scene.GetComponent<SessionService>();
         var result = await sessionService.PlayerMatch(userId);
         if (!result.IsSuccess)
         {
-            Log.Warning($"用户 {userId} 匹配失败：{result.Reason}");
+            Log.Warning($"[MatchFlow] Gate 匹配失败 userId={userId} reason={result.Reason}");
             ReplyFail(response, reply, StatusCode.MatchFailed, result.Reason);
             return;
         }
 
+        Log.Info($"[MatchFlow] Gate 匹配完成 userId={userId}");
         ReplyOk(response, reply);
     }
 

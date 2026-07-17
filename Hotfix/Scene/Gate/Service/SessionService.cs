@@ -56,29 +56,31 @@ public sealed class SessionService() : ServiceBase(), ISessionService
     }
 
     /// <summary>
-    /// 发起匹配请求：通过内部 RPC 转发到 Match Scene 处理。
+    /// 发起匹配请求：通过内部 RPC 转发到 Avatars Scene，由 Avatar 再转 Match。
     /// </summary>
     public async FTask<InnerResult> PlayerMatch(long userId)
     {
-        MatchResp? resp = null;
+        AvatarMatchResp? resp = null;
         try
         {
-            var req = MatchReq.Create();
+            var req = AvatarMatchReq.Create();
             req.userId = userId;
-            var address = Scene.GetSceneAddress(SceneType.Match);
-            resp = await Call<MatchReq, MatchResp>(address, req);
+            var address = Scene.GetSceneAddress(SceneType.Avatars);
+            Log.Info($"[MatchFlow] Gate->Avatar 转发匹配 userId={userId} address={address}");
+            resp = await Call<AvatarMatchReq, AvatarMatchResp>(address, req);
             if (!resp.IsOk())
             {
-                Log.Warning($"用户 {userId} Match 失败，status={resp.ToMessage()}");
-                return InnerResult.Fail("Match 失败", resp.ToMessage());
+                Log.Warning($"[MatchFlow] Gate<-Avatar 匹配失败 userId={userId} status={resp.ToMessage()}");
+                return InnerResult.Fail("AvatarMatch 失败", resp.ToMessage());
             }
 
+            Log.Info($"[MatchFlow] Gate<-Avatar 匹配成功 userId={userId}");
             return InnerResult.Ok();
         }
         catch (InvalidOperationException)
         {
-            Log.Warning($"未找到 Match Scene，用户 {userId} 匹配失败");
-            return InnerResult.Fail("未找到 Match Scene", userId);
+            Log.Warning($"[MatchFlow] 未找到 Avatars Scene userId={userId}");
+            return InnerResult.Fail("未找到 Avatars Scene", userId);
         }
         finally
         {

@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices.JavaScript;
+using System.Diagnostics.CodeAnalysis;
 using Entity.Common;
 using Entity.Models;
 
@@ -33,5 +33,9 @@ public class AvatarDomain : Singleton<AvatarDomain> , IDomainBase<AvatarDomainPr
     {
         _memCache[player.Id] =  player;
     }
-    
+
+    public bool TryGet(long userId, [NotNullWhen(true)] out AvatarDomainPrototype? player)
+    {
+        return _memCache.TryGetValue(userId, out player);
+    }
 }
