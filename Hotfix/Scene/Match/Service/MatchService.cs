@@ -2,15 +2,15 @@ using Entity.DTOs;
 using Fantasy.Async;
 using Hotfix.Common.Abstract.Service;
 
-namespace Hotfix.Scene.Rooms.Service;
+namespace Hotfix.Scene.Match.Service;
 
 /// <summary>
-/// Rooms Scene 级服务（挂在 Scene 上，全 Handler 共享同一实例）。
+/// Match Scene 级服务（挂在 Scene 上，全 Handler 共享同一实例）。
 /// </summary>
-public sealed class RoomsService() : ServiceBase(), IRoomsService
+public sealed class MatchService() : ServiceBase(), IMatchService
 {
     /// <summary>
-    /// 处理玩家进入房间匹配队列。
+    /// 处理玩家进入匹配队列。
     /// 匹配逻辑待实现，当前仅占位成功返回。
     /// </summary>
     public async FTask<InnerResult> Match(long userId)

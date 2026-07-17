@@ -10,7 +10,7 @@ namespace Fantasy
     {
     }
 
-    public partial class PlayerRoomsResp : ICommonResponse
+    public partial class PlayerMatchResp : ICommonResponse
     {
     }
 }

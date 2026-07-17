@@ -59,15 +59,15 @@ namespace Fantasy
 			session.Send(RespError_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<PlayerRoomsResp> PlayerRoomsReq(this Session session, PlayerRoomsReq PlayerRoomsReq_request)
+		public static async FTask<PlayerMatchResp> PlayerMatchReq(this Session session, PlayerMatchReq PlayerMatchReq_request)
 		{
-			return (PlayerRoomsResp)await session.Call(PlayerRoomsReq_request);
+			return (PlayerMatchResp)await session.Call(PlayerMatchReq_request);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<PlayerRoomsResp> PlayerRoomsReq(this Session session)
+		public static async FTask<PlayerMatchResp> PlayerMatchReq(this Session session)
 		{
-			using var PlayerRoomsReq_request = Fantasy.PlayerRoomsReq.Create();
-			return (PlayerRoomsResp)await session.Call(PlayerRoomsReq_request);
+			using var PlayerMatchReq_request = Fantasy.PlayerMatchReq.Create();
+			return (PlayerMatchResp)await session.Call(PlayerMatchReq_request);
 		}
 
    }

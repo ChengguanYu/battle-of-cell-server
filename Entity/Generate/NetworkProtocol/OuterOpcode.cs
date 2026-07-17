@@ -9,8 +9,8 @@ namespace Fantasy
         public const uint EntryHomeReq = 268445457;
         public const uint EntryHomeResp = 402663185;
         public const uint MetaData = 134227729;
-        public const uint PlayerRoomsReq = 268445458;
-        public const uint PlayerRoomsResp = 402663186;
+        public const uint PlayerMatchReq = 268445458;
+        public const uint PlayerMatchResp = 402663186;
         public const uint RespError = 134227730;
         public const uint SessionHeartbeatPing = 268445459;
         public const uint SessionHeartbeatPong = 402663187;
