@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.IO;
 using Fantasy.Platform.Net;
 using System.Runtime.CompilerServices;
 using NLog;
@@ -23,6 +25,20 @@ namespace Fantasy
         {
             // 获取指定名称的 NLog 日志记录器
             _logger = LogManager.GetLogger(name);
+            // 配置加载后即可注入 ANSI 变量（避免 Initialize 前 INFO 无柔和色）
+            EnsureAnsiVariables();
+        }
+
+        private static void EnsureAnsiVariables()
+        {
+            var cfg = LogManager.Configuration;
+            if (cfg == null)
+            {
+                return;
+            }
+
+            cfg.Variables["ansiSoftWhite"] = "\u001b[38;2;220;220;220m";
+            cfg.Variables["ansiReset"] = "\u001b[0m";
         }
 
         /// <summary>
@@ -34,6 +50,7 @@ namespace Fantasy
         public void Initialize(string appId, ProcessMode processMode)
         {
             LogManager.Configuration.Variables["appId"] = string.IsNullOrEmpty(appId) || appId=="0" ? "Develop" : appId;
+            EnsureAnsiVariables();
             ApplyFileFlushOptions(processMode);
             
             if (processMode == ProcessMode.Release)
@@ -265,9 +282,65 @@ namespace Fantasy
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Write(LogLevel level, string sceneName, string message, params object[] args)
         {
-            var logEvent = LogEventInfo.Create(level, _logger.Name, null, message, args);
-            logEvent.Properties["sceneName"] = sceneName;
-            _logger.Log(logEvent);
+            // async target 下 ${callsite} 不可靠；手动跳过 Fantasy.Log / 本封装层后写入 caller。
+            var logEvent = new LogEventInfo(level, _logger.Name, null, message, args);
+            logEvent.Properties["sceneName"] = string.IsNullOrWhiteSpace(sceneName) ? DefaultLogSceneName : sceneName;
+            logEvent.Properties["caller"] = CaptureCaller();
+            _logger.Log(typeof(NLog), logEvent);
+        }
+
+        private static string CaptureCaller()
+        {
+            // skipFrames=1 跳过 CaptureCaller 自身
+            var stack = new StackTrace(1, true);
+            for (var i = 0; i < stack.FrameCount; i++)
+            {
+                var frame = stack.GetFrame(i);
+                var method = frame?.GetMethod();
+                var type = method?.DeclaringType;
+                if (type == null)
+                {
+                    continue;
+                }
+
+                if (type == typeof(NLog) || type.FullName == "Fantasy.Log")
+                {
+                    continue;
+                }
+
+                var ns = type.Namespace;
+                if (ns != null && (ns == "NLog" || ns.StartsWith("NLog.", StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
+                var typeName = type.Name;
+                if (typeName.Contains("<>", StringComparison.Ordinal) || typeName.StartsWith("<", StringComparison.Ordinal))
+                {
+                    var declaring = type.DeclaringType;
+                    if (declaring != null)
+                    {
+                        typeName = declaring.Name;
+                    }
+                }
+
+                var methodName = method!.Name;
+                if (methodName is "MoveNext" or "Invoke" or "Start")
+                {
+                    methodName = methodName == "MoveNext" ? "async" : methodName;
+                }
+
+                var file = frame!.GetFileName();
+                var line = frame.GetFileLineNumber();
+                if (!string.IsNullOrEmpty(file) && line > 0)
+                {
+                    return $"{typeName}.{methodName}({Path.GetFileName(file)}:{line})";
+                }
+
+                return $"{typeName}.{methodName}";
+            }
+
+            return "?";
         }
     }
 }
