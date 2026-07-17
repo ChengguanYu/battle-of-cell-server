@@ -1,0 +1,3 @@
+[submodule "Config/NetworkProtocol"]
+	path = Config/NetworkProtocol
+	url = https://github.com/ChengguanYu/battle-of-cell-proto.git
