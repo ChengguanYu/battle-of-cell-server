@@ -16,7 +16,7 @@ public interface ISessionService
     FTask<InnerResult> EntryHome(long userId, Session session);
 
     /// <summary>
-    /// 发起匹配：通过内部 RPC 转发到 Avatars Scene。
+    /// 发起房间匹配：通过内部 RPC 转发到 Rooms Scene。
     /// </summary>
-    FTask<InnerResult> PlayerMatch(long userId);
+    FTask<InnerResult> PlayerRooms(long userId);
 }

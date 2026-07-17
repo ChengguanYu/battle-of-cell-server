@@ -56,29 +56,29 @@ public sealed class SessionService() : ServiceBase(), ISessionService
     }
 
     /// <summary>
-    /// 发起匹配请求：通过内部 RPC 转发到 Avatars Scene 处理。
+    /// 发起房间匹配请求：通过内部 RPC 转发到 Rooms Scene 处理。
     /// </summary>
-    public async FTask<InnerResult> PlayerMatch(long userId)
+    public async FTask<InnerResult> PlayerRooms(long userId)
     {
-        AvatarMatchResp? resp = null;
+        RoomsMatchResp? resp = null;
         try
         {
-            var req = AvatarMatchReq.Create();
+            var req = RoomsMatchReq.Create();
             req.userId = userId;
-            var address = Scene.GetSceneAddress(SceneType.Avatars);
-            resp = await Call<AvatarMatchReq, AvatarMatchResp>(address, req);
+            var address = Scene.GetSceneAddress(SceneType.Rooms);
+            resp = await Call<RoomsMatchReq, RoomsMatchResp>(address, req);
             if (!resp.IsOk())
             {
-                Log.Warning($"用户 {userId} AvatarMatch 失败，status={resp.ToMessage()}");
-                return InnerResult.Fail("AvatarMatch 失败", resp.ToMessage());
+                Log.Warning($"用户 {userId} RoomsMatch 失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("RoomsMatch 失败", resp.ToMessage());
             }
 
             return InnerResult.Ok();
         }
         catch (InvalidOperationException)
         {
-            Log.Warning($"未找到 Avatars Scene，用户 {userId} 匹配失败");
-            return InnerResult.Fail("未找到 Avatars Scene", userId);
+            Log.Warning($"未找到 Rooms Scene，用户 {userId} 房间匹配失败");
+            return InnerResult.Fail("未找到 Rooms Scene", userId);
         }
         finally
         {
