@@ -204,4 +204,94 @@ namespace Fantasy
         [ProtoMember(1)]
         public uint ErrorCode { get; set; }
     }
+    /// <summary>
+    /// Gate/内部 -> Rooms 进入房间请求
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsEnterReq : AMessage, IAddressRequest
+    {
+        public static RoomsEnterReq Create(bool autoReturn = true)
+        {
+            var roomsEnterReq = MessageObjectPool<RoomsEnterReq>.Rent();
+            roomsEnterReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsEnterReq.SetIsPool(false);
+            }
+            
+            return roomsEnterReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            MessageObjectPool<RoomsEnterReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsEnterReq; } 
+        [ProtoIgnore]
+        public RoomsEnterResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long userId { get; set; }
+    }
+    /// <summary>
+    /// Gate/内部 -> Rooms 进入房间响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsEnterResp : AMessage, IAddressResponse
+    {
+        public static RoomsEnterResp Create(bool autoReturn = true)
+        {
+            var roomsEnterResp = MessageObjectPool<RoomsEnterResp>.Rent();
+            roomsEnterResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsEnterResp.SetIsPool(false);
+            }
+            
+            return roomsEnterResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            MessageObjectPool<RoomsEnterResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsEnterResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+    }
 }

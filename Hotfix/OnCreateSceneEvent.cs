@@ -4,6 +4,7 @@ using Fantasy.Event;
 using Hotfix.Scene.Gate.Service;
 using Hotfix.Scene.Avatars.Service;
 using Hotfix.Scene.Match.Service;
+using Hotfix.Scene.Rooms.Service;
 
 namespace Hotfix;
 
@@ -30,6 +31,10 @@ public sealed class OnCreateSceneEvent : AsyncEventSystem<OnCreateScene>
             case SceneType.Match:
                 scene.AddComponent<MatchService>();
                 Log.Info($"[Match] scene started. sceneId={scene.SceneConfigId}");
+                break;
+            case SceneType.Rooms:
+                scene.AddComponent<RoomsService>();
+                Log.Info($"[Rooms] scene started. sceneId={scene.SceneConfigId}");
                 break;
         }
 

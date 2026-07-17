@@ -10,5 +10,7 @@ namespace Fantasy
         public const uint MatchResp = 1207969553;
         public const uint PlayerEntryReq = 1073751826;
         public const uint PlayerEntryResp = 1207969554;
+        public const uint RoomsEnterReq = 1073751827;
+        public const uint RoomsEnterResp = 1207969555;
     }
 }

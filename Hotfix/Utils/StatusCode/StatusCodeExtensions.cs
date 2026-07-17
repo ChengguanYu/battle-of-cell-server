@@ -23,6 +23,7 @@ public static class StatusCodeExtensions
         (uint)StatusCode.PlayerNotFound => "玩家不存在",
         (uint)StatusCode.LoadPlayerFailed => "加载玩家失败",
         (uint)StatusCode.MatchFailed => "匹配失败",
+        (uint)StatusCode.RoomsEnterFailed => "进入房间失败",
         _ => $"未知状态码({code})",
     };
 }

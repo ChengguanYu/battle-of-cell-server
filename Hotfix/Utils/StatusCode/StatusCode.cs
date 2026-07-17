@@ -20,4 +20,5 @@ public enum StatusCode : uint
     PlayerNotFound = 1000,
     LoadPlayerFailed = 1001,
     MatchFailed = 1002,
+    RoomsEnterFailed = 1003,
 }
