@@ -62,12 +62,22 @@ public sealed class WsSession
     }
 
     /// <summary>
-    /// 状态迁移：Online -&gt; TimedOut（心跳超时未续）。
-    /// TODO: 后续补实现。
+    /// 状态迁移：Online -&gt; TimedOut（连接断开/心跳超时未续）。
+    /// 非法迁移返回 false，不抛异常。
+    /// 进入超时态后解除 Session 引用，保留 userId 供后续清理/重连。
     /// </summary>
     public bool TransitOnlineToTimedOut()
     {
-        return false;
+        if (_state != WsSessionState.Online)
+        {
+            Log.Warning($"WsSession 非法迁移 Online-&gt;TimedOut：state={_state}, userId={_userId}");
+            return false;
+        }
+
+        _session = null;
+        _state = WsSessionState.TimedOut;
+        Log.Info($"WsSession 连接超时/断开 Online->TimedOut: userId={_userId}");
+        return true;
     }
 
     /// <summary>

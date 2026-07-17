@@ -106,6 +106,27 @@ public sealed class SessionManager
         return true;
     }
 
+    /// <summary>
+    /// 连接断开：拆除 Session 索引，并将绑定的 WsSession 迁移到 TimedOut。
+    /// 未绑定或非 Online 时返回 false；不主动 Closed，留给后续清理流程。
+    /// </summary>
+    public bool MarkTimedOutBySession(Session session)
+    {
+        if (!_userIdBySessionId.TryRemove(session.Id, out var userId))
+        {
+            return false;
+        }
+
+        _sessionByUserId.TryRemove(userId, out _);
+
+        if (!_wsByUserId.TryGetValue(userId, out var ws) || ws == null)
+        {
+            return false;
+        }
+
+        return ws.TransitOnlineToTimedOut();
+    }
+
     public bool ContainsUserId(long userId)
     {
         return _wsByUserId.TryGetValue(userId, out var ws) && ws.IsOnline;
