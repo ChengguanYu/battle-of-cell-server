@@ -9,30 +9,6 @@ namespace Fantasy
    public static class NetworkProtocolHelper
    {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<EntryHomeResp> EntryHomeReq(this Session session, EntryHomeReq EntryHomeReq_request)
-		{
-			return (EntryHomeResp)await session.Call(EntryHomeReq_request);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<EntryHomeResp> EntryHomeReq(this Session session, string token)
-		{
-			using var EntryHomeReq_request = Fantasy.EntryHomeReq.Create();
-			EntryHomeReq_request.token = token;
-			return (EntryHomeResp)await session.Call(EntryHomeReq_request);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<SessionHeartbeatPong> SessionHeartbeatPing(this Session session, SessionHeartbeatPing SessionHeartbeatPing_request)
-		{
-			return (SessionHeartbeatPong)await session.Call(SessionHeartbeatPing_request);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<SessionHeartbeatPong> SessionHeartbeatPing(this Session session, ulong timestamp)
-		{
-			using var SessionHeartbeatPing_request = Fantasy.SessionHeartbeatPing.Create();
-			SessionHeartbeatPing_request.timestamp = timestamp;
-			return (SessionHeartbeatPong)await session.Call(SessionHeartbeatPing_request);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void MetaData(this Session session, MetaData MetaData_message)
 		{
 			session.Send(MetaData_message);
@@ -57,6 +33,30 @@ namespace Fantasy
 			RespError_message.message = message;
 			RespError_message.args = args;
 			session.Send(RespError_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<SessionHeartbeatPong> SessionHeartbeatPing(this Session session, SessionHeartbeatPing SessionHeartbeatPing_request)
+		{
+			return (SessionHeartbeatPong)await session.Call(SessionHeartbeatPing_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<SessionHeartbeatPong> SessionHeartbeatPing(this Session session, ulong timestamp)
+		{
+			using var SessionHeartbeatPing_request = Fantasy.SessionHeartbeatPing.Create();
+			SessionHeartbeatPing_request.timestamp = timestamp;
+			return (SessionHeartbeatPong)await session.Call(SessionHeartbeatPing_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<EntryHomeResp> EntryHomeReq(this Session session, EntryHomeReq EntryHomeReq_request)
+		{
+			return (EntryHomeResp)await session.Call(EntryHomeReq_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<EntryHomeResp> EntryHomeReq(this Session session, string token)
+		{
+			using var EntryHomeReq_request = Fantasy.EntryHomeReq.Create();
+			EntryHomeReq_request.token = token;
+			return (EntryHomeResp)await session.Call(EntryHomeReq_request);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static async FTask<PlayerMatchResp> PlayerMatchReq(this Session session, PlayerMatchReq PlayerMatchReq_request)

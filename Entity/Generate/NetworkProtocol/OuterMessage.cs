@@ -23,6 +23,187 @@ using Fantasy.Serialize;
 // ReSharper disable ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
 namespace Fantasy
 {
+    [Serializable]
+    [ProtoContract]
+    public partial class MetaData : AMessage, IMessage
+    {
+        public static MetaData Create(bool autoReturn = true)
+        {
+            var metaData = MessageObjectPool<MetaData>.Rent();
+            metaData.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                metaData.SetIsPool(false);
+            }
+            
+            return metaData;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            status_code = default;
+            timestamp = default;
+            MessageObjectPool<MetaData>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.MetaData; } 
+        [ProtoMember(1)]
+        public uint status_code { get; set; }
+        [ProtoMember(2)]
+        public long timestamp { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class RespError : AMessage, IMessage
+    {
+        public static RespError Create(bool autoReturn = true)
+        {
+            var respError = MessageObjectPool<RespError>.Rent();
+            respError.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                respError.SetIsPool(false);
+            }
+            
+            return respError;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            message = default;
+            args.Clear();
+            MessageObjectPool<RespError>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.RespError; } 
+        [ProtoMember(1)]
+        public string message { get; set; }
+        [ProtoMember(2)]
+        public List<string> args { get; set; } = new List<string>();
+    }
+    /// <summary>
+    /// 客户端心跳。sequence 在单次连接内从 1 开始递增，0 保留。
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class SessionHeartbeatPing : AMessage, IRequest
+    {
+        public static SessionHeartbeatPing Create(bool autoReturn = true)
+        {
+            var sessionHeartbeatPing = MessageObjectPool<SessionHeartbeatPing>.Rent();
+            sessionHeartbeatPing.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                sessionHeartbeatPing.SetIsPool(false);
+            }
+            
+            return sessionHeartbeatPing;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            timestamp = default;
+            MessageObjectPool<SessionHeartbeatPing>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.SessionHeartbeatPing; } 
+        [ProtoIgnore]
+        public SessionHeartbeatPong ResponseType { get; set; }
+        [ProtoMember(1)]
+        public ulong timestamp { get; set; }
+    }
+    /// <summary>
+    /// 服务端心跳确认。sequence 原样回显 SessionHeartbeatPing.sequence。
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class SessionHeartbeatPong : AMessage, IResponse
+    {
+        public static SessionHeartbeatPong Create(bool autoReturn = true)
+        {
+            var sessionHeartbeatPong = MessageObjectPool<SessionHeartbeatPong>.Rent();
+            sessionHeartbeatPong.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                sessionHeartbeatPong.SetIsPool(false);
+            }
+            
+            return sessionHeartbeatPong;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            timestamp = default;
+            MessageObjectPool<SessionHeartbeatPong>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.SessionHeartbeatPong; } 
+        [ProtoMember(2)]
+        public uint ErrorCode { get; set; }
+        [ProtoMember(1)]
+        public ulong timestamp { get; set; }
+    }
     /// <summary>
     /// 客户端进家园请求
     /// </summary>
@@ -126,187 +307,6 @@ namespace Fantasy
         /// </summary>
         [ProtoMember(3)]
         public bool ok { get; set; }
-    }
-    /// <summary>
-    /// 客户端心跳。sequence 在单次连接内从 1 开始递增，0 保留。
-    /// </summary>
-    [Serializable]
-    [ProtoContract]
-    public partial class SessionHeartbeatPing : AMessage, IRequest
-    {
-        public static SessionHeartbeatPing Create(bool autoReturn = true)
-        {
-            var sessionHeartbeatPing = MessageObjectPool<SessionHeartbeatPing>.Rent();
-            sessionHeartbeatPing.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                sessionHeartbeatPing.SetIsPool(false);
-            }
-            
-            return sessionHeartbeatPing;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            timestamp = default;
-            MessageObjectPool<SessionHeartbeatPing>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.SessionHeartbeatPing; } 
-        [ProtoIgnore]
-        public SessionHeartbeatPong ResponseType { get; set; }
-        [ProtoMember(1)]
-        public ulong timestamp { get; set; }
-    }
-    /// <summary>
-    /// 服务端心跳确认。sequence 原样回显 SessionHeartbeatPing.sequence。
-    /// </summary>
-    [Serializable]
-    [ProtoContract]
-    public partial class SessionHeartbeatPong : AMessage, IResponse
-    {
-        public static SessionHeartbeatPong Create(bool autoReturn = true)
-        {
-            var sessionHeartbeatPong = MessageObjectPool<SessionHeartbeatPong>.Rent();
-            sessionHeartbeatPong.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                sessionHeartbeatPong.SetIsPool(false);
-            }
-            
-            return sessionHeartbeatPong;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            ErrorCode = 0;
-            timestamp = default;
-            MessageObjectPool<SessionHeartbeatPong>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.SessionHeartbeatPong; } 
-        [ProtoMember(2)]
-        public uint ErrorCode { get; set; }
-        [ProtoMember(1)]
-        public ulong timestamp { get; set; }
-    }
-    [Serializable]
-    [ProtoContract]
-    public partial class MetaData : AMessage, IMessage
-    {
-        public static MetaData Create(bool autoReturn = true)
-        {
-            var metaData = MessageObjectPool<MetaData>.Rent();
-            metaData.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                metaData.SetIsPool(false);
-            }
-            
-            return metaData;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            status_code = default;
-            timestamp = default;
-            MessageObjectPool<MetaData>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.MetaData; } 
-        [ProtoMember(1)]
-        public uint status_code { get; set; }
-        [ProtoMember(2)]
-        public long timestamp { get; set; }
-    }
-    [Serializable]
-    [ProtoContract]
-    public partial class RespError : AMessage, IMessage
-    {
-        public static RespError Create(bool autoReturn = true)
-        {
-            var respError = MessageObjectPool<RespError>.Rent();
-            respError.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                respError.SetIsPool(false);
-            }
-            
-            return respError;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            message = default;
-            args.Clear();
-            MessageObjectPool<RespError>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.RespError; } 
-        [ProtoMember(1)]
-        public string message { get; set; }
-        [ProtoMember(2)]
-        public List<string> args { get; set; } = new List<string>();
     }
     /// <summary>
     /// 客户端发起匹配请求

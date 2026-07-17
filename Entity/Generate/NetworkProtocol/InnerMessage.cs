@@ -25,6 +25,96 @@ using Fantasy.Serialize;
 namespace Fantasy
 {
     /// <summary>
+    /// Gate -> Avatar 匹配请求
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarMatchReq : AMessage, IAddressRequest
+    {
+        public static AvatarMatchReq Create(bool autoReturn = true)
+        {
+            var avatarMatchReq = MessageObjectPool<AvatarMatchReq>.Rent();
+            avatarMatchReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarMatchReq.SetIsPool(false);
+            }
+            
+            return avatarMatchReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            MessageObjectPool<AvatarMatchReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarMatchReq; } 
+        [ProtoIgnore]
+        public AvatarMatchResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long userId { get; set; }
+    }
+    /// <summary>
+    /// Gate -> Avatar 匹配响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarMatchResp : AMessage, IAddressResponse
+    {
+        public static AvatarMatchResp Create(bool autoReturn = true)
+        {
+            var avatarMatchResp = MessageObjectPool<AvatarMatchResp>.Rent();
+            avatarMatchResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarMatchResp.SetIsPool(false);
+            }
+            
+            return avatarMatchResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            MessageObjectPool<AvatarMatchResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarMatchResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+    }
+    /// <summary>
     /// 玩家进入请求
     /// </summary>
     [Serializable]
@@ -115,7 +205,7 @@ namespace Fantasy
         public uint ErrorCode { get; set; }
     }
     /// <summary>
-    /// Gate -> Match 匹配请求
+    /// Avatar -> Match 匹配请求
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -161,7 +251,7 @@ namespace Fantasy
         public long userId { get; set; }
     }
     /// <summary>
-    /// Gate -> Match 匹配响应
+    /// Avatar -> Match 匹配响应
     /// </summary>
     [Serializable]
     [ProtoContract]
