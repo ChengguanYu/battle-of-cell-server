@@ -123,6 +123,30 @@ public sealed class WsSession
     }
 
     /// <summary>
+    /// 状态迁移：TimedOut -&gt; Closed（断线宽限期结束清理）。
+    /// 已 Closed 视为成功；其他非法迁移返回 false，不抛异常。
+    /// </summary>
+    public bool TransitTimedOutToClosed(string? reason = null)
+    {
+        if (_state == WsSessionState.Closed)
+        {
+            Log.Info($"WsSession 关闭跳过: 已是 Closed 状态, userId={_userId}");
+            return true;
+        }
+
+        if (_state != WsSessionState.TimedOut)
+        {
+            Log.Warning($"WsSession 非法迁移 TimedOut-&gt;Closed：state={_state}, userId={_userId}, reason={reason}");
+            return false;
+        }
+
+        ClearBoundData();
+        _state = WsSessionState.Closed;
+        Log.Info($"WsSession 超时清理完成 TimedOut->Closed: userId={_userId}, reason={reason}");
+        return true;
+    }
+
+    /// <summary>
     /// 刷新心跳时间戳（仅 Online 有效）。
     /// 非 Online 返回 false，不抛异常。
     /// </summary>

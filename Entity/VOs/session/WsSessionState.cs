@@ -19,7 +19,7 @@ public enum WsSessionState
     /// <summary>被顶号/踢下线，等待清理。</summary>
     Kicked = 2,
 
-    /// <summary>心跳超时未续，等待清理。</summary>
+    /// <summary>心跳超时未续/连接断开，等待宽限期清理。</summary>
     TimedOut = 3,
 
     /// <summary>终态，不可再迁移。</summary>

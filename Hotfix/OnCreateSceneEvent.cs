@@ -1,6 +1,7 @@
 using Fantasy;
 using Fantasy.Async;
 using Fantasy.Event;
+using Entity.Managers;
 using Hotfix.Scene.Gate.Service;
 using Hotfix.Scene.Avatars.Service;
 using Hotfix.Scene.Match.Service;
@@ -19,6 +20,8 @@ public sealed class OnCreateSceneEvent : AsyncEventSystem<OnCreateScene>
             case SceneType.Gate:
                 // Scene 级全局组件：该 Gate 下所有 Handler 通过 GetComponent 共享
                 scene.AddComponent<SessionService>();
+                // 绑定 Gate Scene 作为 WsSession TimedOut 宽限期计时宿主
+                SessionManager.Instance.BindTimerScene(scene);
                 Log.Info($"[Gate] scene started. sceneId={scene.SceneConfigId} runtimeId={scene.RuntimeId}, SessionService attached");
                 break;
             case SceneType.Http:
