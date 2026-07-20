@@ -97,11 +97,55 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
     }
 
     /// <summary>
-    /// Gate 通知清理玩家。当前仅打日志，后续再接卸载逻辑。
+    /// Gate 通知清理玩家。
+    /// 若玩家在房间中，先通知 Rooms 做离房检查（最后一人则关房），再卸载 Avatar。
     /// </summary>
     public async FTask CleanupPlayer(long userId, string? reason)
     {
         await FTask.CompletedTask;
+
         Log.Info($"[Avatar] 准备清理玩家: userId={userId}, reason={reason}");
+
+        if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)
+        {
+            Log.Info($"[Avatar] 清理跳过：玩家未加载, userId={userId}, reason={reason}");
+            return;
+        }
+
+        if (player.IsInRoom)
+        {
+            NotifyRoomsPlayerLeave(userId, reason);
+            player.TransitInRoomToLobby(reason ?? "cleanup");
+        }
+
+        if (AvatarDomain.Inst.Remove(userId))
+        {
+            Log.Info($"[Avatar] 玩家已从内存卸载: userId={userId}, reason={reason}");
+        }
+        else
+        {
+            Log.Warning($"[Avatar] 玩家卸载失败（缓存中不存在）: userId={userId}, reason={reason}");
+        }
+    }
+
+    private void NotifyRoomsPlayerLeave(long userId, string? reason)
+    {
+        try
+        {
+            var address = Scene.GetSceneAddress(SceneType.Rooms);
+            var msg = RoomsPlayerLeaveNotify.Create();
+            msg.userId = userId;
+            msg.reason = reason ?? string.Empty;
+            Send(address, msg);
+            Log.Info($"[Avatar] 已通知 Rooms 离房检查: userId={userId}, reason={reason}, address={address}");
+        }
+        catch (InvalidOperationException)
+        {
+            Log.Warning($"[Avatar] 未找到 Rooms Scene，无法通知离房: userId={userId}, reason={reason}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Avatar] 通知 Rooms 离房失败: userId={userId}, reason={reason}, ex={ex}");
+        }
     }
 }

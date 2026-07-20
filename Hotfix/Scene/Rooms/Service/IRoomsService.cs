@@ -14,4 +14,9 @@ public interface IRoomsService
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
     FTask<InnerResult> Enter(long userId);
+
+    /// <summary>
+    /// 玩家离房检查：若不在房则忽略；若是最后一名成员则关闭房间。
+    /// </summary>
+    FTask Leave(long userId, string? reason);
 }

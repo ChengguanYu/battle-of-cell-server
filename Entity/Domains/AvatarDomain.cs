@@ -95,4 +95,12 @@ public class AvatarDomain : Singleton<AvatarDomain> , IDomainBase<AvatarDomainPr
     {
         return _memCache.TryGetValue(userId, out player);
     }
+
+    /// <summary>
+    /// 从内存缓存移除 Avatar。
+    /// </summary>
+    public bool Remove(long userId)
+    {
+        return _memCache.Remove(userId);
+    }
 }
