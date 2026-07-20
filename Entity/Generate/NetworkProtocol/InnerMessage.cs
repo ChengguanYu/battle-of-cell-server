@@ -452,4 +452,54 @@ namespace Fantasy
         [ProtoMember(2)]
         public long room_id { get; set; }
     }
+    /// <summary>
+    /// Avatar -> Rooms 玩家离房检查（会话清理等）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsPlayerLeaveNotify : AMessage, IAddressMessage
+    {
+        public static RoomsPlayerLeaveNotify Create(bool autoReturn = true)
+        {
+            var roomsPlayerLeaveNotify = MessageObjectPool<RoomsPlayerLeaveNotify>.Rent();
+            roomsPlayerLeaveNotify.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsPlayerLeaveNotify.SetIsPool(false);
+            }
+            
+            return roomsPlayerLeaveNotify;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            reason = default;
+            MessageObjectPool<RoomsPlayerLeaveNotify>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsPlayerLeaveNotify; } 
+        [ProtoMember(1)]
+        public long userId { get; set; }
+        /// <summary>
+        /// 离房原因，如 timed_out_grace_expired
+        /// </summary>
+        [ProtoMember(2)]
+        public string reason { get; set; }
+    }
 }
