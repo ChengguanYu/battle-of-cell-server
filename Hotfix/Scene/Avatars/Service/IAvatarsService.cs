@@ -15,7 +15,7 @@ public interface IAvatarsService
     FTask<InnerResult> LoadPlayer(long userId);
 
     /// <summary>
-    /// 代发匹配：由 Avatar 校验玩家状态后，内部 RPC 到 Match Scene。
+    /// 代发匹配：Avatar 仅转发到 Match Scene，不做匹配业务校验。
     /// </summary>
     FTask<InnerResult> Match(long userId);
 }

@@ -10,7 +10,8 @@ namespace Hotfix.Scene.Match.Service;
 public interface IMatchService
 {
     /// <summary>
-    /// 将玩家加入匹配。
+    /// 将玩家加入匹配，并转发到 Rooms 入房；已在房由 Rooms 处理。
+    /// 成功时 Args[0] 为 roomId。
     /// </summary>
     FTask<InnerResult> Match(long userId);
 }

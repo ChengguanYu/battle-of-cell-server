@@ -57,6 +57,7 @@ public sealed class SessionService() : ServiceBase(), ISessionService
 
     /// <summary>
     /// 发起匹配请求：通过内部 RPC 转发到 Avatars Scene，由 Avatar 再转 Match。
+    /// 成功时 Args[0] 为 roomId。
     /// </summary>
     public async FTask<InnerResult> PlayerMatch(long userId)
     {
@@ -73,7 +74,7 @@ public sealed class SessionService() : ServiceBase(), ISessionService
                 return InnerResult.Fail("AvatarMatch 失败", resp.ToMessage());
             }
 
-            return InnerResult.Ok();
+            return InnerResult.Ok(string.Empty, resp.room_id);
         }
         catch (InvalidOperationException)
         {

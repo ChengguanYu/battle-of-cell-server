@@ -7,6 +7,7 @@ namespace Entity.Managers;
 /// 进程级房间缓存。
 /// 定义在 Entity 程序集，不随 Hotfix 热更卸载；仅进程退出时释放。
 /// 索引：roomId 与 userId 双向关联；Room 经状态机迁移。
+/// 写路径约定仅由 Rooms Scene 串行访问。
 /// </summary>
 public sealed class RoomManager
 {
@@ -19,6 +20,45 @@ public sealed class RoomManager
 
     private RoomManager()
     {
+    }
+
+    /// <summary>
+    /// 匹配入房：已在房则直接返回；有 Waiting 未满房则加入；否则创建并加入。
+    /// 仅应由 Rooms Scene 串行调用（Actor 模型），不做跨线程锁。
+    /// </summary>
+    public Room? TryMatchOrCreate(long userId, int capacity = Room.DefaultCapacity)
+    {
+        if (userId <= 0)
+        {
+            return null;
+        }
+
+        if (TryGetByUserId(userId, out var existing) && existing != null)
+        {
+            return existing;
+        }
+
+        Room? candidate = null;
+        foreach (var pair in _roomById)
+        {
+            var room = pair.Value;
+            if (room == null || room.State != RoomState.Waiting || room.IsFull)
+            {
+                continue;
+            }
+
+            if (candidate == null || room.RoomId < candidate.RoomId)
+            {
+                candidate = room;
+            }
+        }
+
+        if (candidate != null && TryJoin(candidate.RoomId, userId))
+        {
+            return candidate;
+        }
+
+        return CreateWithMember(userId, capacity);
     }
 
     /// <summary>

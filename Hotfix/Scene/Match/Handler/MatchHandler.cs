@@ -1,3 +1,4 @@
+using Entity.DTOs;
 using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
@@ -20,12 +21,24 @@ public sealed class MatchHandler : AddressRPC<FScene, MatchReq, MatchResp>
         if (!result.IsSuccess)
         {
             Log.Warning($"玩家 {req.userId} 匹配失败：{result.Reason}");
+            resp.room_id = 0;
             resp.SetError(StatusCode.MatchFailed);
             reply();
             return;
         }
 
+        resp.room_id = TryGetRoomId(result);
         resp.SetOk();
         reply();
+    }
+
+    private static long TryGetRoomId(InnerResult result)
+    {
+        if (result.Args is { Count: > 0 } && result.Args[0] is long roomId)
+        {
+            return roomId;
+        }
+
+        return 0;
     }
 }

@@ -27,15 +27,11 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
     }
 
     /// <summary>
-    /// 校验玩家已加载后，转发匹配请求到 Match Scene。
+    /// 纯转发匹配请求到 Match Scene，不做匹配业务校验。
+    /// 成功时 Args[0] 为 roomId。
     /// </summary>
     public async FTask<InnerResult> Match(long userId)
     {
-        if (!AvatarDomain.Inst.TryGet(userId, out _))
-        {
-            return InnerResult.Fail("玩家未加载", userId);
-        }
-
         MatchResp? resp = null;
         try
         {
@@ -49,7 +45,7 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
                 return InnerResult.Fail("Match 失败", resp.ToMessage());
             }
 
-            return InnerResult.Ok();
+            return InnerResult.Ok(string.Empty, resp.room_id);
         }
         catch (InvalidOperationException)
         {

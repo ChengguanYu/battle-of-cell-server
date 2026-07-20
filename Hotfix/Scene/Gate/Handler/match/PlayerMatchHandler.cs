@@ -32,12 +32,13 @@ public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchR
             return;
         }
 
-        ReplyOk(response, reply);
+        ReplyOk(response, reply, TryGetRoomId(result));
     }
 
-    /// <summary>标记响应成功并回复。</summary>
-    private static void ReplyOk(PlayerMatchResp response, Action reply)
+    /// <summary>标记响应成功并写入 room_id 后回复。</summary>
+    private static void ReplyOk(PlayerMatchResp response, Action reply, long roomId)
     {
+        response.room_id = roomId;
         response.SetOk();
         reply();
     }
@@ -45,6 +46,7 @@ public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchR
     /// <summary>写入状态码与错误文案后回复，不断开连接。</summary>
     private static void ReplyFail(PlayerMatchResp response, Action reply, StatusCode code, string? reason = null)
     {
+        response.room_id = 0;
         response.SetStatus(code);
         var error = RespError.Create();
         error.message = string.IsNullOrEmpty(reason) ? code.ToMessage() : reason;
@@ -57,5 +59,15 @@ public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchR
     {
         ReplyFail(response, reply, StatusCode.NotAuthenticated);
         session.Dispose();
+    }
+
+    private static long TryGetRoomId(Entity.DTOs.InnerResult result)
+    {
+        if (result.Args is { Count: > 0 } && result.Args[0] is long roomId)
+        {
+            return roomId;
+        }
+
+        return 0;
     }
 }

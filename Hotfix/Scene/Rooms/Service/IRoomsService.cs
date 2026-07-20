@@ -10,7 +10,8 @@ namespace Hotfix.Scene.Rooms.Service;
 public interface IRoomsService
 {
     /// <summary>
-    /// 玩家进入房间。
+    /// 玩家进入房间（已在房返回原房间；否则加入 Waiting 未满房或创建）。
+    /// 成功时 Args[0] 为 roomId。
     /// </summary>
     FTask<InnerResult> Enter(long userId);
 }
