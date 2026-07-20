@@ -4,6 +4,7 @@ using Entity.VOs.session;
 using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
+using Fantasy.Platform.Net;
 
 namespace Entity.Managers;
 
@@ -12,7 +13,8 @@ namespace Entity.Managers;
 /// 定义在 Entity 程序集，不随 Hotfix 热更卸载；仅进程退出时释放。
 /// 索引：userId 与框架 Session（以 Session.Id 为键）双向关联；WsSession 经状态机迁移。
 /// 重连策略未完整实现；同 user 再 Bind 时走 Online-&gt;Kicked-&gt;Closed 顶号路径。
-/// TimedOut 后由绑定的 Gate Scene 启动宽限期定时器，到期迁移 Closed 并移除缓存。
+/// TimedOut 后由绑定的 Gate Scene 启动宽限期定时器，到期迁移 Closed 并移除缓存，
+/// 随后单向通知 Avatar 清理玩家。
 /// </summary>
 public sealed class SessionManager
 {
@@ -197,7 +199,11 @@ public sealed class SessionManager
 
         if (ws.State == WsSessionState.TimedOut)
         {
-            ws.TransitTimedOutToClosed("timed_out_grace_expired");
+            if (ws.TransitTimedOutToClosed("timed_out_grace_expired"))
+            {
+                NotifyAvatarCleanup(userId, "timed_out_grace_expired");
+            }
+
             return;
         }
 
@@ -240,6 +246,51 @@ public sealed class SessionManager
 
         FTask.RemoveTimer(scene, ref timerId);
         Log.Info($"WsSession TimedOut 宽限期计时取消: userId={userId}");
+    }
+
+    /// <summary>
+    /// Gate -&gt; Avatar：通知清理玩家（单向消息）。
+    /// </summary>
+    private void NotifyAvatarCleanup(long userId, string reason)
+    {
+        var scene = _timerScene;
+        if (scene == null)
+        {
+            Log.Warning($"SessionManager 未绑定 TimerScene，无法通知 Avatar 清理: userId={userId}, reason={reason}");
+            return;
+        }
+
+        if (userId <= 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var configs = SceneConfigData.Instance.GetSceneBySceneType(SceneType.Avatars);
+            if (configs.Count == 0)
+            {
+                Log.Warning($"未找到 Avatars Scene，无法通知清理: userId={userId}, reason={reason}");
+                return;
+            }
+
+            var msg = AvatarCleanupNotify.Create();
+            msg.userId = userId;
+            msg.reason = reason ?? string.Empty;
+            try
+            {
+                scene.Send(configs[0].Address, msg);
+                Log.Info($"已通知 Avatar 清理玩家: userId={userId}, reason={reason}, address={configs[0].Address}");
+            }
+            finally
+            {
+                msg.Dispose();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"通知 Avatar 清理失败: userId={userId}, reason={reason}, ex={ex}");
+        }
     }
 
     private static void CloseWs(WsSession ws, bool kickIfOnline, string? kickReason = null)

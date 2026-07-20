@@ -18,4 +18,9 @@ public interface IAvatarsService
     /// 代发匹配：Avatar 仅转发到 Match Scene，不做匹配业务校验。
     /// </summary>
     FTask<InnerResult> Match(long userId);
+
+    /// <summary>
+    /// 清理玩家：由 Gate 在 WsSession 清理后通知。
+    /// </summary>
+    FTask CleanupPlayer(long userId, string? reason);
 }

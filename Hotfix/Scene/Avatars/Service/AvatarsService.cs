@@ -95,4 +95,13 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
             resp?.Dispose();
         }
     }
+
+    /// <summary>
+    /// Gate 通知清理玩家。当前仅打日志，后续再接卸载逻辑。
+    /// </summary>
+    public async FTask CleanupPlayer(long userId, string? reason)
+    {
+        await FTask.CompletedTask;
+        Log.Info($"[Avatar] 准备清理玩家: userId={userId}, reason={reason}");
+    }
 }
