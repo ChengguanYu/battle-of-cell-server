@@ -25,96 +25,6 @@ using Fantasy.Serialize;
 namespace Fantasy
 {
     /// <summary>
-    /// Gate -> Avatar 匹配请求
-    /// </summary>
-    [Serializable]
-    [ProtoContract]
-    public partial class AvatarMatchReq : AMessage, IAddressRequest
-    {
-        public static AvatarMatchReq Create(bool autoReturn = true)
-        {
-            var avatarMatchReq = MessageObjectPool<AvatarMatchReq>.Rent();
-            avatarMatchReq.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                avatarMatchReq.SetIsPool(false);
-            }
-            
-            return avatarMatchReq;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            userId = default;
-            MessageObjectPool<AvatarMatchReq>.Return(this);
-        }
-        public uint OpCode() { return InnerOpcode.AvatarMatchReq; } 
-        [ProtoIgnore]
-        public AvatarMatchResp ResponseType { get; set; }
-        [ProtoMember(1)]
-        public long userId { get; set; }
-    }
-    /// <summary>
-    /// Gate -> Avatar 匹配响应
-    /// </summary>
-    [Serializable]
-    [ProtoContract]
-    public partial class AvatarMatchResp : AMessage, IAddressResponse
-    {
-        public static AvatarMatchResp Create(bool autoReturn = true)
-        {
-            var avatarMatchResp = MessageObjectPool<AvatarMatchResp>.Rent();
-            avatarMatchResp.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                avatarMatchResp.SetIsPool(false);
-            }
-            
-            return avatarMatchResp;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            ErrorCode = 0;
-            MessageObjectPool<AvatarMatchResp>.Return(this);
-        }
-        public uint OpCode() { return InnerOpcode.AvatarMatchResp; } 
-        [ProtoMember(1)]
-        public uint ErrorCode { get; set; }
-    }
-    /// <summary>
     /// 玩家进入请求
     /// </summary>
     [Serializable]
@@ -205,6 +115,102 @@ namespace Fantasy
         public uint ErrorCode { get; set; }
     }
     /// <summary>
+    /// Gate -> Avatar 匹配请求
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarMatchReq : AMessage, IAddressRequest
+    {
+        public static AvatarMatchReq Create(bool autoReturn = true)
+        {
+            var avatarMatchReq = MessageObjectPool<AvatarMatchReq>.Rent();
+            avatarMatchReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarMatchReq.SetIsPool(false);
+            }
+            
+            return avatarMatchReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            MessageObjectPool<AvatarMatchReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarMatchReq; } 
+        [ProtoIgnore]
+        public AvatarMatchResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long userId { get; set; }
+    }
+    /// <summary>
+    /// Gate -> Avatar 匹配响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarMatchResp : AMessage, IAddressResponse
+    {
+        public static AvatarMatchResp Create(bool autoReturn = true)
+        {
+            var avatarMatchResp = MessageObjectPool<AvatarMatchResp>.Rent();
+            avatarMatchResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarMatchResp.SetIsPool(false);
+            }
+            
+            return avatarMatchResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            room_id = default;
+            MessageObjectPool<AvatarMatchResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarMatchResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+        /// <summary>
+        /// 匹配成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
+    }
+    /// <summary>
     /// Avatar -> Match 匹配请求
     /// </summary>
     [Serializable]
@@ -288,14 +294,20 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             ErrorCode = 0;
+            room_id = default;
             MessageObjectPool<MatchResp>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.MatchResp; } 
         [ProtoMember(1)]
         public uint ErrorCode { get; set; }
+        /// <summary>
+        /// 匹配成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
     }
     /// <summary>
-    /// Gate/内部 -> Rooms 进入房间请求
+    /// Match/Avatar -> Rooms 进入房间请求
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -341,7 +353,7 @@ namespace Fantasy
         public long userId { get; set; }
     }
     /// <summary>
-    /// Gate/内部 -> Rooms 进入房间响应
+    /// Match/Avatar -> Rooms 进入房间响应
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -378,10 +390,16 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             ErrorCode = 0;
+            room_id = default;
             MessageObjectPool<RoomsEnterResp>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.RoomsEnterResp; } 
         [ProtoMember(1)]
         public uint ErrorCode { get; set; }
+        /// <summary>
+        /// 进入成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
     }
 }
