@@ -211,6 +211,56 @@ namespace Fantasy
         public long room_id { get; set; }
     }
     /// <summary>
+    /// Gate -> Avatar 清理玩家通知（WsSession 清理后）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarCleanupNotify : AMessage, IAddressMessage
+    {
+        public static AvatarCleanupNotify Create(bool autoReturn = true)
+        {
+            var avatarCleanupNotify = MessageObjectPool<AvatarCleanupNotify>.Rent();
+            avatarCleanupNotify.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarCleanupNotify.SetIsPool(false);
+            }
+            
+            return avatarCleanupNotify;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            reason = default;
+            MessageObjectPool<AvatarCleanupNotify>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarCleanupNotify; } 
+        [ProtoMember(1)]
+        public long userId { get; set; }
+        /// <summary>
+        /// 清理原因，如 timed_out_grace_expired
+        /// </summary>
+        [ProtoMember(2)]
+        public string reason { get; set; }
+    }
+    /// <summary>
     /// Avatar -> Match 匹配请求
     /// </summary>
     [Serializable]
