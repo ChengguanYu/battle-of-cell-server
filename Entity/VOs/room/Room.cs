@@ -5,6 +5,7 @@ namespace Entity.VOs.room;
 /// <summary>
 /// 房间运行态 VO。
 /// 成员集合与状态仅允许经状态机合法迁移写入；非法迁移不抛异常，记录警告并返回 false。
+/// 状态机只表达生死：New -&gt; Active -&gt; Closed。
 /// </summary>
 public sealed class Room
 {
@@ -28,6 +29,8 @@ public sealed class Room
 
     public bool IsFull => _memberUserIds.Count >= _capacity;
 
+    public bool IsActive => _state == RoomState.Active;
+
     public bool IsClosed => _state == RoomState.Closed;
 
     public long CreatedAtUnixMs => _createdAtUnixMs;
@@ -38,13 +41,13 @@ public sealed class Room
     public IReadOnlyCollection<long> MemberUserIds => _memberUserIds.ToArray();
 
     /// <summary>
-    /// 状态迁移：New -> Waiting（完成建房）。
+    /// 状态迁移：New -&gt; Active（完成建房）。
     /// </summary>
-    public bool TransitNewToWaiting(long roomId, int capacity = DefaultCapacity)
+    public bool TransitNewToActive(long roomId, int capacity = DefaultCapacity)
     {
         if (_state != RoomState.New)
         {
-            Log.Warning($"Room 非法迁移 New->Waiting：state={_state}, roomId={roomId}");
+            Log.Warning($"Room 非法迁移 New->Active：state={_state}, roomId={roomId}");
             return false;
         }
 
@@ -62,74 +65,17 @@ public sealed class Room
 
         _roomId = roomId;
         _capacity = capacity;
-        _state = RoomState.Waiting;
+        _state = RoomState.Active;
         Touch();
         _createdAtUnixMs = _updatedAtUnixMs;
-        Log.Info($"Room 建房成功 New->Waiting: roomId={_roomId}, capacity={_capacity}");
+        Log.Info($"Room 建房成功 New->Active: roomId={_roomId}, capacity={_capacity}");
         return true;
     }
 
     /// <summary>
-    /// 状态迁移：Waiting -> Ready（人数已齐）。
+    /// 关闭房间：Active -&gt; Closed。
     /// </summary>
-    public bool TransitWaitingToReady()
-    {
-        if (_state != RoomState.Waiting)
-        {
-            Log.Warning($"Room 非法迁移 Waiting->Ready：state={_state}, roomId={_roomId}");
-            return false;
-        }
-
-        if (!IsFull)
-        {
-            Log.Warning($"Room 无法 Ready：人数未满, roomId={_roomId}, memberCount={MemberCount}, capacity={_capacity}");
-            return false;
-        }
-
-        _state = RoomState.Ready;
-        Touch();
-        Log.Info($"Room 就绪 Waiting->Ready: roomId={_roomId}");
-        return true;
-    }
-
-    /// <summary>
-    /// 状态迁移：Ready -> Fighting（开战）。
-    /// </summary>
-    public bool TransitReadyToFighting()
-    {
-        if (_state != RoomState.Ready)
-        {
-            Log.Warning($"Room 非法迁移 Ready->Fighting：state={_state}, roomId={_roomId}");
-            return false;
-        }
-
-        _state = RoomState.Fighting;
-        Touch();
-        Log.Info($"Room 开战 Ready->Fighting: roomId={_roomId}");
-        return true;
-    }
-
-    /// <summary>
-    /// 状态迁移：Fighting -> Settling（进入结算）。
-    /// </summary>
-    public bool TransitFightingToSettling()
-    {
-        if (_state != RoomState.Fighting)
-        {
-            Log.Warning($"Room 非法迁移 Fighting->Settling：state={_state}, roomId={_roomId}");
-            return false;
-        }
-
-        _state = RoomState.Settling;
-        Touch();
-        Log.Info($"Room 进入结算 Fighting->Settling: roomId={_roomId}");
-        return true;
-    }
-
-    /// <summary>
-    /// 关闭房间：任意非 Closed 态均可进入 Closed。
-    /// </summary>
-    public bool TransitToClosed(string? reason = null)
+    public bool TransitActiveToClosed(string? reason = null)
     {
         if (_state == RoomState.Closed)
         {
@@ -137,22 +83,21 @@ public sealed class Room
             return true;
         }
 
-        if (_state == RoomState.New)
+        if (_state != RoomState.Active)
         {
-            Log.Warning($"Room 非法迁移 New->Closed：尚未建房完成, roomId={_roomId}");
+            Log.Warning($"Room 非法迁移 Active->Closed：state={_state}, roomId={_roomId}, reason={reason}");
             return false;
         }
 
         _state = RoomState.Closed;
         _memberUserIds.Clear();
         Touch();
-        Log.Info($"Room 关闭完成 ->Closed: roomId={_roomId}, reason={reason}");
+        Log.Info($"Room 关闭完成 Active->Closed: roomId={_roomId}, reason={reason}");
         return true;
     }
 
     /// <summary>
-    /// Waiting 态加入成员。已在房间返回 true；满员或非法状态返回 false。
-    /// 加满后自动 Waiting -> Ready。
+    /// Active 态加入成员。已在房间返回 true；满员或非法状态返回 false。
     /// </summary>
     public bool TryAddMember(long userId)
     {
@@ -162,9 +107,9 @@ public sealed class Room
             return false;
         }
 
-        if (_state != RoomState.Waiting)
+        if (_state != RoomState.Active)
         {
-            Log.Warning($"Room 加人失败：非 Waiting, state={_state}, roomId={_roomId}, userId={userId}");
+            Log.Warning($"Room 加人失败：非 Active, state={_state}, roomId={_roomId}, userId={userId}");
             return false;
         }
 
@@ -182,35 +127,23 @@ public sealed class Room
         _memberUserIds.Add(userId);
         Touch();
         Log.Info($"Room 加人成功: roomId={_roomId}, userId={userId}, memberCount={MemberCount}/{_capacity}");
-
-        if (IsFull)
-        {
-            TransitWaitingToReady();
-        }
-
         return true;
     }
 
     /// <summary>
-    /// Waiting / Ready 态移除成员。不在房间返回 false。
-    /// Ready 且移除后未满时回退到 Waiting。
+    /// Active 态移除成员。不在房间返回 false。
     /// </summary>
     public bool TryRemoveMember(long userId)
     {
-        if (_state is not (RoomState.Waiting or RoomState.Ready))
+        if (_state != RoomState.Active)
         {
-            Log.Warning($"Room 移除成员失败：状态不允许, state={_state}, roomId={_roomId}, userId={userId}");
+            Log.Warning($"Room 移除成员失败：非 Active, state={_state}, roomId={_roomId}, userId={userId}");
             return false;
         }
 
         if (!_memberUserIds.Remove(userId))
         {
             return false;
-        }
-
-        if (_state == RoomState.Ready && !IsFull)
-        {
-            _state = RoomState.Waiting;
         }
 
         Touch();

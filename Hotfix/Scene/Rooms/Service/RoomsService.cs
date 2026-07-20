@@ -13,7 +13,7 @@ namespace Hotfix.Scene.Rooms.Service;
 public sealed class RoomsService() : ServiceBase(), IRoomsService
 {
     /// <summary>
-    /// 玩家进入房间：已在房则返回原房间；否则加入 Waiting 未满房或创建新房。
+    /// 玩家进入房间：已在房则返回原房间；否则加入 Active 未满房或创建新房。
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
     public async FTask<InnerResult> Enter(long userId)
@@ -59,7 +59,7 @@ public sealed class RoomsService() : ServiceBase(), IRoomsService
         var memberCountBefore = room.MemberCount;
         var stateBefore = room.State;
 
-        // 最后一名玩家：直接关房（覆盖 Waiting/Ready/Fighting 等状态）
+        // 最后一名玩家：直接关房
         if (memberCountBefore <= 1)
         {
             if (!RoomManager.Instance.Remove(roomId, reason: reason ?? "last_player_left"))

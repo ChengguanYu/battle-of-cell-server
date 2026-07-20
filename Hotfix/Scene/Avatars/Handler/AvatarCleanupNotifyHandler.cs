@@ -8,8 +8,7 @@ using FScene = Fantasy.Scene;
 namespace Hotfix.Scene.Avatars.Handler;
 
 /// <summary>
-/// Gate 通知 Avatar：WsSession 已清理，执行玩家清理。
-/// 当前仅记录日志，后续再补实际卸载逻辑。
+/// Gate 通知 Avatar：WsSession 已清理，执行玩家下线清理编排。
 /// </summary>
 public sealed class AvatarCleanupNotifyHandler : Address<FScene, AvatarCleanupNotify>
 {

@@ -97,35 +97,55 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
     }
 
     /// <summary>
-    /// Gate 通知清理玩家。
-    /// 若玩家在房间中，先通知 Rooms 做离房检查（最后一人则关房），再卸载 Avatar。
+    /// 玩家下线清理入口：仅编排调用各清理步骤。
+    /// 后续新增步骤在此追加函数调用；若步骤异步则 await。
     /// </summary>
     public async FTask CleanupPlayer(long userId, string? reason)
     {
-        await FTask.CompletedTask;
-
         Log.Info($"[Avatar] 准备清理玩家: userId={userId}, reason={reason}");
 
+        LeaveRoomIfNeeded(userId, reason);
+        UnloadAvatar(userId, reason);
+    }
+
+    /// <summary>
+    /// 若玩家在房间中，通知 Rooms 离房检查，并把 Avatar 状态收回大厅。
+    /// </summary>
+    private void LeaveRoomIfNeeded(long userId, string? reason)
+    {
         if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)
         {
-            Log.Info($"[Avatar] 清理跳过：玩家未加载, userId={userId}, reason={reason}");
+            Log.Info($"[Avatar] 离房步骤跳过：玩家未加载, userId={userId}, reason={reason}");
             return;
         }
 
-        if (player.IsInRoom)
+        if (!player.IsInRoom)
         {
-            NotifyRoomsPlayerLeave(userId, reason);
-            player.TransitInRoomToLobby(reason ?? "cleanup");
+            return;
+        }
+
+        NotifyRoomsPlayerLeave(userId, reason);
+        player.TransitInRoomToLobby(reason ?? "cleanup");
+    }
+
+    /// <summary>
+    /// 从 Avatar 内存领域卸载玩家。
+    /// </summary>
+    private static void UnloadAvatar(long userId, string? reason)
+    {
+        if (!AvatarDomain.Inst.TryGet(userId, out _))
+        {
+            Log.Info($"[Avatar] 卸载跳过：玩家未加载, userId={userId}, reason={reason}");
+            return;
         }
 
         if (AvatarDomain.Inst.Remove(userId))
         {
             Log.Info($"[Avatar] 玩家已从内存卸载: userId={userId}, reason={reason}");
+            return;
         }
-        else
-        {
-            Log.Warning($"[Avatar] 玩家卸载失败（缓存中不存在）: userId={userId}, reason={reason}");
-        }
+
+        Log.Warning($"[Avatar] 玩家卸载失败（缓存中不存在）: userId={userId}, reason={reason}");
     }
 
     private void NotifyRoomsPlayerLeave(long userId, string? reason)
