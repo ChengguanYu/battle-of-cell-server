@@ -31,10 +31,9 @@ public sealed class SessionManager
     }
 
     /// <summary>
-    /// 绑定用于 TimedOut 宽限期计时的 Scene（通常为 Gate）。
-    /// 重复绑定同一 Scene 视为幂等；绑定不同 Scene 时会覆盖并记录警告。
+    /// 设置 TimedOut 宽限期计时宿主 Scene（通常为 Gate）。
     /// </summary>
-    public void BindTimerScene(Scene scene)
+    public void SetTimerScene(Scene scene)
     {
         ArgumentNullException.ThrowIfNull(scene);
 
@@ -48,8 +47,8 @@ public sealed class SessionManager
     }
 
     /// <summary>
-    /// 鉴权成功后绑定：TransitNewToOnline，并建立 userId 与 Session 双向索引。
-    /// 同 user 已有在线态时：Online-&gt;Kicked-&gt;Closed 后换新（旧 Session 不在此 Dispose）。
+    /// 鉴权成功后绑定 userId 与 Session。
+    /// 同 user 已有记录时：摘旧后换新（旧 Session 不在此 Dispose）。
     /// </summary>
     public void Bind(long userId, Session session)
     {
@@ -77,28 +76,33 @@ public sealed class SessionManager
     }
 
     /// <summary>
-    /// 经框架 Session 解析已绑定的 userId。未绑定返回 false。
-    /// Handler 用此做“是否已进入”，不做鉴权。
+    /// 经 Session 取已绑定 userId。
     /// </summary>
-    public bool TryGetUserIdBySession(Session session, out long userId)
+    public bool TryGetUserId(Session session, out long userId)
     {
         return _userIdBySessionId.TryGetValue(session.Id, out userId);
     }
 
-    /// <summary>经 userId 取框架 Session。</summary>
-    public bool TryGetSessionByUserId(long userId, out Session? session)
+    /// <summary>
+    /// 经 userId 取框架 Session。
+    /// </summary>
+    public bool TryGetSession(long userId, out Session? session)
     {
         return _sessionByUserId.TryGetValue(userId, out session);
     }
 
-    /// <summary>经 userId 取在线态。</summary>
-    public bool TryGetByUserId(long userId, out WsSession? wsSession)
+    /// <summary>
+    /// 经 userId 取 WsSession。
+    /// </summary>
+    public bool TryGet(long userId, out WsSession? wsSession)
     {
         return _wsByUserId.TryGetValue(userId, out wsSession);
     }
 
-    /// <summary>解绑并移除索引。</summary>
-    public bool RemoveByUserId(long userId)
+    /// <summary>
+    /// 经 userId 解绑并移除。
+    /// </summary>
+    public bool Unbind(long userId)
     {
         if (!_wsByUserId.TryRemove(userId, out var ws))
         {
@@ -115,8 +119,10 @@ public sealed class SessionManager
         return true;
     }
 
-    /// <summary>经框架 Session 解绑。</summary>
-    public bool RemoveBySession(Session session)
+    /// <summary>
+    /// 经 Session 解绑并移除。
+    /// </summary>
+    public bool Unbind(Session session)
     {
         if (!_userIdBySessionId.TryRemove(session.Id, out var userId))
         {
@@ -134,10 +140,9 @@ public sealed class SessionManager
     }
 
     /// <summary>
-    /// 连接断开：拆除 Session 索引，并将绑定的 WsSession 迁移到 TimedOut。
-    /// 未绑定或非 Online 时返回 false；不主动 Closed，启动宽限期定时器后等待清理。
+    /// 连接断开：拆除 Session 索引，WsSession 迁到 TimedOut，并启动宽限期计时。
     /// </summary>
-    public bool MarkTimedOutBySession(Session session)
+    public bool MarkTimedOut(Session session)
     {
         if (!_userIdBySessionId.TryRemove(session.Id, out var userId))
         {
@@ -160,16 +165,16 @@ public sealed class SessionManager
         return true;
     }
 
-    public bool ContainsUserId(long userId)
+    /// <summary>
+    /// 是否在线（存在且 Online）。
+    /// </summary>
+    public bool IsOnline(long userId)
     {
         return _wsByUserId.TryGetValue(userId, out var ws) && ws.IsOnline;
     }
 
     public int Count => _wsByUserId.Count;
 
-    /// <summary>
-    /// TimedOut 宽限期到期：仅当仍是 TimedOut 时迁移 Closed 并移除缓存。
-    /// </summary>
     private void CloseTimedOutIfStillTimedOut(long userId)
     {
         _timedOutCloseTimerByUserId.TryRemove(userId, out _);
@@ -190,7 +195,6 @@ public sealed class SessionManager
             return;
         }
 
-        // 竞态：移除瞬间状态可能已变化，仍按当前状态收敛
         if (ws.State == WsSessionState.TimedOut)
         {
             ws.TransitTimedOutToClosed("timed_out_grace_expired");
@@ -238,10 +242,6 @@ public sealed class SessionManager
         Log.Info($"WsSession TimedOut 宽限期计时取消: userId={userId}");
     }
 
-    /// <summary>
-    /// 将 WsSession 收敛到 Closed。
-    /// kickIfOnline 为 true 时走 Online-&gt;Kicked-&gt;Closed；否则 Online 直接 Online-&gt;Closed。
-    /// </summary>
     private static void CloseWs(WsSession ws, bool kickIfOnline, string? kickReason = null)
     {
         switch (ws.State)

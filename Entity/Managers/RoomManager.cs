@@ -23,17 +23,16 @@ public sealed class RoomManager
     }
 
     /// <summary>
-    /// 匹配入房：已在房则直接返回；有 Waiting 未满房则加入；否则创建并加入。
-    /// 仅应由 Rooms Scene 串行调用（Actor 模型），不做跨线程锁。
+    /// 匹配入房：已在房则返回；有 Waiting 未满房则加入；否则创建并加入。
     /// </summary>
-    public Room? TryMatchOrCreate(long userId, int capacity = Room.DefaultCapacity)
+    public Room? MatchOrCreate(long userId, int capacity = Room.DefaultCapacity)
     {
         if (userId <= 0)
         {
             return null;
         }
 
-        if (TryGetByUserId(userId, out var existing) && existing != null)
+        if (TryGetByUser(userId, out var existing) && existing != null)
         {
             return existing;
         }
@@ -53,7 +52,7 @@ public sealed class RoomManager
             }
         }
 
-        if (candidate != null && TryJoin(candidate.RoomId, userId))
+        if (candidate != null && Join(candidate.RoomId, userId))
         {
             return candidate;
         }
@@ -79,12 +78,12 @@ public sealed class RoomManager
     }
 
     /// <summary>
-    /// 创建房间并加入首位成员。加人失败时关闭并移除房间，返回 null。
+    /// 创建房间并加入首位成员。
     /// </summary>
     public Room? CreateWithMember(long userId, int capacity = Room.DefaultCapacity)
     {
         var room = Create(capacity);
-        if (!TryJoin(room.RoomId, userId))
+        if (!Join(room.RoomId, userId))
         {
             Remove(room.RoomId, reason: "create_with_member_failed");
             return null;
@@ -94,20 +93,18 @@ public sealed class RoomManager
     }
 
     /// <summary>
-    /// 玩家加入房间。成功时建立 userId -> roomId 索引。
-    /// 同一 user 已在其他房间时先离开旧房间。
+    /// 玩家加入房间。
     /// </summary>
-    public bool TryJoin(long roomId, long userId)
+    public bool Join(long roomId, long userId)
     {
         if (!_roomById.TryGetValue(roomId, out var room) || room == null)
         {
             return false;
         }
 
-        // 同 user 已在其他房间：先摘旧
         if (_roomIdByUserId.TryGetValue(userId, out var oldRoomId) && oldRoomId != roomId)
         {
-            TryLeave(userId);
+            Leave(userId);
         }
 
         if (!room.TryAddMember(userId))
@@ -122,7 +119,7 @@ public sealed class RoomManager
     /// <summary>
     /// 玩家离开当前房间。房间无人后自动关闭并移除。
     /// </summary>
-    public bool TryLeave(long userId)
+    public bool Leave(long userId)
     {
         if (!_roomIdByUserId.TryRemove(userId, out var roomId))
         {
@@ -144,14 +141,18 @@ public sealed class RoomManager
         return true;
     }
 
-    /// <summary>经 roomId 取房间。</summary>
-    public bool TryGetByRoomId(long roomId, out Room? room)
+    /// <summary>
+    /// 经 roomId 取房间。
+    /// </summary>
+    public bool TryGet(long roomId, out Room? room)
     {
         return _roomById.TryGetValue(roomId, out room);
     }
 
-    /// <summary>经 userId 取所在房间。</summary>
-    public bool TryGetByUserId(long userId, out Room? room)
+    /// <summary>
+    /// 经 userId 取所在房间。
+    /// </summary>
+    public bool TryGetByUser(long userId, out Room? room)
     {
         room = null;
         if (!_roomIdByUserId.TryGetValue(userId, out var roomId))
@@ -162,13 +163,17 @@ public sealed class RoomManager
         return _roomById.TryGetValue(roomId, out room);
     }
 
-    /// <summary>经 userId 取 roomId。</summary>
-    public bool TryGetRoomIdByUserId(long userId, out long roomId)
+    /// <summary>
+    /// 经 userId 取 roomId。
+    /// </summary>
+    public bool TryGetRoomId(long userId, out long roomId)
     {
         return _roomIdByUserId.TryGetValue(userId, out roomId);
     }
 
-    /// <summary>关闭并移除房间，同时拆除所有成员索引。</summary>
+    /// <summary>
+    /// 关闭并移除房间。
+    /// </summary>
     public bool Remove(long roomId, string? reason = null)
     {
         if (!_roomById.TryRemove(roomId, out var room) || room == null)
@@ -188,8 +193,10 @@ public sealed class RoomManager
         return true;
     }
 
-    /// <summary>经 userId 关闭其所在房间。</summary>
-    public bool RemoveByUserId(long userId, string? reason = null)
+    /// <summary>
+    /// 经 userId 关闭其所在房间。
+    /// </summary>
+    public bool RemoveByUser(long userId, string? reason = null)
     {
         if (!_roomIdByUserId.TryGetValue(userId, out var roomId))
         {
@@ -199,12 +206,12 @@ public sealed class RoomManager
         return Remove(roomId, reason);
     }
 
-    public bool ContainsRoomId(long roomId)
+    public bool Contains(long roomId)
     {
         return _roomById.ContainsKey(roomId);
     }
 
-    public bool ContainsUserId(long userId)
+    public bool ContainsUser(long userId)
     {
         return _roomIdByUserId.ContainsKey(userId);
     }

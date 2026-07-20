@@ -13,7 +13,7 @@ public sealed class SessionDestroySystem : DestroySystem<Session>
 {
     protected override void Destroy(Session self)
     {
-        if (!SessionManager.Instance.MarkTimedOutBySession(self))
+        if (!SessionManager.Instance.MarkTimedOut(self))
         {
             return;
         }

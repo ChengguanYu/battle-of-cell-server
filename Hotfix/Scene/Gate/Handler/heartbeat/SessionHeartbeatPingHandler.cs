@@ -14,8 +14,8 @@ public sealed class SessionHeartbeatPingHandler : MessageRPC<SessionHeartbeatPin
 {
     protected override async FTask Run(Session session, SessionHeartbeatPing request, SessionHeartbeatPong response, Action reply)
     {
-        if (!SessionManager.Instance.TryGetUserIdBySession(session, out var userId) ||
-            !SessionManager.Instance.TryGetByUserId(userId, out var wsSession) ||
+        if (!SessionManager.Instance.TryGetUserId(session, out var userId) ||
+            !SessionManager.Instance.TryGet(userId, out var wsSession) ||
             wsSession == null ||
             !wsSession.UpdateHeartbeat())
         {

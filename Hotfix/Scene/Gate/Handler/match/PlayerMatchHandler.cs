@@ -17,7 +17,7 @@ public sealed class PlayerMatchHandler : MessageRPC<PlayerMatchReq, PlayerMatchR
     protected override async FTask Run(Session session, PlayerMatchReq request, PlayerMatchResp response, Action reply)
     {
         // 解析已绑定用户；未绑定 = 未进入，不是在此做 JWT 鉴权
-        if (!SessionManager.Instance.TryGetUserIdBySession(session, out var userId))
+        if (!SessionManager.Instance.TryGetUserId(session, out var userId))
         {
             ReplyNotBound(session, response, reply);
             return;

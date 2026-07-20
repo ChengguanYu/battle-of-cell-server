@@ -25,7 +25,7 @@ public sealed class RoomsService() : ServiceBase(), IRoomsService
             return InnerResult.Fail("userId 非法", userId);
         }
 
-        var room = RoomManager.Instance.TryMatchOrCreate(userId);
+        var room = RoomManager.Instance.MatchOrCreate(userId);
         if (room == null)
         {
             Log.Warning($"玩家 {userId} 进入房间失败：无法创建或加入房间");

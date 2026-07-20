@@ -21,7 +21,7 @@ public sealed class OnCreateSceneEvent : AsyncEventSystem<OnCreateScene>
                 // Scene 级全局组件：该 Gate 下所有 Handler 通过 GetComponent 共享
                 scene.AddComponent<SessionService>();
                 // 绑定 Gate Scene 作为 WsSession TimedOut 宽限期计时宿主
-                SessionManager.Instance.BindTimerScene(scene);
+                SessionManager.Instance.SetTimerScene(scene);
                 Log.Info($"[Gate] scene started. sceneId={scene.SceneConfigId} runtimeId={scene.RuntimeId}, SessionService attached");
                 break;
             case SceneType.Http:
