@@ -15,14 +15,36 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
 {
     public async FTask<InnerResult> LoadPlayer(long userId)
     {
+        if (AvatarDomain.Inst.TryGet(userId, out var existing) && existing != null)
+        {
+            // 已在大厅或房间中：视为进入成功（幂等）
+            if (existing.State is AvatarState.Lobby or AvatarState.InRoom)
+            {
+                return InnerResult.Ok();
+            }
+
+            // 残留 New 态时补一次进入大厅
+            if (!existing.TransitNewToLobby())
+            {
+                return InnerResult.Fail("Avatar 进入大厅失败", existing.State);
+            }
+
+            return InnerResult.Ok();
+        }
+
         var user = await UserDao.FindByIdAsync(userId);
         if (user == null)
         {
             return InnerResult.Fail("未找到用户");
         }
-        var player = new AvatarDomainPrototype(user);
-        AvatarDomain.Inst.Load(player);
 
+        var player = new AvatarDomainPrototype(user);
+        if (!player.TransitNewToLobby())
+        {
+            return InnerResult.Fail("Avatar 进入大厅失败");
+        }
+
+        AvatarDomain.Inst.Load(player);
         return InnerResult.Ok();
     }
 
@@ -32,6 +54,17 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
     /// </summary>
     public async FTask<InnerResult> Match(long userId)
     {
+        if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)
+        {
+            return InnerResult.Fail("Avatar 未加载", userId);
+        }
+
+        if (!player.IsInLobby)
+        {
+            Log.Warning($"用户 {userId} 当前不可匹配，state={player.State}");
+            return InnerResult.Fail("当前状态不可匹配", player.State);
+        }
+
         MatchResp? resp = null;
         try
         {
@@ -43,6 +76,11 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
             {
                 Log.Warning($"用户 {userId} Match 失败，status={resp.ToMessage()}");
                 return InnerResult.Fail("Match 失败", resp.ToMessage());
+            }
+
+            if (!player.TransitLobbyToInRoom())
+            {
+                return InnerResult.Fail("Avatar 进入房间失败", player.State);
             }
 
             return InnerResult.Ok(string.Empty, resp.room_id);
