@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Entity.VOs.room;
+using Fantasy;
 
 namespace Entity.Managers;
 
@@ -18,8 +19,52 @@ public sealed class RoomManager
     private readonly ConcurrentDictionary<long, long> _roomIdByUserId = new();
     private long _nextRoomId = 1;
 
+    /// <summary>
+    /// 房间私有 tick 定时器宿主 Scene（通常为 Rooms Scene）。
+    /// </summary>
+    private Scene? _timerScene;
+
+    /// <summary>
+    /// 新建房间默认逻辑帧率（tick/秒）。
+    /// </summary>
+    private int _defaultTickRate = Room.DefaultTickRate;
+
     private RoomManager()
     {
+    }
+
+    /// <summary>
+    /// 绑定 Rooms Scene 作为各房间私有 tick 的定时器宿主。
+    /// 应在 Rooms Scene 创建时调用。
+    /// </summary>
+    public void SetTimerScene(Scene scene, int defaultTickRate = Room.DefaultTickRate)
+    {
+        ArgumentNullException.ThrowIfNull(scene);
+
+        if (_timerScene != null && !ReferenceEquals(_timerScene, scene))
+        {
+            Log.Warning(
+                $"RoomManager 覆盖 TimerScene: oldRuntimeId={_timerScene.RuntimeId}, newRuntimeId={scene.RuntimeId}");
+        }
+
+        _timerScene = scene;
+        if (defaultTickRate > 0)
+        {
+            _defaultTickRate = defaultTickRate;
+        }
+
+        Log.Info(
+            $"RoomManager 绑定 TimerScene: sceneId={scene.SceneConfigId}, runtimeId={scene.RuntimeId}, defaultTickRate={_defaultTickRate}, intervalMs={Math.Max(1, 1000 / _defaultTickRate)}");
+    }
+
+    /// <summary>
+    /// 供 Room.Start 获取 tick 宿主与默认帧率。
+    /// </summary>
+    public bool TryGetTimerHost(out Scene? scene, out int tickRate)
+    {
+        scene = _timerScene;
+        tickRate = _defaultTickRate;
+        return scene != null;
     }
 
     /// <summary>
@@ -62,6 +107,7 @@ public sealed class RoomManager
 
     /// <summary>
     /// 创建房间并进入 Opened。
+    /// tick 在 Room.TransitCreatedToOpened -&gt; Start 内启动。
     /// </summary>
     public Room Create(int capacity = Room.DefaultCapacity)
     {
@@ -192,6 +238,7 @@ public sealed class RoomManager
             }
         }
 
+        // TransitOpenedToClosed 内部会 StopTickLoop
         room.TransitOpenedToClosed(reason);
         return true;
     }

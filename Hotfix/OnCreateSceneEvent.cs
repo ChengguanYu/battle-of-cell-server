@@ -37,7 +37,9 @@ public sealed class OnCreateSceneEvent : AsyncEventSystem<OnCreateScene>
                 break;
             case SceneType.Rooms:
                 scene.AddComponent<RoomsService>();
-                Log.Info($"[Rooms] scene started. sceneId={scene.SceneConfigId}");
+                // 绑定 Rooms Scene 作为各房间私有 tick 的定时器宿主
+                RoomManager.Instance.SetTimerScene(scene);
+                Log.Info($"[Rooms] scene started. sceneId={scene.SceneConfigId} runtimeId={scene.RuntimeId}, RoomsService attached, RoomTimer bound");
                 break;
         }
 
