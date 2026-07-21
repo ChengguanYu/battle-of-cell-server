@@ -365,7 +365,7 @@ namespace Fantasy
     }
     [Serializable]
     [ProtoContract]
-    public partial class frame : AMessage, IMessage
+    public partial class frame : AMessage, IDisposable
     {
         public static frame Create(bool autoReturn = true)
         {
@@ -405,7 +405,6 @@ namespace Fantasy
             }
             MessageObjectPool<frame>.Return(this);
         }
-        public uint OpCode() { return OuterOpcode.frame; } 
         [ProtoMember(2)]
         public Op op { get; set; }
         [ProtoMember(3)]
@@ -413,7 +412,7 @@ namespace Fantasy
     }
     [Serializable]
     [ProtoContract]
-    public partial class server_frame : AMessage, IDisposable
+    public partial class server_frame : AMessage, IMessage
     {
         public static server_frame Create(bool autoReturn = true)
         {
@@ -456,6 +455,7 @@ namespace Fantasy
             }
             MessageObjectPool<server_frame>.Return(this);
         }
+        public uint OpCode() { return OuterOpcode.server_frame; } 
         [ProtoMember(1)]
         public List<frame> frames { get; set; } = new List<frame>();
         [ProtoMember(2)]

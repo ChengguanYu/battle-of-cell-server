@@ -33,17 +33,19 @@ namespace Fantasy
 			return (SessionHeartbeatPong)await session.Call(SessionHeartbeatPing_request);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void frame(this Session session, frame frame_message)
+		public static void server_frame(this Session session, server_frame server_frame_message)
 		{
-			session.Send(frame_message);
+			session.Send(server_frame_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void frame(this Session session, Op op, player data)
+		public static void server_frame(this Session session, List<frame> frames, ulong frame_number, uint randomSeed, MetaData meta)
 		{
-			using var frame_message = Fantasy.frame.Create();
-			frame_message.op = op;
-			frame_message.data = data;
-			session.Send(frame_message);
+			using var server_frame_message = Fantasy.server_frame.Create();
+			server_frame_message.frames = frames;
+			server_frame_message.frame_number = frame_number;
+			server_frame_message.randomSeed = randomSeed;
+			server_frame_message.meta = meta;
+			session.Send(server_frame_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void MetaData(this Session session, MetaData MetaData_message)
