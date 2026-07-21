@@ -1,25 +1,20 @@
-using Fantasy;
-using Fantasy.Async;
 using Entity.Managers;
+using Entity.Runtime.room;
+using Fantasy;
 
 namespace Entity.VOs.room;
 
 /// <summary>
 /// 房间运行态 VO。
-/// 成员集合与状态仅允许经状态机合法迁移写入；非法迁移不抛异常，记录警告并返回 false。
+/// 业务状态：成员、容量、状态机、房间内 UID。
+/// 运行时：组合 <see cref="RoomTicker"/>，由状态迁移启停，不由外部直接驱动。
 /// 状态机：Created -&gt; Opened -&gt; Closed。
-/// 进入 Opened 时触发 <see cref="Start"/>（在 Start 内开启房间私有 tick）。
 /// 写路径约定由 Rooms Actor 串行执行。
 /// </summary>
 public sealed class Room
 {
     /// <summary>默认房间容量</summary>
     public const int DefaultCapacity = 10;
-
-    /// <summary>
-    /// 默认逻辑帧率（tick/秒）。周期 = max(1, 1000 / TickRate) ms。
-    /// </summary>
-    public const int DefaultTickRate = 20;
 
     /// <summary>
     /// UID 低位序号位数。同一毫秒最多 2^20 个 ID，Actor 串行下足够。
@@ -30,6 +25,8 @@ public sealed class Room
     private const int UidSeqMask = (1 << UidSeqBits) - 1;
 
     private readonly HashSet<long> _memberUserIds = new();
+    private readonly RoomTicker _ticker;
+
     private RoomState _state = RoomState.Created;
     private long _roomId;
     private int _capacity = DefaultCapacity;
@@ -42,20 +39,10 @@ public sealed class Room
     /// <summary>同一毫秒内的序号；Actor 串行，无需加锁。</summary>
     private int _uidSeqInMs;
 
-    /// <summary>房间私有 tick 定时器宿主 Scene（通常为 Rooms Scene）。</summary>
-    private Scene? _timerScene;
-
-    /// <summary>房间私有 RepeatedTimer Id；0 表示未启动。</summary>
-    private long _tickTimerId;
-
-    /// <summary>逻辑帧率（tick/秒）。</summary>
-    private int _tickRate;
-
-    /// <summary>tick 周期（毫秒）= max(1, 1000 / TickRate)。</summary>
-    private int _tickIntervalMs;
-
-    /// <summary>已执行 tick 次数（从 1 起算；未启动为 0）。</summary>
-    private long _tickIndex;
+    public Room()
+    {
+        _ticker = new RoomTicker(this);
+    }
 
     public long RoomId => _roomId;
 
@@ -77,23 +64,12 @@ public sealed class Room
 
     public long UpdatedAtUnixMs => _updatedAtUnixMs;
 
-    /// <summary>逻辑帧率（tick/秒）。未启动时为 0。</summary>
-    public int TickRate => _tickRate;
-
-    /// <summary>tick 周期毫秒。未启动时为 0。</summary>
-    public int TickIntervalMs => _tickIntervalMs;
-
-    /// <summary>已执行 tick 次数。</summary>
-    public long TickIndex => _tickIndex;
-
-    /// <summary>房间私有 tick 定时器是否在跑。</summary>
-    public bool IsTickRunning => _tickTimerId != 0;
-
     /// <summary>当前成员快照（只读拷贝）。</summary>
     public IReadOnlyCollection<long> MemberUserIds => _memberUserIds.ToArray();
 
     /// <summary>
-    /// 状态迁移：Created -&gt; Opened（开启房间并触发 Start）。
+    /// 状态迁移：Created -&gt; Opened。
+    /// 成功后启动房间私有 tick。
     /// </summary>
     public bool TransitCreatedToOpened(long roomId, int capacity = DefaultCapacity)
     {
@@ -120,18 +96,17 @@ public sealed class Room
         _state = RoomState.Opened;
         _lastUidMs = 0;
         _uidSeqInMs = 0;
-        _tickIndex = 0;
-        _tickRate = 0;
-        _tickIntervalMs = 0;
         Touch();
         _createdAtUnixMs = _updatedAtUnixMs;
         Log.Info($"Room 开启成功 Created->Opened: roomId={_roomId}, capacity={_capacity}");
-        Start();
+
+        StartTick();
         return true;
     }
 
     /// <summary>
     /// 关闭房间：Opened -&gt; Closed。
+    /// 先停 tick，再清业务态。
     /// </summary>
     public bool TransitOpenedToClosed(string? reason = null)
     {
@@ -147,10 +122,10 @@ public sealed class Room
             return false;
         }
 
+        StopTick();
+
         _state = RoomState.Closed;
         _memberUserIds.Clear();
-        // 关房时先停掉房间私有 tick，避免回调访问已关闭房间
-        StopTickLoop();
         _lastUidMs = 0;
         _uidSeqInMs = 0;
         Touch();
@@ -272,104 +247,32 @@ public sealed class Room
     }
 
     /// <summary>
-    /// 启动房间私有 tick 循环。周期 = max(1, 1000 / tickRate) ms。
-    /// 每个 Room 独立持有 timerId，互不影响；写路径仍约定由 Rooms Actor 串行。
+    /// 房间逻辑帧入口。由 <see cref="RoomTicker"/> 回调，仅在 Opened 时触发。
     /// </summary>
-    /// <param name="timerScene">定时器宿主 Scene（通常为 Rooms Scene）。</param>
-    /// <param name="tickRate">逻辑帧率（tick/秒），&lt;=0 时回落 <see cref="DefaultTickRate"/>。</param>
-    public bool StartTickLoop(Scene timerScene, int tickRate = DefaultTickRate)
+    internal void OnTick(long tickIndex)
     {
-        if (timerScene == null)
-        {
-            Log.Warning($"Room 启动 tick 失败：timerScene 为空, roomId={_roomId}");
-            return false;
-        }
-
-        if (_state != RoomState.Opened)
-        {
-            Log.Warning($"Room 启动 tick 失败：非 Opened, state={_state}, roomId={_roomId}");
-            return false;
-        }
-
-        if (tickRate <= 0)
-        {
-            tickRate = DefaultTickRate;
-        }
-
-        // 重入时先停旧定时器，保证一房一 timer
-        StopTickLoop();
-
-        _timerScene = timerScene;
-        _tickRate = tickRate;
-        _tickIntervalMs = Math.Max(1, 1000 / tickRate);
-        _tickIndex = 0;
-
-        var roomId = _roomId;
-        _tickTimerId = FTask.RepeatedTimer(timerScene, _tickIntervalMs, OnTick);
-        Log.Info(
-            $"Room tick 启动: roomId={roomId}, tickRate={_tickRate}, intervalMs={_tickIntervalMs}, timerId={_tickTimerId}");
-        return _tickTimerId != 0;
+        // TODO: 房间逻辑帧（同步/结算/AI/广播等）
+        // 高频路径默认不打日志；需要排查时可临时打开。
+        // Log.Debug($"Room tick: roomId={_roomId}, tick={tickIndex}, members={MemberCount}");
     }
 
-    /// <summary>
-    /// 停止房间私有 tick 循环。可重复调用。
-    /// </summary>
-    public void StopTickLoop()
-    {
-        if (_tickTimerId == 0)
-        {
-            _timerScene = null;
-            return;
-        }
-
-        var scene = _timerScene;
-        if (scene != null)
-        {
-            FTask.RemoveTimer(scene, ref _tickTimerId);
-        }
-        else
-        {
-            _tickTimerId = 0;
-        }
-
-        _timerScene = null;
-        Log.Info($"Room tick 停止: roomId={_roomId}, lastTickIndex={_tickIndex}");
-    }
-
-    /// <summary>
-    /// 房间开启后的内部启动入口。
-    /// 由 <see cref="TransitCreatedToOpened"/> 在进入 Opened 后调用；此处开启房间私有 tick。
-    /// </summary>
-    private void Start()
+    private void StartTick()
     {
         if (!RoomManager.Instance.TryGetTimerHost(out var timerScene, out var tickRate) || timerScene == null)
         {
-            Log.Warning($"Room Start 跳过 tick：未绑定 TimerScene, roomId={_roomId}");
+            Log.Warning($"Room Opened 后无法启动 tick：未绑定 TimerScene, roomId={_roomId}");
             return;
         }
 
-        if (!StartTickLoop(timerScene, tickRate))
+        if (!_ticker.Start(timerScene, tickRate))
         {
-            Log.Warning($"Room Start 启动 tick 失败: roomId={_roomId}");
+            Log.Warning($"Room Opened 后启动 tick 失败: roomId={_roomId}");
         }
     }
 
-    /// <summary>
-    /// 房间私有 tick 回调：每 intervalMs 执行一次。
-    /// </summary>
-    private void OnTick()
+    private void StopTick()
     {
-        if (_state != RoomState.Opened)
-        {
-            StopTickLoop();
-            return;
-        }
-
-        _tickIndex++;
-
-        // TODO: 房间逻辑帧（同步/结算/AI/广播等）
-        // 高频路径默认不打日志；需要排查时可临时打开。
-        // Log.Debug($"Room tick: roomId={_roomId}, tick={_tickIndex}, members={MemberCount}");
+        _ticker.Stop();
     }
 
     private void Touch()

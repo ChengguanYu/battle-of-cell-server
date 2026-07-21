@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Entity.Runtime.room;
 using Entity.VOs.room;
 using Fantasy;
 
@@ -8,6 +9,7 @@ namespace Entity.Managers;
 /// 进程级房间缓存。
 /// 定义在 Entity 程序集，不随 Hotfix 热更卸载；仅进程退出时释放。
 /// 索引：roomId 与 userId 双向关联；Room 经状态机迁移。
+/// 仅提供 TimerScene 宿主；房间 tick 由 Room 状态迁移自行启停。
 /// 写路径约定仅由 Rooms Scene 串行访问。
 /// </summary>
 public sealed class RoomManager
@@ -27,7 +29,7 @@ public sealed class RoomManager
     /// <summary>
     /// 新建房间默认逻辑帧率（tick/秒）。
     /// </summary>
-    private int _defaultTickRate = Room.DefaultTickRate;
+    private int _defaultTickRate = RoomTicker.DefaultTickRate;
 
     private RoomManager()
     {
@@ -37,7 +39,7 @@ public sealed class RoomManager
     /// 绑定 Rooms Scene 作为各房间私有 tick 的定时器宿主。
     /// 应在 Rooms Scene 创建时调用。
     /// </summary>
-    public void SetTimerScene(Scene scene, int defaultTickRate = Room.DefaultTickRate)
+    public void SetTimerScene(Scene scene, int defaultTickRate = RoomTicker.DefaultTickRate)
     {
         ArgumentNullException.ThrowIfNull(scene);
 
@@ -58,7 +60,7 @@ public sealed class RoomManager
     }
 
     /// <summary>
-    /// 供 Room.Start 获取 tick 宿主与默认帧率。
+    /// 供 Room 状态迁移获取 tick 宿主与默认帧率。
     /// </summary>
     public bool TryGetTimerHost(out Scene? scene, out int tickRate)
     {
@@ -107,7 +109,7 @@ public sealed class RoomManager
 
     /// <summary>
     /// 创建房间并进入 Opened。
-    /// tick 在 Room.TransitCreatedToOpened -&gt; Start 内启动。
+    /// tick 由 Room.TransitCreatedToOpened 状态迁移启动。
     /// </summary>
     public Room Create(int capacity = Room.DefaultCapacity)
     {
@@ -222,6 +224,7 @@ public sealed class RoomManager
 
     /// <summary>
     /// 关闭并移除房间。
+    /// tick 由 Room.TransitOpenedToClosed 状态迁移停止。
     /// </summary>
     public bool Remove(long roomId, string? reason = null)
     {
@@ -238,7 +241,6 @@ public sealed class RoomManager
             }
         }
 
-        // TransitOpenedToClosed 内部会 StopTickLoop
         room.TransitOpenedToClosed(reason);
         return true;
     }
