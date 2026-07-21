@@ -13,7 +13,7 @@ namespace Hotfix.Scene.Rooms.Service;
 public sealed class RoomsService() : ServiceBase(), IRoomsService
 {
     /// <summary>
-    /// 玩家进入房间：已在房则返回原房间；否则加入 Active 未满房或创建新房。
+    /// 玩家进入房间：已在房则返回原房间；否则加入 Opened 未满房或创建新房。
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
     public async FTask<InnerResult> Enter(long userId)

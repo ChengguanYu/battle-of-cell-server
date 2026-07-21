@@ -33,6 +33,19 @@ namespace Fantasy
 			return (SessionHeartbeatPong)await session.Call(SessionHeartbeatPing_request);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void frame(this Session session, frame frame_message)
+		{
+			session.Send(frame_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void frame(this Session session, Op op, player data)
+		{
+			using var frame_message = Fantasy.frame.Create();
+			frame_message.op = op;
+			frame_message.data = data;
+			session.Send(frame_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void MetaData(this Session session, MetaData MetaData_message)
 		{
 			session.Send(MetaData_message);

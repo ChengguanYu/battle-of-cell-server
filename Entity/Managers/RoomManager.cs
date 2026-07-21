@@ -23,7 +23,7 @@ public sealed class RoomManager
     }
 
     /// <summary>
-    /// 匹配入房：已在房则返回；有 Active 未满房则加入；否则创建并加入。
+    /// 匹配入房：已在房则返回；有 Opened 未满房则加入；否则创建并加入。
     /// </summary>
     public Room? MatchOrCreate(long userId, int capacity = Room.DefaultCapacity)
     {
@@ -41,7 +41,7 @@ public sealed class RoomManager
         foreach (var pair in _roomById)
         {
             var room = pair.Value;
-            if (room == null || room.State != RoomState.Active || room.IsFull)
+            if (room == null || room.State != RoomState.Opened || room.IsFull)
             {
                 continue;
             }
@@ -61,13 +61,13 @@ public sealed class RoomManager
     }
 
     /// <summary>
-    /// 创建房间并进入 Active。
+    /// 创建房间并进入 Opened。
     /// </summary>
     public Room Create(int capacity = Room.DefaultCapacity)
     {
         var roomId = Interlocked.Increment(ref _nextRoomId) - 1;
         var room = new Room();
-        if (!room.TransitNewToActive(roomId, capacity))
+        if (!room.TransitCreatedToOpened(roomId, capacity))
         {
             // 理论上不会失败；失败时不入索引
             return room;
@@ -136,7 +136,7 @@ public sealed class RoomManager
             return false;
         }
 
-        if (room.MemberCount == 0 && room.State == RoomState.Active)
+        if (room.MemberCount == 0 && room.State == RoomState.Opened)
         {
             Remove(roomId, reason: "empty");
         }
@@ -192,7 +192,7 @@ public sealed class RoomManager
             }
         }
 
-        room.TransitActiveToClosed(reason);
+        room.TransitOpenedToClosed(reason);
         return true;
     }
 

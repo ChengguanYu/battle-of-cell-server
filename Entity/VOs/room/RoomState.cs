@@ -3,17 +3,17 @@ namespace Entity.VOs.room;
 /// <summary>
 /// 房间生命周期状态。
 /// 合法迁移：
-/// New -&gt; Active；
-/// Active -&gt; Closed。
+/// Created -&gt; Opened；
+/// Opened -&gt; Closed。
 /// </summary>
 public enum RoomState
 {
-    /// <summary>初始态：刚创建，尚未建房完成。</summary>
-    New = 0,
+    /// <summary>创建态：房间对象已建立，尚未开启。</summary>
+    Created = 0,
 
-    /// <summary>活跃态：可加人、运行中。</summary>
-    Active = 1,
+    /// <summary>开启态：已启动，可加人、运行中。</summary>
+    Opened = 1,
 
-    /// <summary>死亡态：已关闭销毁。</summary>
+    /// <summary>关闭态：已关闭销毁。</summary>
     Closed = 2,
 }
