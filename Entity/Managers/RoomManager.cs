@@ -111,7 +111,7 @@ public sealed class RoomManager
     /// <summary>
     /// 创建房间并开启。
     /// </summary>
-    public Room? Create(int capacity = RoomConfig.DefaultCapacity)
+    private Room? Create(int capacity = RoomConfig.DefaultCapacity)
     {
         var roomId = Interlocked.Increment(ref _nextRoomId) - 1;
         var room = new Room();
@@ -127,7 +127,7 @@ public sealed class RoomManager
     /// <summary>
     /// 创建房间并加入首位成员。
     /// </summary>
-    public Room? CreateWithMember(long userId, int capacity = RoomConfig.DefaultCapacity)
+    private Room? CreateWithMember(long userId, int capacity = RoomConfig.DefaultCapacity)
     {
         var room = Create(capacity);
         if (room == null)
@@ -147,7 +147,7 @@ public sealed class RoomManager
     /// <summary>
     /// 玩家加入房间。
     /// </summary>
-    public bool Join(long roomId, long userId)
+    private bool Join(long roomId, long userId)
     {
         if (!_roomById.TryGetValue(roomId, out var room) || room == null)
         {
@@ -197,14 +197,6 @@ public sealed class RoomManager
     }
 
     /// <summary>
-    /// 经 roomId 取房间。
-    /// </summary>
-    public bool TryGet(long roomId, out Room? room)
-    {
-        return _roomById.TryGetValue(roomId, out room);
-    }
-
-    /// <summary>
     /// 经 userId 取所在房间。
     /// </summary>
     public bool TryGetByUser(long userId, out Room? room)
@@ -216,14 +208,6 @@ public sealed class RoomManager
         }
 
         return _roomById.TryGetValue(roomId, out room);
-    }
-
-    /// <summary>
-    /// 经 userId 取 roomId。
-    /// </summary>
-    public bool TryGetRoomId(long userId, out long roomId)
-    {
-        return _roomIdByUserId.TryGetValue(userId, out roomId);
     }
 
     /// <summary>
@@ -248,30 +232,9 @@ public sealed class RoomManager
         return true;
     }
 
-    /// <summary>
-    /// 经 userId 关闭其所在房间。
-    /// </summary>
-    public bool RemoveByUser(long userId, string? reason = null)
-    {
-        if (!_roomIdByUserId.TryGetValue(userId, out var roomId))
-        {
-            return false;
-        }
-
-        return Remove(roomId, reason);
-    }
-
     public bool Contains(long roomId)
     {
         return _roomById.ContainsKey(roomId);
     }
 
-    public bool ContainsUser(long userId)
-    {
-        return _roomIdByUserId.ContainsKey(userId);
-    }
-
-    public int Count => _roomById.Count;
-
-    public int MemberIndexCount => _roomIdByUserId.Count;
 }
