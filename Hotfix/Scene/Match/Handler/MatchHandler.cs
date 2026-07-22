@@ -17,7 +17,9 @@ public sealed class MatchHandler : AddressRPC<FScene, MatchReq, MatchResp>
     protected override async FTask Run(FScene scene, MatchReq req, MatchResp resp, Action reply)
     {
         IMatchService matchService = scene.GetComponent<MatchService>();
-        var result = await matchService.Match(req.userId);
+        // 旧逻辑：走 RoomsEnter（MatchOrCreate）
+        // var result = await matchService.Match(req.userId);
+        var result = await matchService.NewMatch(req.userId);
         if (!result.IsSuccess)
         {
             Log.Warning($"玩家 {req.userId} 匹配失败：{result.Reason}");

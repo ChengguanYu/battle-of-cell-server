@@ -56,18 +56,57 @@ public sealed class MatchService() : ServiceBase(), IMatchService
     }
 
     /// <summary>
-    /// 新匹配：框架占位，业务逻辑待实现。
+    /// 新匹配：先拉取 Rooms 列表快照，按 IsEmpty 分支；Join/Create 待实现。
     /// </summary>
     public async FTask<InnerResult> NewMatch(long userId)
     {
-        await FTask.CompletedTask;
-
         if (userId <= 0)
         {
             return InnerResult.Fail("userId 非法", userId);
         }
 
-        // TODO: GetRoomListSnap → 尝试 Join → 失败则 Create
-        return InnerResult.Fail("NewMatch 未实现", userId);
+        RoomsGetRoomListSnapResp? snapResp = null;
+        try
+        {
+            var address = Scene.GetSceneAddress(SceneType.Rooms);
+            var req = RoomsGetRoomListSnapReq.Create();
+            snapResp = await Call<RoomsGetRoomListSnapReq, RoomsGetRoomListSnapResp>(address, req);
+            if (!snapResp.IsOk())
+            {
+                Log.Warning($"用户 {userId} GetRoomListSnap 失败，status={snapResp.ToMessage()}");
+                return InnerResult.Fail("GetRoomListSnap 失败", snapResp.ToMessage());
+            }
+
+            if (snapResp.IsEmpty)
+            {
+                // TODO: 无候选房 → Create
+                Log.Info($"用户 {userId} GetRoomListSnap 为空，待 Create");
+                return InnerResult.Fail("NewMatch 未实现：无房待 Create", userId);
+            }
+
+            // TODO: 基于 snapResp.rooms 尝试 Join → 失败则 Create
+            var rooms = snapResp.rooms;
+            var roomCount = rooms?.Count ?? 0;
+            Log.Info($"用户 {userId} GetRoomListSnap 完成，候选房数量={roomCount}");
+            if (rooms is { Count: > 0 })
+            {
+                foreach (var room in rooms)
+                {
+                    Log.Info(
+                        $"用户 {userId} 候选房: room_id={room.room_id}, member_count={room.member_count}, capacity={room.capacity}, state={room.state}");
+                }
+            }
+
+            return InnerResult.Fail("NewMatch 未实现：有房待 Join", userId);
+        }
+        catch (InvalidOperationException)
+        {
+            Log.Warning($"未找到 Rooms Scene，用户 {userId} NewMatch 失败");
+            return InnerResult.Fail("未找到 Rooms Scene", userId);
+        }
+        finally
+        {
+            snapResp?.Dispose();
+        }
     }
 }
