@@ -15,7 +15,7 @@ public interface IMatchService
     FTask<InnerResult> Match(long userId);
 
     /// <summary>
-    /// 新匹配链路：编排 GetRoomListSnap / Join / Create（Join/Create 待填）。
+    /// 新匹配链路：GetRoomListSnap；无房 CreateAndEntry，有房随机 Join。
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
     FTask<InnerResult> NewMatch(long userId);

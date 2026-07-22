@@ -56,10 +56,16 @@ public sealed class MatchService() : ServiceBase(), IMatchService
     }
 
     /// <summary>
-    /// 新匹配：先拉取 Rooms 列表快照，按 IsEmpty 分支；Join/Create 待实现。
+    /// 新匹配：拉取 Rooms 列表快照；无房 CreateAndEntry，有房随机 Join。
+    /// 成功时 Args[0] 为 roomId。
     /// </summary>
     public async FTask<InnerResult> NewMatch(long userId)
     {
+        if (userId <= 0)
+        {
+            return InnerResult.Fail("userId 非法", userId);
+        }
+
         RoomsGetRoomListSnapResp? snapResp = null;
         try
         {
@@ -72,27 +78,17 @@ public sealed class MatchService() : ServiceBase(), IMatchService
                 return InnerResult.Fail("GetRoomListSnap 失败", snapResp.ToMessage());
             }
 
-            if (snapResp.IsEmpty)
+            if (snapResp.IsEmpty || snapResp.rooms is not { Count: > 0 })
             {
-                // TODO: 无候选房 → Create
-                Log.Info($"用户 {userId} GetRoomListSnap 为空，待 Create");
-                return InnerResult.Fail("NewMatch 未实现：无房待 Create", userId);
+                Log.Debug($"用户 {userId} GetRoomListSnap 为空，走 CreateAndEntry");
+                return await CreateAndEntry(address, userId);
             }
 
-            // TODO: 基于 snapResp.rooms 尝试 Join → 失败则 Create
             var rooms = snapResp.rooms;
-            var roomCount = rooms?.Count ?? 0;
-            Log.Info($"用户 {userId} GetRoomListSnap 完成，候选房数量={roomCount}");
-            if (rooms is { Count: > 0 })
-            {
-                foreach (var room in rooms)
-                {
-                    Log.Info(
-                        $"用户 {userId} 候选房: room_id={room.room_id}, member_count={room.member_count}, capacity={room.capacity}, state={room.state}");
-                }
-            }
-
-            return InnerResult.Fail("NewMatch 未实现：有房待 Join", userId);
+            var pick = rooms[Random.Shared.Next(rooms.Count)];
+            Log.Debug(
+                $"用户 {userId} GetRoomListSnap 候选={rooms.Count}，随机选 room_id={pick.room_id} 走 Join");
+            return await Join(address, userId, pick.room_id);
         }
         catch (InvalidOperationException)
         {
@@ -102,6 +98,71 @@ public sealed class MatchService() : ServiceBase(), IMatchService
         finally
         {
             snapResp?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// 有候选房时：Rooms Join（Entry 指定房间）。成功时 Args[0] 为 roomId。
+    /// </summary>
+    private async FTask<InnerResult> Join(long roomsAddress, long userId, long roomId)
+    {
+        RoomsJoinResp? resp = null;
+        try
+        {
+            var req = RoomsJoinReq.Create();
+            req.userId = userId;
+            req.room_id = roomId;
+            resp = await Call<RoomsJoinReq, RoomsJoinResp>(roomsAddress, req);
+            if (!resp.IsOk())
+            {
+                Log.Warning($"用户 {userId} Join 房间 {roomId} 失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("Join 失败", resp.ToMessage());
+            }
+
+            if (resp.room_id <= 0)
+            {
+                Log.Warning($"用户 {userId} Join 成功但 room_id 非法: {resp.room_id}");
+                return InnerResult.Fail("Join 未返回有效 room_id", userId, roomId);
+            }
+
+            Log.Info($"玩家 {userId} Join 成功: roomId={resp.room_id}");
+            return InnerResult.Ok(string.Empty, resp.room_id);
+        }
+        finally
+        {
+            resp?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// 无候选房时：Rooms CreateAndEntry（创建并进入）。成功时 Args[0] 为 roomId。
+    /// </summary>
+    private async FTask<InnerResult> CreateAndEntry(long roomsAddress, long userId)
+    {
+        RoomsCreateAndEntryResp? resp = null;
+        try
+        {
+            var req = RoomsCreateAndEntryReq.Create();
+            req.userId = userId;
+            resp = await Call<RoomsCreateAndEntryReq, RoomsCreateAndEntryResp>(roomsAddress, req);
+            if (!resp.IsOk())
+            {
+                Log.Warning($"用户 {userId} CreateAndEntry 失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("CreateAndEntry 失败", resp.ToMessage());
+            }
+
+            if (resp.room_id <= 0)
+            {
+                Log.Warning($"用户 {userId} CreateAndEntry 成功但 room_id 非法: {resp.room_id}");
+                return InnerResult.Fail("CreateAndEntry 未返回有效 room_id", userId);
+            }
+
+            Log.Info($"玩家 {userId} CreateAndEntry 成功: roomId={resp.room_id}");
+            return InnerResult.Ok(string.Empty, resp.room_id);
+        }
+        finally
+        {
+            resp?.Dispose();
         }
     }
 }
