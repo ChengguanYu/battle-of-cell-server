@@ -237,4 +237,23 @@ public sealed class RoomManager
         return _roomById.ContainsKey(roomId);
     }
 
+
+    /// <summary>
+    /// 当前管理房间的瞬时快照（只读线索，非 Join 权威）。
+    /// 无房间时返回空列表，不返回 null。
+    /// </summary>
+    public List<Room> GetRoomsSnapshot()
+    {
+        var list = new List<Room>(_roomById.Count);
+        foreach (var pair in _roomById)
+        {
+            if (pair.Value != null)
+            {
+                list.Add(pair.Value);
+            }
+        }
+
+        return list;
+    }
+
 }

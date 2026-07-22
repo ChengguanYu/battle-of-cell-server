@@ -1,4 +1,3 @@
-using Entity.DTOs;
 using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
@@ -22,17 +21,14 @@ public sealed class RoomsGetRoomListSnapHandler
         Action reply)
     {
         var roomsService = scene.GetComponent<RoomsService>();
-        var result = await roomsService.GetRoomListSnap();
-        if (!result.IsSuccess)
+        var snaps = await roomsService.GetRoomListSnap();
+
+        resp.rooms.Clear();
+        if (snaps is { Count: > 0 })
         {
-            Log.Warning($"GetRoomListSnap 失败：{result.Reason}");
-            resp.rooms.Clear();
-            resp.SetError(StatusCode.RoomsEnterFailed);
-            reply();
-            return;
+            resp.rooms.AddRange(snaps);
         }
 
-        // TODO: 将 result.Args 中的快照填入 resp.rooms
         resp.SetOk();
         reply();
     }
