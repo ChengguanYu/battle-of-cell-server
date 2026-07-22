@@ -7,36 +7,23 @@ namespace Entity.VOs.room;
 
 /// <summary>
 /// 房间运行态 VO。
-/// 业务状态：成员、容量、状态机、房间内 UID。
-/// 运行时：组合 <see cref="RoomTicker"/> 与 <see cref="RoomFrameSync"/>，由状态迁移启停，不由外部直接驱动。
+/// 业务状态：成员、容量、状态机。
+/// 运行时：组合 <see cref="RoomTicker"/>、<see cref="RoomFrameSync"/>、<see cref="RoomUidGenerator"/>，由状态迁移启停。
 /// 状态机：Created -&gt; Opened -&gt; Closed。
 /// 写路径约定由 Rooms Actor 串行执行。
 /// </summary>
 public sealed class Room : IRoomStateMachine
 {
-    /// <summary>
-    /// UID 低位序号位数。同一毫秒最多 2^20 个 ID，Actor 串行下足够。
-    /// 布局：高 44 位毫秒时间戳 | 低 20 位序号。
-    /// </summary>
-    private const int UidSeqBits = 20;
-
-    private const int UidSeqMask = (1 << UidSeqBits) - 1;
-
     private readonly HashSet<long> _memberUserIds = new();
     private readonly RoomTicker _ticker;
     private readonly RoomFrameSync _frameSync;
+    private readonly RoomUidGenerator _uidGenerator = new();
 
     private RoomState _state = RoomState.Created;
     private long _roomId;
     private int _capacity = RoomConfig.DefaultCapacity;
     private long _createdAtUnixMs;
     private long _updatedAtUnixMs;
-
-    /// <summary>上一次分配 UID 使用的毫秒时间戳。</summary>
-    private long _lastUidMs;
-
-    /// <summary>同一毫秒内的序号；Actor 串行，无需加锁。</summary>
-    private int _uidSeqInMs;
 
     public Room()
     {
@@ -84,15 +71,21 @@ public sealed class Room : IRoomStateMachine
         _roomId = roomId;
         _capacity = capacity;
         _state = RoomState.Opened;
-        _lastUidMs = 0;
-        _uidSeqInMs = 0;
+        _uidGenerator.Reset();
         _frameSync.Clear();
         Touch();
         _createdAtUnixMs = _updatedAtUnixMs;
         Log.Info(
             $"Room 开启成功 Created->Opened: roomId={_roomId}, capacity={_capacity}, delayFrame={RoomConfig.DelayFrame}");
 
-        StartTick();
+        if (!RoomManager.Instance.TryGetTimerHost(out var timerScene, out var tickRate) || timerScene == null)
+        {
+            Log.Warning($"Room Opened 后无法启动 tick：未绑定 TimerScene, roomId={_roomId}");
+        }
+        else if (!_ticker.Start(timerScene, tickRate))
+        {
+            Log.Warning($"Room Opened 后启动 tick 失败: roomId={_roomId}");
+        }
         return true;
     }
 
@@ -110,13 +103,12 @@ public sealed class Room : IRoomStateMachine
             return false;
         }
 
-        StopTick();
+        _ticker.Stop();
         _frameSync.Clear();
 
         _state = RoomState.Closed;
         _memberUserIds.Clear();
-        _lastUidMs = 0;
-        _uidSeqInMs = 0;
+        _uidGenerator.Reset();
         Touch();
         Log.Info($"Room 关闭完成 Opened->Closed: roomId={_roomId}, reason={reason}");
         return true;
@@ -182,12 +174,6 @@ public sealed class Room : IRoomStateMachine
         return _memberUserIds.Contains(userId);
     }
 
-    /// <summary>
-    /// 在房间生命周期内生成 UID。
-    /// 依赖 Rooms Actor 串行：同一时刻只会进入一次。
-    /// 映射：高 44 位 = 毫秒时间戳，低 20 位 = 同毫秒序号。
-    /// O(1) 时间，仅 2 个标量状态，无占用表。
-    /// </summary>
     public bool TryNextUid(out ulong uid)
     {
         uid = 0;
@@ -197,41 +183,7 @@ public sealed class Room : IRoomStateMachine
             return false;
         }
 
-        var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        if (nowMs < _lastUidMs)
-        {
-            // 时钟回拨：继续沿用上次毫秒，避免回退撞号
-            nowMs = _lastUidMs;
-        }
-
-        if (nowMs == _lastUidMs)
-        {
-            if (_uidSeqInMs >= UidSeqMask)
-            {
-                // 同一毫秒序号耗尽：推进到下一毫秒
-                nowMs = _lastUidMs + 1;
-                _lastUidMs = nowMs;
-                _uidSeqInMs = 0;
-            }
-            else
-            {
-                _uidSeqInMs++;
-            }
-        }
-        else
-        {
-            _lastUidMs = nowMs;
-            _uidSeqInMs = 0;
-        }
-
-        uid = ((ulong)nowMs << UidSeqBits) | (uint)_uidSeqInMs;
-        if (uid == 0)
-        {
-            // 理论上 nowMs>0 时不会发生；保底跳过 0
-            _uidSeqInMs = 1;
-            uid = ((ulong)nowMs << UidSeqBits) | 1u;
-        }
-
+        uid = _uidGenerator.Next();
         return true;
     }
 
@@ -244,24 +196,7 @@ public sealed class Room : IRoomStateMachine
         _frameSync.OnTick(tickIndex, _memberUserIds);
     }
 
-    private void StartTick()
-    {
-        if (!RoomManager.Instance.TryGetTimerHost(out var timerScene, out var tickRate) || timerScene == null)
-        {
-            Log.Warning($"Room Opened 后无法启动 tick：未绑定 TimerScene, roomId={_roomId}");
-            return;
-        }
 
-        if (!_ticker.Start(timerScene, tickRate))
-        {
-            Log.Warning($"Room Opened 后启动 tick 失败: roomId={_roomId}");
-        }
-    }
-
-    private void StopTick()
-    {
-        _ticker.Stop();
-    }
 
     private void Touch()
     {
