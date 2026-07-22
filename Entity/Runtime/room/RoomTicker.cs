@@ -1,5 +1,6 @@
 using Fantasy;
 using Fantasy.Async;
+using Entity.Managers;
 using Entity.VOs.room;
 
 namespace Entity.Runtime.room;
@@ -7,6 +8,7 @@ namespace Entity.Runtime.room;
 /// <summary>
 /// 房间私有 tick 运行时。
 /// 持有 timerId / Scene / 帧率等非业务状态；由 Room 状态迁移启停。
+/// 启动时自行从 RoomManager 取 TimerScene 宿主。
 /// </summary>
 public sealed class RoomTicker
 {
@@ -36,19 +38,19 @@ public sealed class RoomTicker
 
     /// <summary>
     /// 启动私有 tick。应在 Room 进入 Opened 后调用。
-    /// 周期 = max(1, 1000 / tickRate) ms。
+    /// 从 RoomManager 取 TimerScene 与默认帧率。
     /// </summary>
-    public bool Start(Scene timerScene, int tickRate = DefaultTickRate)
+    public bool Start()
     {
-        if (timerScene == null)
-        {
-            Log.Warning($"RoomTicker 启动失败：timerScene 为空, roomId={_room.RoomId}");
-            return false;
-        }
-
         if (!_room.IsOpened())
         {
             Log.Warning($"RoomTicker 启动失败：房间非 Opened, state={_room.State}, roomId={_room.RoomId}");
+            return false;
+        }
+
+        if (!RoomManager.Instance.TryGetTimerHost(out var timerScene, out var tickRate) || timerScene == null)
+        {
+            Log.Warning($"RoomTicker 启动失败：未绑定 TimerScene, roomId={_room.RoomId}");
             return false;
         }
 

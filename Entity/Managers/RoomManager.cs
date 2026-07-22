@@ -111,14 +111,13 @@ public sealed class RoomManager
     /// <summary>
     /// 创建房间并开启。
     /// </summary>
-    public Room Create(int capacity = RoomConfig.DefaultCapacity)
+    public Room? Create(int capacity = RoomConfig.DefaultCapacity)
     {
         var roomId = Interlocked.Increment(ref _nextRoomId) - 1;
         var room = new Room();
         if (!room.Open(roomId, capacity))
         {
-            // 理论上不会失败；失败时不入索引
-            return room;
+            return null;
         }
 
         _roomById[roomId] = room;
@@ -131,6 +130,11 @@ public sealed class RoomManager
     public Room? CreateWithMember(long userId, int capacity = RoomConfig.DefaultCapacity)
     {
         var room = Create(capacity);
+        if (room == null)
+        {
+            return null;
+        }
+
         if (!Join(room.RoomId, userId))
         {
             Remove(room.RoomId, reason: "create_with_member_failed");

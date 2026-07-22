@@ -1,5 +1,4 @@
 using Entity.Config;
-using Entity.Managers;
 using Entity.Runtime.room;
 using Fantasy;
 
@@ -68,24 +67,17 @@ public sealed class Room : IRoomStateMachine
             return false;
         }
 
-        _roomId = roomId;
-        _capacity = capacity;
-        _state = RoomState.Opened;
-        _uidGenerator.Reset();
-        _frameSync.Clear();
-        Touch();
-        _createdAtUnixMs = _updatedAtUnixMs;
+        CommitOpen(roomId, capacity);
+
+        if (!_ticker.Start())
+        {
+            Log.Warning($"Room Open 失败：tick 启动失败, roomId={_roomId}");
+            RollbackOpen();
+            return false;
+        }
+
         Log.Info(
             $"Room 开启成功 Created->Opened: roomId={_roomId}, capacity={_capacity}, delayFrame={RoomConfig.DelayFrame}");
-
-        if (!RoomManager.Instance.TryGetTimerHost(out var timerScene, out var tickRate) || timerScene == null)
-        {
-            Log.Warning($"Room Opened 后无法启动 tick：未绑定 TimerScene, roomId={_roomId}");
-        }
-        else if (!_ticker.Start(timerScene, tickRate))
-        {
-            Log.Warning($"Room Opened 后启动 tick 失败: roomId={_roomId}");
-        }
         return true;
     }
 
@@ -196,7 +188,29 @@ public sealed class Room : IRoomStateMachine
         _frameSync.OnTick(tickIndex, _memberUserIds);
     }
 
+    private void CommitOpen(long roomId, int capacity)
+    {
+        _roomId = roomId;
+        _capacity = capacity;
+        _state = RoomState.Opened;
+        _uidGenerator.Reset();
+        _frameSync.Clear();
+        Touch();
+        _createdAtUnixMs = _updatedAtUnixMs;
+    }
 
+    private void RollbackOpen()
+    {
+        _ticker.Stop();
+        _frameSync.Clear();
+        _uidGenerator.Reset();
+        _memberUserIds.Clear();
+        _roomId = 0;
+        _capacity = RoomConfig.DefaultCapacity;
+        _createdAtUnixMs = 0;
+        _updatedAtUnixMs = 0;
+        _state = RoomState.Created;
+    }
 
     private void Touch()
     {
