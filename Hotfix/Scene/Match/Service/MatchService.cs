@@ -60,11 +60,6 @@ public sealed class MatchService() : ServiceBase(), IMatchService
     /// </summary>
     public async FTask<InnerResult> NewMatch(long userId)
     {
-        if (userId <= 0)
-        {
-            return InnerResult.Fail("userId 非法", userId);
-        }
-
         RoomsGetRoomListSnapResp? snapResp = null;
         try
         {
