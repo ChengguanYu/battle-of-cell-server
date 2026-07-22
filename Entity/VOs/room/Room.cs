@@ -12,7 +12,7 @@ namespace Entity.VOs.room;
 /// 状态机：Created -&gt; Opened -&gt; Closed。
 /// 写路径约定由 Rooms Actor 串行执行。
 /// </summary>
-public sealed class Room
+public sealed class Room : IRoomStateMachine
 {
     /// <summary>
     /// UID 低位序号位数。同一毫秒最多 2^20 个 ID，Actor 串行下足够。
@@ -53,12 +53,6 @@ public sealed class Room
     public int MemberCount => _memberUserIds.Count;
 
     public bool IsFull => _memberUserIds.Count >= _capacity;
-
-    public bool IsCreated => _state == RoomState.Created;
-
-    public bool IsOpened => _state == RoomState.Opened;
-
-    public bool IsClosed => _state == RoomState.Closed;
 
     public long CreatedAtUnixMs => _createdAtUnixMs;
 

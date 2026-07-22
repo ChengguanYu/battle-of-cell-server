@@ -14,6 +14,7 @@ public sealed class RoomTicker
     public const int DefaultTickRate = 20;
 
     private readonly Room _room;
+
     private Scene? _timerScene;
     private int _tickRate = DefaultTickRate;
     private int _intervalMs;
@@ -45,7 +46,7 @@ public sealed class RoomTicker
             return false;
         }
 
-        if (!_room.IsOpened)
+        if (!_room.IsOpened())
         {
             Log.Warning($"RoomTicker 启动失败：房间非 Opened, state={_room.State}, roomId={_room.RoomId}");
             return false;
@@ -96,7 +97,7 @@ public sealed class RoomTicker
 
     private void OnTimer()
     {
-        if (!_room.IsOpened)
+        if (!_room.IsOpened())
         {
             Stop();
             return;

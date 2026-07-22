@@ -89,7 +89,7 @@ public sealed class RoomManager
         foreach (var pair in _roomById)
         {
             var room = pair.Value;
-            if (room == null || room.State != RoomState.Opened || room.IsFull)
+            if (room == null || !room.IsOpened() || room.IsFull)
             {
                 continue;
             }
@@ -185,7 +185,7 @@ public sealed class RoomManager
             return false;
         }
 
-        if (room.MemberCount == 0 && room.State == RoomState.Opened)
+        if (room.MemberCount == 0 && room.IsOpened())
         {
             Remove(roomId, reason: "empty");
         }
