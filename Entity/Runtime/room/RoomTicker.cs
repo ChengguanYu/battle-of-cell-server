@@ -61,7 +61,7 @@ public sealed class RoomTicker
         _timerScene = timerScene;
         _tickRate = tickRate;
         _intervalMs = Math.Max(1, 1000 / tickRate);
-        _tickIndex = 0;
+        _tickIndex = -1;
         _timerId = FTask.RepeatedTimer(timerScene, _intervalMs, OnTimer);
 
         Log.Info(

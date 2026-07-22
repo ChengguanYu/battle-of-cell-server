@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace Hotfix.Utils;
+namespace Entity.Utils;
 
 /// <summary>
 /// 环形缓冲区满时的写入策略。

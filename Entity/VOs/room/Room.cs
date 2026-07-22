@@ -1,5 +1,7 @@
+using Entity.Config;
 using Entity.Managers;
 using Entity.Runtime.room;
+using Entity.Utils;
 using Fantasy;
 
 namespace Entity.VOs.room;
@@ -7,15 +9,12 @@ namespace Entity.VOs.room;
 /// <summary>
 /// 房间运行态 VO。
 /// 业务状态：成员、容量、状态机、房间内 UID。
-/// 运行时：组合 <see cref="RoomTicker"/>，由状态迁移启停，不由外部直接驱动。
+/// 运行时：组合 <see cref="RoomTicker"/> 与帧 RingBuffer，由状态迁移启停，不由外部直接驱动。
 /// 状态机：Created -&gt; Opened -&gt; Closed。
 /// 写路径约定由 Rooms Actor 串行执行。
 /// </summary>
 public sealed class Room
 {
-    /// <summary>默认房间容量</summary>
-    public const int DefaultCapacity = 10;
-
     /// <summary>
     /// UID 低位序号位数。同一毫秒最多 2^20 个 ID，Actor 串行下足够。
     /// 布局：高 44 位毫秒时间戳 | 低 20 位序号。
@@ -26,10 +25,11 @@ public sealed class Room
 
     private readonly HashSet<long> _memberUserIds = new();
     private readonly RoomTicker _ticker;
+    private readonly RingBuffer<server_frame> _frameBuffer;
 
     private RoomState _state = RoomState.Created;
     private long _roomId;
-    private int _capacity = DefaultCapacity;
+    private int _capacity = RoomConfig.DefaultCapacity;
     private long _createdAtUnixMs;
     private long _updatedAtUnixMs;
 
@@ -42,6 +42,7 @@ public sealed class Room
     public Room()
     {
         _ticker = new RoomTicker(this);
+        _frameBuffer = new RingBuffer<server_frame>(RoomConfig.FrameBufferCapacity, RingBufferFullPolicy.OverwriteOldest);
     }
 
     public long RoomId => _roomId;
@@ -69,9 +70,9 @@ public sealed class Room
 
     /// <summary>
     /// 状态迁移：Created -&gt; Opened。
-    /// 成功后启动房间私有 tick。
+    /// 成功后启动房间私有 tick（从帧 0 开始写空帧）。
     /// </summary>
-    public bool TransitCreatedToOpened(long roomId, int capacity = DefaultCapacity)
+    public bool TransitCreatedToOpened(long roomId, int capacity = RoomConfig.DefaultCapacity)
     {
         if (_state != RoomState.Created)
         {
@@ -96,9 +97,11 @@ public sealed class Room
         _state = RoomState.Opened;
         _lastUidMs = 0;
         _uidSeqInMs = 0;
+        ClearFrameBuffer();
         Touch();
         _createdAtUnixMs = _updatedAtUnixMs;
-        Log.Info($"Room 开启成功 Created->Opened: roomId={_roomId}, capacity={_capacity}");
+        Log.Info(
+            $"Room 开启成功 Created->Opened: roomId={_roomId}, capacity={_capacity}, delayFrame={RoomConfig.DelayFrame}");
 
         StartTick();
         return true;
@@ -106,7 +109,7 @@ public sealed class Room
 
     /// <summary>
     /// 关闭房间：Opened -&gt; Closed。
-    /// 先停 tick，再清业务态。
+    /// 先停 tick，再清帧缓冲与业务态。
     /// </summary>
     public bool TransitOpenedToClosed(string? reason = null)
     {
@@ -123,6 +126,7 @@ public sealed class Room
         }
 
         StopTick();
+        ClearFrameBuffer();
 
         _state = RoomState.Closed;
         _memberUserIds.Clear();
@@ -248,12 +252,116 @@ public sealed class Room
 
     /// <summary>
     /// 房间逻辑帧入口。由 <see cref="RoomTicker"/> 回调，仅在 Opened 时触发。
+    /// 从帧 0 起写入空 <see cref="server_frame"/>；当 tickIndex &gt;= DelayFrame 时广播帧 tickIndex - DelayFrame。
     /// </summary>
     internal void OnTick(long tickIndex)
     {
-        // TODO: 房间逻辑帧（同步/结算/AI/广播等）
-        // 高频路径默认不打日志；需要排查时可临时打开。
-        // Log.Debug($"Room tick: roomId={_roomId}, tick={tickIndex}, members={MemberCount}");
+        if (tickIndex < 0)
+        {
+            return;
+        }
+
+        WriteEmptyFrame((ulong)tickIndex);
+
+        var delayFrame = RoomConfig.DelayFrame;
+        if (tickIndex < delayFrame)
+        {
+            return;
+        }
+
+        BroadcastFrame((ulong)(tickIndex - delayFrame));
+    }
+
+    private void WriteEmptyFrame(ulong frameNumber)
+    {
+        // 覆盖写前释放即将被挤掉的旧帧，避免池对象泄漏。
+        if (_frameBuffer.IsFull && _frameBuffer.TryPeek(out var oldest) && oldest != null)
+        {
+            oldest.Return();
+        }
+
+        var frame = server_frame.Create(autoReturn: false);
+        frame.frame_number = frameNumber;
+        // frames 保持空列表，表示本帧无操作
+        if (!_frameBuffer.Enqueue(frame))
+        {
+            frame.Return();
+            Log.Warning($"Room 写帧失败: roomId={_roomId}, frameNumber={frameNumber}");
+        }
+    }
+
+    private void BroadcastFrame(ulong frameNumber)
+    {
+        if (_memberUserIds.Count == 0)
+        {
+            return;
+        }
+
+        if (!TryGetBufferedFrame(frameNumber, out var buffered) || buffered == null)
+        {
+            Log.Warning($"Room 延迟广播找不到帧: roomId={_roomId}, frameNumber={frameNumber}, bufferCount={_frameBuffer.Count}");
+            return;
+        }
+
+        foreach (var userId in _memberUserIds)
+        {
+            if (!SessionManager.Instance.TryGetSession(userId, out var session) || session == null)
+            {
+                continue;
+            }
+
+            // 每连接独立消息，避免共享池对象。
+            using var msg = server_frame.Create();
+            msg.frame_number = buffered.frame_number;
+            msg.randomSeed = buffered.randomSeed;
+            session.Send(msg);
+        }
+    }
+
+    private bool TryGetBufferedFrame(ulong frameNumber, out server_frame? frame)
+    {
+        frame = null;
+        var count = _frameBuffer.Count;
+        if (count == 0)
+        {
+            return false;
+        }
+
+        // 顺序写入下，目标帧逻辑下标 = Count - 1 - (newestNumber - targetNumber)
+        if (!_frameBuffer.TryPeekNewest(out var newest) || newest == null)
+        {
+            return false;
+        }
+
+        if (frameNumber > newest.frame_number)
+        {
+            return false;
+        }
+
+        var distanceFromNewest = newest.frame_number - frameNumber;
+        if (distanceFromNewest >= (ulong)count)
+        {
+            return false;
+        }
+
+        var index = count - 1 - (int)distanceFromNewest;
+        frame = _frameBuffer[index];
+        return frame != null && frame.frame_number == frameNumber;
+    }
+
+    private void ClearFrameBuffer()
+    {
+        if (_frameBuffer.IsEmpty)
+        {
+            return;
+        }
+
+        foreach (var frame in _frameBuffer)
+        {
+            frame?.Return();
+        }
+
+        _frameBuffer.Clear();
     }
 
     private void StartTick()

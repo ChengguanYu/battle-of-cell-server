@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Entity.Config;
 using Entity.Runtime.room;
 using Entity.VOs.room;
 using Fantasy;
@@ -72,7 +73,7 @@ public sealed class RoomManager
     /// <summary>
     /// 匹配入房：已在房则返回；有 Opened 未满房则加入；否则创建并加入。
     /// </summary>
-    public Room? MatchOrCreate(long userId, int capacity = Room.DefaultCapacity)
+    public Room? MatchOrCreate(long userId, int capacity = RoomConfig.DefaultCapacity)
     {
         if (userId <= 0)
         {
@@ -111,7 +112,7 @@ public sealed class RoomManager
     /// 创建房间并进入 Opened。
     /// tick 由 Room.TransitCreatedToOpened 状态迁移启动。
     /// </summary>
-    public Room Create(int capacity = Room.DefaultCapacity)
+    public Room Create(int capacity = RoomConfig.DefaultCapacity)
     {
         var roomId = Interlocked.Increment(ref _nextRoomId) - 1;
         var room = new Room();
@@ -128,7 +129,7 @@ public sealed class RoomManager
     /// <summary>
     /// 创建房间并加入首位成员。
     /// </summary>
-    public Room? CreateWithMember(long userId, int capacity = Room.DefaultCapacity)
+    public Room? CreateWithMember(long userId, int capacity = RoomConfig.DefaultCapacity)
     {
         var room = Create(capacity);
         if (!Join(room.RoomId, userId))
