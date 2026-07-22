@@ -1,7 +1,6 @@
 using Entity.Config;
 using Entity.Managers;
 using Entity.Runtime.room;
-using Entity.Utils;
 using Fantasy;
 
 namespace Entity.VOs.room;
@@ -9,7 +8,7 @@ namespace Entity.VOs.room;
 /// <summary>
 /// 房间运行态 VO。
 /// 业务状态：成员、容量、状态机、房间内 UID。
-/// 运行时：组合 <see cref="RoomTicker"/> 与帧 RingBuffer，由状态迁移启停，不由外部直接驱动。
+/// 运行时：组合 <see cref="RoomTicker"/> 与 <see cref="RoomFrameSync"/>，由状态迁移启停，不由外部直接驱动。
 /// 状态机：Created -&gt; Opened -&gt; Closed。
 /// 写路径约定由 Rooms Actor 串行执行。
 /// </summary>
@@ -25,7 +24,7 @@ public sealed class Room
 
     private readonly HashSet<long> _memberUserIds = new();
     private readonly RoomTicker _ticker;
-    private readonly RingBuffer<server_frame> _frameBuffer;
+    private readonly RoomFrameSync _frameSync;
 
     private RoomState _state = RoomState.Created;
     private long _roomId;
@@ -42,7 +41,7 @@ public sealed class Room
     public Room()
     {
         _ticker = new RoomTicker(this);
-        _frameBuffer = new RingBuffer<server_frame>(RoomConfig.FrameBufferCapacity, RingBufferFullPolicy.OverwriteOldest);
+        _frameSync = new RoomFrameSync(() => _roomId);
     }
 
     public long RoomId => _roomId;
@@ -97,7 +96,7 @@ public sealed class Room
         _state = RoomState.Opened;
         _lastUidMs = 0;
         _uidSeqInMs = 0;
-        ClearFrameBuffer();
+        _frameSync.Clear();
         Touch();
         _createdAtUnixMs = _updatedAtUnixMs;
         Log.Info(
@@ -126,7 +125,7 @@ public sealed class Room
         }
 
         StopTick();
-        ClearFrameBuffer();
+        _frameSync.Clear();
 
         _state = RoomState.Closed;
         _memberUserIds.Clear();
@@ -252,116 +251,11 @@ public sealed class Room
 
     /// <summary>
     /// 房间逻辑帧入口。由 <see cref="RoomTicker"/> 回调，仅在 Opened 时触发。
-    /// 从帧 0 起写入空 <see cref="server_frame"/>；当 tickIndex &gt;= DelayFrame 时广播帧 tickIndex - DelayFrame。
+    /// 转发给 <see cref="RoomFrameSync"/>：写空帧并按 DelayFrame 延迟广播。
     /// </summary>
     internal void OnTick(long tickIndex)
     {
-        if (tickIndex < 0)
-        {
-            return;
-        }
-
-        WriteEmptyFrame((ulong)tickIndex);
-
-        var delayFrame = RoomConfig.DelayFrame;
-        if (tickIndex < delayFrame)
-        {
-            return;
-        }
-
-        BroadcastFrame((ulong)(tickIndex - delayFrame));
-    }
-
-    private void WriteEmptyFrame(ulong frameNumber)
-    {
-        // 覆盖写前释放即将被挤掉的旧帧，避免池对象泄漏。
-        if (_frameBuffer.IsFull && _frameBuffer.TryPeek(out var oldest) && oldest != null)
-        {
-            oldest.Return();
-        }
-
-        var frame = server_frame.Create(autoReturn: false);
-        frame.frame_number = frameNumber;
-        // frames 保持空列表，表示本帧无操作
-        if (!_frameBuffer.Enqueue(frame))
-        {
-            frame.Return();
-            Log.Warning($"Room 写帧失败: roomId={_roomId}, frameNumber={frameNumber}");
-        }
-    }
-
-    private void BroadcastFrame(ulong frameNumber)
-    {
-        if (_memberUserIds.Count == 0)
-        {
-            return;
-        }
-
-        if (!TryGetBufferedFrame(frameNumber, out var buffered) || buffered == null)
-        {
-            Log.Warning($"Room 延迟广播找不到帧: roomId={_roomId}, frameNumber={frameNumber}, bufferCount={_frameBuffer.Count}");
-            return;
-        }
-
-        foreach (var userId in _memberUserIds)
-        {
-            if (!SessionManager.Instance.TryGetSession(userId, out var session) || session == null)
-            {
-                continue;
-            }
-
-            // 每连接独立消息，避免共享池对象。
-            using var msg = server_frame.Create();
-            msg.frame_number = buffered.frame_number;
-            msg.randomSeed = buffered.randomSeed;
-            session.Send(msg);
-        }
-    }
-
-    private bool TryGetBufferedFrame(ulong frameNumber, out server_frame? frame)
-    {
-        frame = null;
-        var count = _frameBuffer.Count;
-        if (count == 0)
-        {
-            return false;
-        }
-
-        // 顺序写入下，目标帧逻辑下标 = Count - 1 - (newestNumber - targetNumber)
-        if (!_frameBuffer.TryPeekNewest(out var newest) || newest == null)
-        {
-            return false;
-        }
-
-        if (frameNumber > newest.frame_number)
-        {
-            return false;
-        }
-
-        var distanceFromNewest = newest.frame_number - frameNumber;
-        if (distanceFromNewest >= (ulong)count)
-        {
-            return false;
-        }
-
-        var index = count - 1 - (int)distanceFromNewest;
-        frame = _frameBuffer[index];
-        return frame != null && frame.frame_number == frameNumber;
-    }
-
-    private void ClearFrameBuffer()
-    {
-        if (_frameBuffer.IsEmpty)
-        {
-            return;
-        }
-
-        foreach (var frame in _frameBuffer)
-        {
-            frame?.Return();
-        }
-
-        _frameBuffer.Clear();
+        _frameSync.OnTick(tickIndex, _memberUserIds);
     }
 
     private void StartTick()
