@@ -16,14 +16,16 @@ namespace Fantasy
         public const uint PlayerEntryReq = 1073751828;
         public const uint PlayerEntryResp = 1207969556;
         public const uint RoomSnapItem = 536880913;
-        public const uint RoomsCreateReq = 1073751829;
-        public const uint RoomsCreateResp = 1207969557;
-        public const uint RoomsEnterReq = 1073751830;
-        public const uint RoomsEnterResp = 1207969558;
-        public const uint RoomsGetRoomListSnapReq = 1073751831;
-        public const uint RoomsGetRoomListSnapResp = 1207969559;
-        public const uint RoomsJoinReq = 1073751832;
-        public const uint RoomsJoinResp = 1207969560;
+        public const uint RoomsCreateAndEntryReq = 1073751829;
+        public const uint RoomsCreateAndEntryResp = 1207969557;
+        public const uint RoomsCreateReq = 1073751830;
+        public const uint RoomsCreateResp = 1207969558;
+        public const uint RoomsEnterReq = 1073751831;
+        public const uint RoomsEnterResp = 1207969559;
+        public const uint RoomsGetRoomListSnapReq = 1073751832;
+        public const uint RoomsGetRoomListSnapResp = 1207969560;
+        public const uint RoomsJoinReq = 1073751833;
+        public const uint RoomsJoinResp = 1207969561;
         public const uint RoomsPlayerLeaveNotify = 939534098;
     }
 }
