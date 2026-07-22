@@ -48,6 +48,19 @@ namespace Fantasy
 			session.Send(server_frame_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void client_frame(this Session session, client_frame client_frame_message)
+		{
+			session.Send(client_frame_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void client_frame(this Session session, List<frame> frames, ulong frame_number)
+		{
+			using var client_frame_message = Fantasy.client_frame.Create();
+			client_frame_message.frames = frames;
+			client_frame_message.frame_number = frame_number;
+			session.Send(client_frame_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void MetaData(this Session session, MetaData MetaData_message)
 		{
 			session.Send(MetaData_message);

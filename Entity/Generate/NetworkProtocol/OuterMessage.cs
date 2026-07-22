@@ -467,6 +467,51 @@ namespace Fantasy
     }
     [Serializable]
     [ProtoContract]
+    public partial class client_frame : AMessage, IMessage
+    {
+        public static client_frame Create(bool autoReturn = true)
+        {
+            var client_frame = MessageObjectPool<client_frame>.Rent();
+            client_frame.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                client_frame.SetIsPool(false);
+            }
+            
+            return client_frame;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            foreach (var __t in frames) __t.Dispose();
+            frames.Clear();
+            frame_number = default;
+            MessageObjectPool<client_frame>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.client_frame; } 
+        [ProtoMember(1)]
+        public List<frame> frames { get; set; } = new List<frame>();
+        [ProtoMember(2)]
+        public ulong frame_number { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
     public partial class MetaData : AMessage, IMessage
     {
         public static MetaData Create(bool autoReturn = true)
