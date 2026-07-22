@@ -8,12 +8,11 @@ namespace Hotfix.Scene.Match.Service;
 
 /// <summary>
 /// Match Scene 级服务（挂在 Scene 上，全 Handler 共享同一实例）。
-/// 当前阶段直接转发到 Rooms Scene 完成入房；已在房语义由 Rooms 处理。
 /// </summary>
 public sealed class MatchService() : ServiceBase(), IMatchService
 {
     /// <summary>
-    /// 处理玩家匹配：转发到 Rooms 入房；不在此判断是否已在房间。
+    /// 旧匹配：转发到 Rooms.Enter（MatchOrCreate）。
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
     public async FTask<InnerResult> Match(long userId)
@@ -54,5 +53,21 @@ public sealed class MatchService() : ServiceBase(), IMatchService
         {
             resp?.Dispose();
         }
+    }
+
+    /// <summary>
+    /// 新匹配：框架占位，业务逻辑待实现。
+    /// </summary>
+    public async FTask<InnerResult> NewMatch(long userId)
+    {
+        await FTask.CompletedTask;
+
+        if (userId <= 0)
+        {
+            return InnerResult.Fail("userId 非法", userId);
+        }
+
+        // TODO: GetRoomListSnap → 尝试 Join → 失败则 Create
+        return InnerResult.Fail("NewMatch 未实现", userId);
     }
 }
