@@ -1,4 +1,6 @@
 using Entity.DTOs;
+using Entity.Managers;
+using Fantasy;
 using Fantasy.Async;
 
 namespace Hotfix.Scene.Rooms.Service;
@@ -6,7 +8,7 @@ namespace Hotfix.Scene.Rooms.Service;
 public sealed partial class RoomsService
 {
     /// <summary>
-    /// 创建房间并加入首位成员。capacity &lt;= 0 时用默认容量。成功时 Args[0] 为 roomId。
+    /// 创建房间并开启。成功时 Args[0] 为 roomId。
     /// </summary>
     public async FTask<InnerResult> Create(long userId)
     {
@@ -16,7 +18,15 @@ public sealed partial class RoomsService
             return InnerResult.Fail("userId 非法", userId);
         }
 
-        // TODO: RoomManager 创建并加入
-        return InnerResult.Fail("Create 未实现", userId);
+        var room = RoomManager.Instance.Create();
+        if (room == null)
+        {
+            Log.Warning($"玩家 {userId} Create 房间失败：无法创建");
+            return InnerResult.Fail("Create 失败：无法创建", userId);
+        }
+
+        Log.Info(
+            $"玩家 {userId} Create 房间成功: roomId={room.RoomId}, memberCount={room.MemberCount}/{room.Capacity}, state={room.State}");
+        return InnerResult.Ok(string.Empty, room.RoomId);
     }
 }

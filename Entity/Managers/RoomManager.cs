@@ -111,7 +111,7 @@ public sealed class RoomManager
     /// <summary>
     /// 创建房间并开启。
     /// </summary>
-    private Room? Create(int capacity = RoomConfig.DefaultCapacity)
+    public Room? Create(int capacity = RoomConfig.DefaultCapacity)
     {
         var roomId = Interlocked.Increment(ref _nextRoomId) - 1;
         var room = new Room();
