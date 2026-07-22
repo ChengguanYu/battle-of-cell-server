@@ -261,7 +261,7 @@ namespace Fantasy
         public string reason { get; set; }
     }
     /// <summary>
-    /// Avatar -> Match 匹配请求
+    /// Avatar -> Match 匹配请求（旧链路，保留兼容）
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -307,7 +307,7 @@ namespace Fantasy
         public long userId { get; set; }
     }
     /// <summary>
-    /// Avatar -> Match 匹配响应
+    /// Avatar -> Match 匹配响应（旧链路，保留兼容）
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -357,7 +357,103 @@ namespace Fantasy
         public long room_id { get; set; }
     }
     /// <summary>
-    /// Match/Avatar -> Rooms 进入房间请求
+    /// Avatar -> Match 新匹配请求（Match 侧编排：查房列表 / Join / Create）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class NewMatchReq : AMessage, IAddressRequest
+    {
+        public static NewMatchReq Create(bool autoReturn = true)
+        {
+            var newMatchReq = MessageObjectPool<NewMatchReq>.Rent();
+            newMatchReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                newMatchReq.SetIsPool(false);
+            }
+            
+            return newMatchReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            MessageObjectPool<NewMatchReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.NewMatchReq; } 
+        [ProtoIgnore]
+        public NewMatchResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long userId { get; set; }
+    }
+    /// <summary>
+    /// Avatar -> Match 新匹配响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class NewMatchResp : AMessage, IAddressResponse
+    {
+        public static NewMatchResp Create(bool autoReturn = true)
+        {
+            var newMatchResp = MessageObjectPool<NewMatchResp>.Rent();
+            newMatchResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                newMatchResp.SetIsPool(false);
+            }
+            
+            return newMatchResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            room_id = default;
+            MessageObjectPool<NewMatchResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.NewMatchResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+        /// <summary>
+        /// 匹配成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
+    }
+    /// <summary>
+    /// Match/Avatar -> Rooms 进入房间请求（旧链路 MatchOrCreate，保留兼容）
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -403,7 +499,7 @@ namespace Fantasy
         public long userId { get; set; }
     }
     /// <summary>
-    /// Match/Avatar -> Rooms 进入房间响应
+    /// Match/Avatar -> Rooms 进入房间响应（旧链路）
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -501,5 +597,353 @@ namespace Fantasy
         /// </summary>
         [ProtoMember(2)]
         public string reason { get; set; }
+    }
+    /// <summary>
+    /// 房间列表快照条目（非权威，仅供 Match 选房线索）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomSnapItem : AMessage, IMessage
+    {
+        public static RoomSnapItem Create(bool autoReturn = true)
+        {
+            var roomSnapItem = MessageObjectPool<RoomSnapItem>.Rent();
+            roomSnapItem.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomSnapItem.SetIsPool(false);
+            }
+            
+            return roomSnapItem;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            room_id = default;
+            member_count = default;
+            capacity = default;
+            state = default;
+            MessageObjectPool<RoomSnapItem>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomSnapItem; } 
+        [ProtoMember(1)]
+        public long room_id { get; set; }
+        [ProtoMember(2)]
+        public int member_count { get; set; }
+        [ProtoMember(3)]
+        public int capacity { get; set; }
+        /// <summary>
+        /// RoomState 枚举底层值：Created=0, Opened=1, Closed=2
+        /// </summary>
+        [ProtoMember(4)]
+        public int state { get; set; }
+    }
+    /// <summary>
+    /// Match -> Rooms 拉取可观察房间列表快照（只读线索，Join 结果才是权威）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsGetRoomListSnapReq : AMessage, IAddressRequest
+    {
+        public static RoomsGetRoomListSnapReq Create(bool autoReturn = true)
+        {
+            var roomsGetRoomListSnapReq = MessageObjectPool<RoomsGetRoomListSnapReq>.Rent();
+            roomsGetRoomListSnapReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsGetRoomListSnapReq.SetIsPool(false);
+            }
+            
+            return roomsGetRoomListSnapReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            MessageObjectPool<RoomsGetRoomListSnapReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsGetRoomListSnapReq; } 
+        [ProtoIgnore]
+        public RoomsGetRoomListSnapResp ResponseType { get; set; }
+    }
+    /// <summary>
+    /// Match -> Rooms 房间列表快照响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsGetRoomListSnapResp : AMessage, IAddressResponse
+    {
+        public static RoomsGetRoomListSnapResp Create(bool autoReturn = true)
+        {
+            var roomsGetRoomListSnapResp = MessageObjectPool<RoomsGetRoomListSnapResp>.Rent();
+            roomsGetRoomListSnapResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsGetRoomListSnapResp.SetIsPool(false);
+            }
+            
+            return roomsGetRoomListSnapResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            foreach (var __t in rooms) __t.Dispose();
+            rooms.Clear();
+            MessageObjectPool<RoomsGetRoomListSnapResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsGetRoomListSnapResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+        [ProtoMember(2)]
+        public List<RoomSnapItem> rooms { get; set; } = new List<RoomSnapItem>();
+    }
+    /// <summary>
+    /// Match -> Rooms 加入指定房间
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsJoinReq : AMessage, IAddressRequest
+    {
+        public static RoomsJoinReq Create(bool autoReturn = true)
+        {
+            var roomsJoinReq = MessageObjectPool<RoomsJoinReq>.Rent();
+            roomsJoinReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsJoinReq.SetIsPool(false);
+            }
+            
+            return roomsJoinReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            room_id = default;
+            MessageObjectPool<RoomsJoinReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsJoinReq; } 
+        [ProtoIgnore]
+        public RoomsJoinResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long userId { get; set; }
+        [ProtoMember(2)]
+        public long room_id { get; set; }
+    }
+    /// <summary>
+    /// Match -> Rooms 加入指定房间响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsJoinResp : AMessage, IAddressResponse
+    {
+        public static RoomsJoinResp Create(bool autoReturn = true)
+        {
+            var roomsJoinResp = MessageObjectPool<RoomsJoinResp>.Rent();
+            roomsJoinResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsJoinResp.SetIsPool(false);
+            }
+            
+            return roomsJoinResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            room_id = default;
+            MessageObjectPool<RoomsJoinResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsJoinResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+        /// <summary>
+        /// 加入成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
+    }
+    /// <summary>
+    /// Match -> Rooms 创建房间并加入首位成员
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsCreateReq : AMessage, IAddressRequest
+    {
+        public static RoomsCreateReq Create(bool autoReturn = true)
+        {
+            var roomsCreateReq = MessageObjectPool<RoomsCreateReq>.Rent();
+            roomsCreateReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsCreateReq.SetIsPool(false);
+            }
+            
+            return roomsCreateReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            capacity = default;
+            MessageObjectPool<RoomsCreateReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsCreateReq; } 
+        [ProtoIgnore]
+        public RoomsCreateResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long userId { get; set; }
+        /// <summary>
+        /// 容量；0 表示使用服务端默认
+        /// </summary>
+        [ProtoMember(2)]
+        public int capacity { get; set; }
+    }
+    /// <summary>
+    /// Match -> Rooms 创建房间响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsCreateResp : AMessage, IAddressResponse
+    {
+        public static RoomsCreateResp Create(bool autoReturn = true)
+        {
+            var roomsCreateResp = MessageObjectPool<RoomsCreateResp>.Rent();
+            roomsCreateResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsCreateResp.SetIsPool(false);
+            }
+            
+            return roomsCreateResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            room_id = default;
+            MessageObjectPool<RoomsCreateResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsCreateResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+        /// <summary>
+        /// 创建成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
     }
 }
