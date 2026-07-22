@@ -737,6 +737,7 @@ namespace Fantasy
             ErrorCode = 0;
             foreach (var __t in rooms) __t.Dispose();
             rooms.Clear();
+            IsEmpty = default;
             MessageObjectPool<RoomsGetRoomListSnapResp>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.RoomsGetRoomListSnapResp; } 
@@ -744,6 +745,11 @@ namespace Fantasy
         public uint ErrorCode { get; set; }
         [ProtoMember(2)]
         public List<RoomSnapItem> rooms { get; set; } = new List<RoomSnapItem>();
+        /// <summary>
+        /// 是否为空列表；true 表示当前无可观察房间
+        /// </summary>
+        [ProtoMember(3)]
+        public bool IsEmpty { get; set; }
     }
     /// <summary>
     /// Match -> Rooms 加入指定房间
