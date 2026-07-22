@@ -109,14 +109,13 @@ public sealed class RoomManager
     }
 
     /// <summary>
-    /// 创建房间并进入 Opened。
-    /// tick 由 Room.TransitCreatedToOpened 状态迁移启动。
+    /// 创建房间并开启。
     /// </summary>
     public Room Create(int capacity = RoomConfig.DefaultCapacity)
     {
         var roomId = Interlocked.Increment(ref _nextRoomId) - 1;
         var room = new Room();
-        if (!room.TransitCreatedToOpened(roomId, capacity))
+        if (!room.Open(roomId, capacity))
         {
             // 理论上不会失败；失败时不入索引
             return room;
@@ -225,7 +224,6 @@ public sealed class RoomManager
 
     /// <summary>
     /// 关闭并移除房间。
-    /// tick 由 Room.TransitOpenedToClosed 状态迁移停止。
     /// </summary>
     public bool Remove(long roomId, string? reason = null)
     {
@@ -242,7 +240,7 @@ public sealed class RoomManager
             }
         }
 
-        room.TransitOpenedToClosed(reason);
+        room.Close(reason);
         return true;
     }
 

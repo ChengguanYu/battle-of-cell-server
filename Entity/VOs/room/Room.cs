@@ -61,11 +61,7 @@ public sealed class Room : IRoomStateMachine
     /// <summary>当前成员快照（只读拷贝）。</summary>
     public IReadOnlyCollection<long> MemberUserIds => _memberUserIds.ToArray();
 
-    /// <summary>
-    /// 状态迁移：Created -&gt; Opened。
-    /// 成功后启动房间私有 tick（从帧 0 开始写空帧）。
-    /// </summary>
-    public bool TransitCreatedToOpened(long roomId, int capacity = RoomConfig.DefaultCapacity)
+    public bool Open(long roomId, int capacity = RoomConfig.DefaultCapacity)
     {
         if (_state != RoomState.Created)
         {
@@ -100,11 +96,7 @@ public sealed class Room : IRoomStateMachine
         return true;
     }
 
-    /// <summary>
-    /// 关闭房间：Opened -&gt; Closed。
-    /// 先停 tick，再清帧缓冲与业务态。
-    /// </summary>
-    public bool TransitOpenedToClosed(string? reason = null)
+    public bool Close(string? reason = null)
     {
         if (_state == RoomState.Closed)
         {

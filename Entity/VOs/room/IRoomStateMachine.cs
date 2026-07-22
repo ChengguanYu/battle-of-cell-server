@@ -19,9 +19,9 @@ public interface IRoomStateMachine
 {
     RoomState State { get; }
 
-    bool TransitCreatedToOpened(long roomId, int capacity = RoomConfig.DefaultCapacity);
+    bool Open(long roomId, int capacity = RoomConfig.DefaultCapacity);
 
-    bool TransitOpenedToClosed(string? reason = null);
+    bool Close(string? reason = null);
 }
 
 public static class RoomStateMachineExtensions
