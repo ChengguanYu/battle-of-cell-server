@@ -13,8 +13,10 @@ public sealed partial class RoomsService
     public async FTask<InnerResult> Create(long userId)
     {
         await FTask.CompletedTask;
+        Log.Debug($"RoomsService.Create 开始: userId={userId}");
         if (userId <= 0)
         {
+            Log.Debug($"RoomsService.Create 参数非法: userId={userId}");
             return InnerResult.Fail("userId 非法", userId);
         }
 

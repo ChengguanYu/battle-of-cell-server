@@ -1,4 +1,5 @@
 using Entity.DTOs;
+using Fantasy;
 using Fantasy.Async;
 
 namespace Hotfix.Scene.Rooms.Service;
@@ -10,13 +11,7 @@ public sealed partial class RoomsService
     /// </summary>
     public async FTask<InnerResult> Join(long userId, long roomId)
     {
-        await FTask.CompletedTask;
-        if (userId <= 0 || roomId <= 0)
-        {
-            return InnerResult.Fail("参数非法", userId, roomId);
-        }
-
-        // TODO: RoomManager 指定房加入
-        return InnerResult.Fail("Join 未实现", userId, roomId);
+        Log.Debug($"RoomsService.Join 转发 Entry: userId={userId}, roomId={roomId}");
+        return await Entry(userId, roomId);
     }
 }

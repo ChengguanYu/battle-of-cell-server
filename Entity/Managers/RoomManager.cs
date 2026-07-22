@@ -105,7 +105,19 @@ public sealed class RoomManager
             return candidate;
         }
 
-        return CreateWithMember(userId, capacity);
+        // CreateWithMember 已弃用；改为 Create + Entry
+        Log.Debug($"RoomManager.MatchOrCreate 无候选房，走 Create+Entry: userId={userId}, capacity={capacity}");
+        var created = Create(capacity);
+        if (created == null)
+        {
+            Log.Debug($"RoomManager.MatchOrCreate Create 失败: userId={userId}");
+            return null;
+        }
+
+        var entered = Entry(created.RoomId, userId);
+        Log.Debug(
+            $"RoomManager.MatchOrCreate Create+Entry 结束: userId={userId}, roomId={created.RoomId}, ok={entered != null}");
+        return entered;
     }
 
     /// <summary>
@@ -114,35 +126,68 @@ public sealed class RoomManager
     public Room? Create(int capacity = RoomConfig.DefaultCapacity)
     {
         var roomId = Interlocked.Increment(ref _nextRoomId) - 1;
+        Log.Debug($"RoomManager.Create 开始: roomId={roomId}, capacity={capacity}");
         var room = new Room();
         if (!room.Open(roomId, capacity))
         {
+            Log.Debug($"RoomManager.Create Open 失败: roomId={roomId}, capacity={capacity}");
             return null;
         }
 
         _roomById[roomId] = room;
+        Log.Debug($"RoomManager.Create 成功: roomId={roomId}, capacity={capacity}");
         return room;
     }
 
     /// <summary>
-    /// 创建房间并加入首位成员。
+    /// 玩家进入指定房间（从 CreateWithMember 的加入逻辑拆出）。
+    /// 成功返回房间；失败返回 null。
     /// </summary>
-    private Room? CreateWithMember(long userId, int capacity = RoomConfig.DefaultCapacity)
+    public Room? Entry(long roomId, long userId)
     {
-        var room = Create(capacity);
-        if (room == null)
+        Log.Debug($"RoomManager.Entry 开始: roomId={roomId}, userId={userId}");
+        if (userId <= 0 || roomId <= 0)
         {
+            Log.Debug($"RoomManager.Entry 参数非法: roomId={roomId}, userId={userId}");
             return null;
         }
 
-        if (!Join(room.RoomId, userId))
+        if (!Join(roomId, userId))
         {
-            Remove(room.RoomId, reason: "create_with_member_failed");
+            Log.Debug($"RoomManager.Entry Join 失败: roomId={roomId}, userId={userId}");
             return null;
         }
 
+        if (!_roomById.TryGetValue(roomId, out var room) || room == null)
+        {
+            Log.Debug($"RoomManager.Entry 房间丢失: roomId={roomId}, userId={userId}");
+            return null;
+        }
+
+        Log.Debug(
+            $"RoomManager.Entry 成功: roomId={room.RoomId}, userId={userId}, memberCount={room.MemberCount}/{room.Capacity}");
         return room;
     }
+
+//     /// <summary>
+//     /// 创建房间并加入首位成员。
+//     /// </summary>
+//     private Room? CreateWithMember(long userId, int capacity = RoomConfig.DefaultCapacity)
+//     {
+//         var room = Create(capacity);
+//         if (room == null)
+//         {
+//             return null;
+//         }
+// 
+//         if (!Join(room.RoomId, userId))
+//         {
+//             Remove(room.RoomId, reason: "create_with_member_failed");
+//             return null;
+//         }
+// 
+//         return room;
+//     }
 
     /// <summary>
     /// 玩家加入房间。
