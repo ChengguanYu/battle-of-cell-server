@@ -61,6 +61,7 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
 
         if (!player.IsInLobby)
         {
+            // TODO: 实现重连回房逻辑
             Log.Warning($"用户 {userId} 当前不可匹配，state={player.State}");
             return InnerResult.Fail("当前状态不可匹配", player.State);
         }
