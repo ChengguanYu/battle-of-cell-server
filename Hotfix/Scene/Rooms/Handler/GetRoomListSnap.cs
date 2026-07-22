@@ -21,7 +21,7 @@ public sealed class RoomsGetRoomListSnapHandler
         RoomsGetRoomListSnapResp resp,
         Action reply)
     {
-        IRoomsService roomsService = scene.GetComponent<RoomsService>();
+        var roomsService = scene.GetComponent<RoomsService>();
         var result = await roomsService.GetRoomListSnap();
         if (!result.IsSuccess)
         {

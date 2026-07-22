@@ -16,7 +16,7 @@ public sealed class RoomsCreateHandler : AddressRPC<FScene, RoomsCreateReq, Room
 {
     protected override async FTask Run(FScene scene, RoomsCreateReq req, RoomsCreateResp resp, Action reply)
     {
-        IRoomsService roomsService = scene.GetComponent<RoomsService>();
+        var roomsService = scene.GetComponent<RoomsService>();
         var result = await roomsService.Create(req.userId, req.capacity);
         if (!result.IsSuccess)
         {

@@ -16,7 +16,7 @@ public sealed class RoomsJoinHandler : AddressRPC<FScene, RoomsJoinReq, RoomsJoi
 {
     protected override async FTask Run(FScene scene, RoomsJoinReq req, RoomsJoinResp resp, Action reply)
     {
-        IRoomsService roomsService = scene.GetComponent<RoomsService>();
+        var roomsService = scene.GetComponent<RoomsService>();
         var result = await roomsService.Join(req.userId, req.room_id);
         if (!result.IsSuccess)
         {

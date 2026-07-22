@@ -15,7 +15,7 @@ public sealed class RoomsPlayerLeaveNotifyHandler : Address<FScene, RoomsPlayerL
 {
     protected override async FTask Run(FScene scene, RoomsPlayerLeaveNotify message)
     {
-        IRoomsService roomsService = scene.GetComponent<RoomsService>();
+        var roomsService = scene.GetComponent<RoomsService>();
         await roomsService.Leave(message.userId, message.reason);
     }
 }
