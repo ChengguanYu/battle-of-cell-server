@@ -152,7 +152,7 @@ public sealed class WsSession
     /// </summary>
     public bool UpdateHeartbeat()
     {
-        Log.Info($"WsSession 心跳更新: userId={_userId}, 上次心跳={_lastHeartbeatUnixMs}, 当前={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
+        Log.Debug($"WsSession 心跳更新: userId={_userId}, 上次心跳={_lastHeartbeatUnixMs}, 当前={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
         if (_state != WsSessionState.Online)
         {
             return false;
