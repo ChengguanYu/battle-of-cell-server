@@ -13,7 +13,8 @@ namespace Entity.Runtime.room;
 public sealed class RoomTicker
 {
     /// <summary>默认逻辑帧率（tick/秒）。周期 = max(1, 1000 / TickRate) ms。</summary>
-    public const int DefaultTickRate = 20;
+    // public const int DefaultTickRate = 20;
+    public const int DefaultTickRate = 1;
 
     private readonly Room _room;
 
