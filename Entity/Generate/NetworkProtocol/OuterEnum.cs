@@ -6,7 +6,8 @@ namespace Fantasy
 	public enum Op
 	{
 		SPAWN = 0,
-		MOVE = 1
+		LAUNCH = 1,
+		launch = 2
 	}
 
 
