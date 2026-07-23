@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Entity.DTOs;
 using Entity.Managers;
+using Entity.Utils;
 using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
@@ -143,29 +144,15 @@ public sealed class SessionService() : ServiceBase(), ISessionService
         }
         catch (InvalidOperationException)
         {
-            DisposeFrames(frames);
+            FrameMessageUtil.DisposeFrames(frames);
             Log.Warning($"[Gate] 未找到 Avatars Scene，client_frame 丢弃: userId={userId}, frame={frameNumber}");
         }
         catch (Exception ex)
         {
-            DisposeFrames(frames);
+            FrameMessageUtil.DisposeFrames(frames);
             Log.Error($"[Gate] 转发 client_frame 失败: userId={userId}, frame={frameNumber}, ex={ex}");
         }
     }
 
-    private static void DisposeFrames(List<frame>? frames)
-    {
-        if (frames == null || frames.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var f in frames)
-        {
-            f?.Dispose();
-        }
-
-        frames.Clear();
-    }
 }
 

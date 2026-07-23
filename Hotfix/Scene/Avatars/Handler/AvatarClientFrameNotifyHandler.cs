@@ -1,3 +1,4 @@
+using Entity.Utils;
 using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
@@ -15,13 +16,9 @@ public sealed class AvatarClientFrameNotifyHandler : Address<FScene, AvatarClien
     protected override async FTask Run(FScene scene, AvatarClientFrameNotify message)
     {
         IAvatarsService avatarsService = scene.GetComponent<AvatarsService>();
-        // FIXME: 手工转移 frames 所有权，待统一收口
-        // 原因：Fantasy Address.Handle finally 会对入站 message.Dispose()，生成代码会级联
-        // foreach Dispose frames。若不先摘引用，下游 Forward 仍持有同一批 frame 池对象 → UAF。
-        // 当前写法：摘下 list 交给转发层；父消息换空 list，框架 Dispose 时不再碰真实 ops。
-        // 后续：边界深拷贝 / 明确单所有者 API，去掉每跳手写交接。
-        var frames = message.frames;
-        message.frames = new List<frame>();
+
+        // 协议层所有权转移：摘 frames，父消息挂空 list，避免 Handler finally 级联 Dispose 造成 UAF。
+        var frames = FrameMessageUtil.DetachFrames(message);
         avatarsService.ForwardClientFrame(message.userId, message.frame_number, frames);
         await FTask.CompletedTask;
     }

@@ -1,4 +1,5 @@
 using Entity.Config;
+using Entity.Utils;
 using Entity.Managers;
 using Fantasy;
 using Fantasy.Network;
@@ -159,10 +160,7 @@ public sealed class RoomFrameSync
                     }
 
                     // 框架对象天然池化，发送后会 Dispose，故每连接独立拷贝
-                    var msg = server_frame.Create();
-                    msg.frame_number = buffered.frame_number;
-                    msg.randomSeed = buffered.randomSeed;
-                    CopyFrames(buffered.frames, msg);
+                    var msg = FrameMessageUtil.CreateServerFrameForSend(buffered);
 
                     if (session.IsDisposed)
                     {
@@ -183,54 +181,5 @@ public sealed class RoomFrameSync
                     $"RoomFrameSync 标记可清空失败: roomId={_getRoomId()}, frameNumber={frameNumber}, error={markError}");
             }
         }
-    }
-
-    private static void CopyFrames(List<frame>? source, server_frame target)
-    {
-        if (source == null || source.Count == 0)
-        {
-            return;
-        }
-
-        target.frames ??= new List<frame>();
-        for (var i = 0; i < source.Count; i++)
-        {
-            var src = source[i];
-            if (src == null)
-            {
-                continue;
-            }
-
-            target.frames.Add(CloneFrameForSend(src));
-        }
-    }
-
-    private static frame CloneFrameForSend(frame src)
-    {
-        var dst = frame.Create();
-        dst.op = src.op;
-        if (src.data != null)
-        {
-            var p = player.Create();
-            p.speed = src.data.speed;
-            p.eid = src.data.eid;
-            if (src.data.direction != null)
-            {
-                p.direction = vec2d.Create();
-                p.direction.x = src.data.direction.x;
-                p.direction.y = src.data.direction.y;
-            }
-
-            if (src.data.position != null)
-            {
-                p.position = position2d.Create();
-                p.position.x = src.data.position.x;
-                p.position.y = src.data.position.y;
-            }
-
-            dst.data = p;
-        }
-
-        return dst;
     }
 }

@@ -1,3 +1,4 @@
+using Entity.Utils;
 using Fantasy;
 
 namespace Entity.Runtime.room;
@@ -151,7 +152,7 @@ public sealed class RoomFrameWindow
                 continue;
             }
 
-            slot.Frame.frames.Add(CloneFrame(src));
+            slot.Frame.frames.Add(FrameMessageUtil.CloneFrame(src));
         }
 
         error = null;
@@ -231,42 +232,6 @@ public sealed class RoomFrameWindow
     private int SlotIndex(ulong frameNumber)
     {
         return (int)(frameNumber % (ulong)Capacity);
-    }
-
-    /// <summary>深拷贝一条 frame（含子对象），供窗口持有/发送路径独立生命周期。</summary>
-    internal static frame CloneFrame(frame src)
-    {
-        // 池化对象：ResetContent 里 Dispose 可正确回收
-        var dst = frame.Create();
-        dst.op = src.op;
-        if (src.data != null)
-        {
-            dst.data = ClonePlayer(src.data);
-        }
-
-        return dst;
-    }
-
-    private static player ClonePlayer(player src)
-    {
-        var dst = player.Create();
-        dst.speed = src.speed;
-        dst.eid = src.eid;
-        if (src.direction != null)
-        {
-            dst.direction = vec2d.Create();
-            dst.direction.x = src.direction.x;
-            dst.direction.y = src.direction.y;
-        }
-
-        if (src.position != null)
-        {
-            dst.position = position2d.Create();
-            dst.position.x = src.position.x;
-            dst.position.y = src.position.y;
-        }
-
-        return dst;
     }
 
     /// <summary>

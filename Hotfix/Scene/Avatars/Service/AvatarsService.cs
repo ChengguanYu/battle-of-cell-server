@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Entity.DTOs;
 using Entity.Domains;
+using Entity.Utils;
 using Fantasy;
 using Fantasy.Async;
 using Hotfix.Common.Abstract.Service;
@@ -240,14 +241,14 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
     {
         if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)
         {
-            DisposeFrames(frames);
+            FrameMessageUtil.DisposeFrames(frames);
             Log.Warning($"[Avatar] client_frame 丢弃：Avatar 未加载, userId={userId}, frame={frameNumber}");
             return;
         }
 
         if (!player.IsInRoom)
         {
-            DisposeFrames(frames);
+            FrameMessageUtil.DisposeFrames(frames);
             Log.Warning(
                 $"[Avatar] client_frame 丢弃：非 InRoom, userId={userId}, state={player.State}, frame={frameNumber}");
             return;
@@ -267,28 +268,14 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
         }
         catch (InvalidOperationException)
         {
-            DisposeFrames(frames);
+            FrameMessageUtil.DisposeFrames(frames);
             Log.Warning($"[Avatar] 未找到 Rooms Scene，client_frame 丢弃: userId={userId}, frame={frameNumber}");
         }
         catch (Exception ex)
         {
-            DisposeFrames(frames);
+            FrameMessageUtil.DisposeFrames(frames);
             Log.Error($"[Avatar] 转发 client_frame 失败: userId={userId}, frame={frameNumber}, ex={ex}");
         }
     }
 
-    private static void DisposeFrames(List<frame>? frames)
-    {
-        if (frames == null || frames.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var f in frames)
-        {
-            f?.Dispose();
-        }
-
-        frames.Clear();
-    }
 }
