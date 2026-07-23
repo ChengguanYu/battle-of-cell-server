@@ -1,6 +1,7 @@
 using Entity.Config;
 using Entity.Managers;
 using Fantasy;
+using Fantasy.Network;
 
 namespace Entity.Runtime.room;
 
@@ -57,11 +58,6 @@ public sealed class RoomFrameSync
 
     private void BroadcastFrame(ulong frameNumber, IReadOnlyCollection<long> memberUserIds)
     {
-        if (memberUserIds == null || memberUserIds.Count == 0)
-        {
-            return;
-        }
-
         if (!_frameWindow.TryGet(frameNumber, out var buffered, out var getError) || buffered == null)
         {
             Log.Warning(
@@ -69,18 +65,34 @@ public sealed class RoomFrameSync
             return;
         }
 
-        foreach (var userId in memberUserIds)
-        {
-            if (!SessionManager.Instance.TryGetSession(userId, out var session) || session == null)
+        if (memberUserIds is { Count: > 0 })
+        { 
+            foreach (var userId in memberUserIds)
             {
-                continue;
-            }
+                if (!SessionManager.Instance.TryGetSession(userId, out var session) || session == null)
+                {
+                    continue;
+                }
+                // 框架对象天然池化，发送后会销毁，故此需要拷贝多份给每一个客户端
+                var msg = server_frame.Create();
+                msg.frame_number = buffered.frame_number;
+                msg.randomSeed = buffered.randomSeed;
 
-            // 每连接独立消息，避免共享槽对象。
-            using var msg = server_frame.Create();
-            msg.frame_number = buffered.frame_number;
-            msg.randomSeed = buffered.randomSeed;
-            session.Send(msg);
+                if (session.IsDisposed)
+                {
+                    msg.Dispose();
+                    continue;
+                }
+
+                session.Send(msg);
+            }
+        }
+
+        // 广播意图完成后标记可清空（无人可发也算消费完成，避免槽永久占用）
+        if (!_frameWindow.TryMarkClearable(frameNumber, out var markError))
+        {
+            Log.Warning(
+                $"RoomFrameSync 标记可清空失败: roomId={_getRoomId()}, frameNumber={frameNumber}, error={markError}");
         }
     }
 }

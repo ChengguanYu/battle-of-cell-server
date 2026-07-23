@@ -4,13 +4,13 @@ namespace Entity.Runtime.room;
 
 /// <summary>
 /// 按帧号索引的预分配帧窗口。
-/// 构造时固定分配 <see cref="server_frame"/> 槽位；写帧只修改槽内容，不新建消息对象。
+/// 每个槽聚合消息对象与占用/可清标记；写帧只改槽内容，不新建消息对象。
+/// 可写条件：未占用，或已标记可清（Clearable）；占用且未可清时拒绝异帧覆盖。
 /// 非线程安全。
 /// </summary>
 public sealed class RoomFrameWindow
 {
-    private readonly server_frame[] _slots;
-    private readonly bool[] _occupied;
+    private readonly Slot[] _slots;
 
     public RoomFrameWindow(int capacity)
     {
@@ -20,14 +20,12 @@ public sealed class RoomFrameWindow
         }
 
         Capacity = capacity;
-        _slots = new server_frame[capacity];
-        _occupied = new bool[capacity];
+        _slots = new Slot[capacity];
 
         for (var i = 0; i < capacity; i++)
         {
-            // 预分配常驻槽：autoReturn=false，生命周期由窗口持有，写路径禁止 Create。
-            _slots[i] = server_frame.Create(autoReturn: false);
-            _occupied[i] = false;
+            // 预分配常驻消息：autoReturn=false，生命周期由窗口持有，写路径禁止 Create。
+            _slots[i] = new Slot(server_frame.Create(autoReturn: false));
         }
     }
 
@@ -35,59 +33,109 @@ public sealed class RoomFrameWindow
     public int Capacity { get; }
 
     /// <summary>
-    /// 将指定帧号对应槽重置为空帧（仅改字段，不新建对象）。
+    /// 槽是否占用中（含已消费、待下次写入清空的 Clearable）。
+    /// 帧号不匹配时视为未占用该帧。
     /// </summary>
-    /// <param name="frameNumber">目标帧号。</param>
-    /// <param name="error">失败原因；成功为 null。</param>
-    /// <returns>是否写入成功。</returns>
+    public bool IsOccupied(ulong frameNumber)
+    {
+        ref var slot = ref _slots[SlotIndex(frameNumber)];
+        return slot.Occupied && slot.Matches(frameNumber);
+    }
+
+    /// <summary>
+    /// 槽是否已标记可清（消费完成，下次写入前可清空）。
+    /// 帧号不匹配时返回 false。
+    /// </summary>
+    public bool IsClearable(ulong frameNumber)
+    {
+        ref var slot = ref _slots[SlotIndex(frameNumber)];
+        return slot.Occupied && slot.Clearable && slot.Matches(frameNumber);
+    }
+
+    /// <summary>
+    /// 将指定帧号对应槽重置为空帧（仅改字段，不新建对象）。
+    /// 可写：未占用，或 Clearable；占用且未可清时仅允许同帧幂等。
+    /// </summary>
     public bool TryWriteEmpty(ulong frameNumber, out string? error)
     {
         var index = SlotIndex(frameNumber);
-        var slot = _slots[index];
-        if (slot == null)
+        ref var slot = ref _slots[index];
+
+        if (slot.Occupied && !slot.Clearable)
         {
-            error = $"槽位为空: index={index}, frameNumber={frameNumber}";
+            if (slot.Matches(frameNumber))
+            {
+                // 同帧重复写：保持占用、未可清（空帧场景幂等）
+                error = null;
+                return true;
+            }
+
+            error =
+                $"槽位未消费不可覆盖: index={index}, occupiedFrame={slot.Frame.frame_number}, writeFrame={frameNumber}";
             return false;
         }
 
-        ResetSlotContent(slot);
-        slot.frame_number = frameNumber;
-        _occupied[index] = true;
+        // 未占用，或 Clearable：写入前清空
+        slot.ResetContent();
+        slot.Frame.frame_number = frameNumber;
+        slot.Occupied = true;
+        slot.Clearable = false;
         error = null;
         return true;
     }
 
     /// <summary>
-    /// 按帧号读取槽位。槽未写入或帧号不匹配时失败。
+    /// 按帧号读取槽位。仅占用且未可清、帧号匹配时可读。
     /// </summary>
-    /// <param name="frameNumber">目标帧号。</param>
-    /// <param name="frame">命中时返回槽内对象（只读使用，调用方不得归还池）。</param>
-    /// <param name="error">失败原因；成功为 null。</param>
     public bool TryGet(ulong frameNumber, out server_frame? frame, out string? error)
     {
         frame = null;
         var index = SlotIndex(frameNumber);
-        if (!_occupied[index])
-        {
-            error = $"槽位未写入: index={index}, frameNumber={frameNumber}";
-            return false;
-        }
+        ref var slot = ref _slots[index];
 
-        var slot = _slots[index];
-        if (slot == null)
-        {
-            error = $"槽位为空: index={index}, frameNumber={frameNumber}";
-            return false;
-        }
-
-        if (slot.frame_number != frameNumber)
+        if (!slot.Occupied || slot.Clearable)
         {
             error =
-                $"帧号不匹配: index={index}, expected={frameNumber}, actual={slot.frame_number}";
+                $"槽位不可读: index={index}, frameNumber={frameNumber}, occupied={slot.Occupied}, clearable={slot.Clearable}";
             return false;
         }
 
-        frame = slot;
+        if (!slot.Matches(frameNumber))
+        {
+            error =
+                $"帧号不匹配: index={index}, expected={frameNumber}, actual={slot.Frame.frame_number}";
+            return false;
+        }
+
+        frame = slot.Frame;
+        error = null;
+        return true;
+    }
+
+    /// <summary>
+    /// 标记帧已消费：Clearable=true，下次写入前可清空复用。
+    /// 仅占用、未可清、帧号匹配时成功。
+    /// </summary>
+    public bool TryMarkClearable(ulong frameNumber, out string? error)
+    {
+        var index = SlotIndex(frameNumber);
+        ref var slot = ref _slots[index];
+
+        if (!slot.Occupied || slot.Clearable)
+        {
+            error =
+                $"标记可清空失败：槽不可标记, index={index}, frameNumber={frameNumber}, occupied={slot.Occupied}, clearable={slot.Clearable}";
+            return false;
+        }
+
+        if (!slot.Matches(frameNumber))
+        {
+            error =
+                $"标记可清空失败：帧号不匹配, index={index}, expected={frameNumber}, actual={slot.Frame.frame_number}";
+            return false;
+        }
+
+        slot.Clearable = true;
         error = null;
         return true;
     }
@@ -99,13 +147,10 @@ public sealed class RoomFrameWindow
     {
         for (var i = 0; i < Capacity; i++)
         {
-            var slot = _slots[i];
-            if (slot != null)
-            {
-                ResetSlotContent(slot);
-            }
-
-            _occupied[i] = false;
+            ref var slot = ref _slots[i];
+            slot.ResetContent();
+            slot.Occupied = false;
+            slot.Clearable = false;
         }
     }
 
@@ -115,28 +160,49 @@ public sealed class RoomFrameWindow
     }
 
     /// <summary>
-    /// 重置槽内容但不 Return 到消息池（预分配对象常驻窗口）。
+    /// 单个环形槽。
+    /// Occupied：是否持有一帧数据；Clearable：是否已消费、可在下次写入前清空。
+    /// 未占用即空闲，不单独建 Empty 状态。
     /// </summary>
-    private static void ResetSlotContent(server_frame slot)
+    private struct Slot
     {
-        // server_frame.Dispose 在非池对象上直接 return，不能用来清字段；手动清。
-        if (slot.frames is { Count: > 0 })
-        {
-            foreach (var op in slot.frames)
-            {
-                op?.Dispose();
-            }
+        public readonly server_frame Frame;
+        public bool Occupied;
+        public bool Clearable;
 
-            slot.frames.Clear();
+        public Slot(server_frame frame)
+        {
+            Frame = frame ?? throw new ArgumentNullException(nameof(frame));
+            Occupied = false;
+            Clearable = false;
         }
 
-        slot.frame_number = default;
-        slot.randomSeed = default;
+        public bool Matches(ulong frameNumber) => Frame.frame_number == frameNumber;
 
-        if (slot.meta != null)
+        /// <summary>
+        /// 重置槽内容但不 Return 到消息池（预分配对象常驻窗口）。
+        /// </summary>
+        public void ResetContent()
         {
-            slot.meta.Dispose();
-            slot.meta = null!;
+            // server_frame.Dispose 在非池对象上直接 return，不能用来清字段；手动清。
+            if (Frame.frames is { Count: > 0 })
+            {
+                foreach (var op in Frame.frames)
+                {
+                    op?.Dispose();
+                }
+
+                Frame.frames.Clear();
+            }
+
+            Frame.frame_number = default;
+            Frame.randomSeed = default;
+
+            if (Frame.meta != null)
+            {
+                Frame.meta.Dispose();
+                Frame.meta = null!;
+            }
         }
     }
 }
