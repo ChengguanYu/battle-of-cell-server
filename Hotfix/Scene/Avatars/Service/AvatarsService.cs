@@ -84,7 +84,7 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
                 return InnerResult.Fail("Avatar 进入房间失败", player.State);
             }
 
-            return InnerResult.Ok(string.Empty, resp.room_id);
+            return InnerResult.Ok(string.Empty, resp.room_id > 0 && resp.room_id <= uint.MaxValue ? (uint)resp.room_id : 0u);
         }
         catch (InvalidOperationException)
         {
@@ -128,7 +128,9 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
                 return InnerResult.Fail("RoomsLeave 失败", resp.ToMessage());
             }
 
-            var roomId = resp.room_id;
+            var roomId = resp.room_id > 0 && resp.room_id <= uint.MaxValue
+                ? (uint)resp.room_id
+                : 0u;
             if (!player.TransitInRoomToLobby("client_leave"))
             {
                 // Rooms 已离房成功，状态迁移失败时仍按 Rooms 权威回成功，避免双侧卡死

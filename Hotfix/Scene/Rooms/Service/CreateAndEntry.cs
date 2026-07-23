@@ -19,7 +19,7 @@ public sealed partial class RoomsService
             return createResult;
         }
 
-        if (createResult.Args is not { Count: > 0 } || createResult.Args[0] is not long roomId || roomId <= 0)
+        if (createResult.Args is not { Count: > 0 } || createResult.Args[0] is not uint roomId || roomId == 0)
         {
             Log.Debug($"RoomsService.CreateAndEntry Create 未返回有效 roomId: userId={userId}");
             return InnerResult.Fail("Create 未返回有效 roomId", userId);

@@ -34,7 +34,7 @@ public sealed class RoomsCreateHandler : AddressRPC<FScene, RoomsCreateReq, Room
 
     private static long TryGetRoomId(InnerResult result)
     {
-        if (result.Args is { Count: > 0 } && result.Args[0] is long roomId)
+        if (result.Args is { Count: > 0 } && result.Args[0] is uint roomId)
         {
             return roomId;
         }

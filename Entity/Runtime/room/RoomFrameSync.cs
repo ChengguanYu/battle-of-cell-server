@@ -11,10 +11,10 @@ namespace Entity.Runtime.room;
 /// </summary>
 public sealed class RoomFrameSync
 {
-    private readonly Func<long> _getRoomId;
+    private readonly Func<uint> _getRoomId;
     private readonly RoomFrameWindow _frameWindow;
 
-    public RoomFrameSync(Func<long> getRoomId)
+    public RoomFrameSync(Func<uint> getRoomId)
     {
         _getRoomId = getRoomId ?? throw new ArgumentNullException(nameof(getRoomId));
         _frameWindow = new RoomFrameWindow(RoomConfig.FrameBufferCapacity);

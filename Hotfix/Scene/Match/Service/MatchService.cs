@@ -42,7 +42,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
             }
 
             Log.Info($"玩家 {userId} 匹配成功: roomId={resp.room_id}");
-            return InnerResult.Ok(string.Empty, resp.room_id);
+            return InnerResult.Ok(string.Empty, (uint)resp.room_id);
         }
         catch (InvalidOperationException)
         {
@@ -126,7 +126,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
             }
 
             Log.Info($"玩家 {userId} Join 成功: roomId={resp.room_id}");
-            return InnerResult.Ok(string.Empty, resp.room_id);
+            return InnerResult.Ok(string.Empty, (uint)resp.room_id);
         }
         finally
         {
@@ -158,7 +158,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
             }
 
             Log.Info($"玩家 {userId} CreateAndEntry 成功: roomId={resp.room_id}");
-            return InnerResult.Ok(string.Empty, resp.room_id);
+            return InnerResult.Ok(string.Empty, (uint)resp.room_id);
         }
         finally
         {

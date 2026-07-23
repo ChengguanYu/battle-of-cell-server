@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Entity.Config;
 using Entity.Runtime.room;
+using Entity.Utils;
 using Entity.VOs.room;
 using Fantasy;
 
@@ -18,9 +19,9 @@ public sealed class RoomManager
     private static readonly RoomManager _instance = new();
     public static RoomManager Instance => _instance;
 
-    private readonly ConcurrentDictionary<long, Room> _roomById = new();
-    private readonly ConcurrentDictionary<long, long> _roomIdByUserId = new();
-    private long _nextRoomId = 1;
+    private readonly ConcurrentDictionary<uint, Room> _roomById = new();
+    private readonly ConcurrentDictionary<long, uint> _roomIdByUserId = new();
+    private readonly RecyclableUIntIdGenerator _roomIdGenerator = new();
 
     /// <summary>
     /// 房间私有 tick 定时器宿主 Scene（通常为 Rooms Scene）。
@@ -125,11 +126,17 @@ public sealed class RoomManager
     /// </summary>
     public Room? Create(int capacity = RoomConfig.DefaultCapacity)
     {
-        var roomId = Interlocked.Increment(ref _nextRoomId) - 1;
+        if (!_roomIdGenerator.TryAcquire(out var roomId))
+        {
+            Log.Warning($"RoomManager.Create 失败：无法分配 roomId, capacity={capacity}");
+            return null;
+        }
+
         Log.Debug($"RoomManager.Create 开始: roomId={roomId}, capacity={capacity}");
         var room = new Room();
         if (!room.Open(roomId, capacity))
         {
+            _roomIdGenerator.Release(roomId);
             Log.Debug($"RoomManager.Create Open 失败: roomId={roomId}, capacity={capacity}");
             return null;
         }
@@ -143,10 +150,10 @@ public sealed class RoomManager
     /// 玩家进入指定房间（从 CreateWithMember 的加入逻辑拆出）。
     /// 成功返回房间；失败返回 null。
     /// </summary>
-    public Room? Entry(long roomId, long userId)
+    public Room? Entry(uint roomId, long userId)
     {
         Log.Debug($"RoomManager.Entry 开始: roomId={roomId}, userId={userId}");
-        if (userId <= 0 || roomId <= 0)
+        if (userId <= 0 || roomId == 0)
         {
             Log.Debug($"RoomManager.Entry 参数非法: roomId={roomId}, userId={userId}");
             return null;
@@ -192,7 +199,7 @@ public sealed class RoomManager
     /// <summary>
     /// 玩家加入房间。
     /// </summary>
-    private bool Join(long roomId, long userId)
+    private bool Join(uint roomId, long userId)
     {
         if (!_roomById.TryGetValue(roomId, out var room) || room == null)
         {
@@ -258,7 +265,7 @@ public sealed class RoomManager
     /// <summary>
     /// 关闭并移除房间。
     /// </summary>
-    public bool Remove(long roomId, string? reason = null)
+    public bool Remove(uint roomId, string? reason = null)
     {
         if (!_roomById.TryRemove(roomId, out var room) || room == null)
         {
@@ -274,10 +281,11 @@ public sealed class RoomManager
         }
 
         room.Close(reason);
+        _roomIdGenerator.Release(roomId);
         return true;
     }
 
-    public bool Contains(long roomId)
+    public bool Contains(uint roomId)
     {
         return _roomById.ContainsKey(roomId);
     }

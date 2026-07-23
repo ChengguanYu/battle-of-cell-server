@@ -17,7 +17,16 @@ public sealed class RoomsJoinHandler : AddressRPC<FScene, RoomsJoinReq, RoomsJoi
     protected override async FTask Run(FScene scene, RoomsJoinReq req, RoomsJoinResp resp, Action reply)
     {
         var roomsService = scene.GetComponent<RoomsService>();
-        var result = await roomsService.Join(req.userId, req.room_id);
+        if (req.room_id <= 0 || req.room_id > uint.MaxValue)
+        {
+            Log.Warning($"玩家 {req.userId} Join 房间 {req.room_id} 失败：room_id 非法");
+            resp.room_id = 0;
+            resp.SetError(StatusCode.RoomsEnterFailed);
+            reply();
+            return;
+        }
+
+        var result = await roomsService.Join(req.userId, (uint)req.room_id);
         if (!result.IsSuccess)
         {
             Log.Warning($"玩家 {req.userId} Join 房间 {req.room_id} 失败：{result.Reason}");
@@ -34,7 +43,7 @@ public sealed class RoomsJoinHandler : AddressRPC<FScene, RoomsJoinReq, RoomsJoi
 
     private static long TryGetRoomId(InnerResult result)
     {
-        if (result.Args is { Count: > 0 } && result.Args[0] is long roomId)
+        if (result.Args is { Count: > 0 } && result.Args[0] is uint roomId)
         {
             return roomId;
         }

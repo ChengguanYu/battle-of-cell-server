@@ -19,7 +19,7 @@ public interface IRoomStateMachine
 {
     RoomState State { get; }
 
-    bool Open(long roomId, int capacity = RoomConfig.DefaultCapacity);
+    bool Open(uint roomId, int capacity = RoomConfig.DefaultCapacity);
 
     bool Close(string? reason = null);
 }

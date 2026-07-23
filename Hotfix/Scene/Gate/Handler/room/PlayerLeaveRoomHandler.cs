@@ -60,7 +60,7 @@ public sealed class PlayerLeaveRoomHandler : MessageRPC<PlayerLeaveRoomReq, Play
 
     private static long TryGetRoomId(Entity.DTOs.InnerResult result)
     {
-        if (result.Args is { Count: > 0 } && result.Args[0] is long roomId)
+        if (result.Args is { Count: > 0 } && result.Args[0] is uint roomId)
         {
             return roomId;
         }

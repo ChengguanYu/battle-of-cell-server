@@ -15,12 +15,12 @@ public sealed partial class RoomsService : ServiceBase
     /// <summary>
     /// 进入指定房间。成功时 Args[0] 为 roomId。
     /// </summary>
-    public async FTask<InnerResult> Entry(long userId, long roomId)
+    public async FTask<InnerResult> Entry(long userId, uint roomId)
     {
         await FTask.CompletedTask;
         Log.Debug($"RoomsService.Entry 开始: userId={userId}, roomId={roomId}");
 
-        if (userId <= 0 || roomId <= 0)
+        if (userId <= 0 || roomId == 0)
         {
             Log.Debug($"RoomsService.Entry 参数非法: userId={userId}, roomId={roomId}");
             return InnerResult.Fail("参数非法", userId, roomId);

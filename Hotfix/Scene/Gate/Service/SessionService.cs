@@ -74,7 +74,7 @@ public sealed class SessionService() : ServiceBase(), ISessionService
                 return InnerResult.Fail("AvatarMatch 失败", resp.ToMessage());
             }
 
-            return InnerResult.Ok(string.Empty, resp.room_id);
+            return InnerResult.Ok(string.Empty, resp.room_id > 0 && resp.room_id <= uint.MaxValue ? (uint)resp.room_id : 0u);
         }
         catch (InvalidOperationException)
         {
@@ -105,7 +105,7 @@ public sealed class SessionService() : ServiceBase(), ISessionService
                 return InnerResult.Fail("AvatarLeaveRoom 失败", resp.ToMessage());
             }
 
-            return InnerResult.Ok(string.Empty, resp.room_id);
+            return InnerResult.Ok(string.Empty, resp.room_id > 0 && resp.room_id <= uint.MaxValue ? (uint)resp.room_id : 0u);
         }
         catch (InvalidOperationException)
         {

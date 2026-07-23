@@ -19,7 +19,7 @@ public sealed class Room : IRoomStateMachine
     private readonly RoomUidGenerator _uidGenerator = new();
 
     private RoomState _state = RoomState.Created;
-    private long _roomId;
+    private uint _roomId;
     private int _capacity = RoomConfig.DefaultCapacity;
     private long _createdAtUnixMs;
     private long _updatedAtUnixMs;
@@ -30,7 +30,7 @@ public sealed class Room : IRoomStateMachine
         _frameSync = new RoomFrameSync(() => _roomId);
     }
 
-    public long RoomId => _roomId;
+    public uint RoomId => _roomId;
 
     public RoomState State => _state;
 
@@ -47,7 +47,7 @@ public sealed class Room : IRoomStateMachine
     /// <summary>当前成员快照（只读拷贝）。</summary>
     public IReadOnlyCollection<long> MemberUserIds => _memberUserIds.ToArray();
 
-    public bool Open(long roomId, int capacity = RoomConfig.DefaultCapacity)
+    public bool Open(uint roomId, int capacity = RoomConfig.DefaultCapacity)
     {
         if (_state != RoomState.Created)
         {
@@ -55,7 +55,7 @@ public sealed class Room : IRoomStateMachine
             return false;
         }
 
-        if (roomId <= 0)
+        if (roomId == 0)
         {
             Log.Warning($"Room 开启失败：roomId 非法, roomId={roomId}");
             return false;
@@ -188,7 +188,7 @@ public sealed class Room : IRoomStateMachine
         _frameSync.OnTick(tickIndex, _memberUserIds);
     }
 
-    private void CommitOpen(long roomId, int capacity)
+    private void CommitOpen(uint roomId, int capacity)
     {
         _roomId = roomId;
         _capacity = capacity;
