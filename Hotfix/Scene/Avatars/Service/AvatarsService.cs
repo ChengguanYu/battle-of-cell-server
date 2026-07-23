@@ -98,6 +98,58 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
     }
 
     /// <summary>
+    /// 主动退出房间：仅 InRoom 可退出；Rooms RPC 成功后再 InRoom -> Lobby。
+    /// 成功时 Args[0] 为离开的 roomId。
+    /// </summary>
+    public async FTask<InnerResult> LeaveRoom(long userId)
+    {
+        if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)
+        {
+            return InnerResult.Fail("Avatar 未加载", userId);
+        }
+
+        if (!player.IsInRoom)
+        {
+            Log.Warning($"用户 {userId} 当前不可退出房间，state={player.State}");
+            return InnerResult.Fail("当前状态不可退出房间", player.State);
+        }
+
+        RoomsLeaveResp? resp = null;
+        try
+        {
+            var req = RoomsLeaveReq.Create();
+            req.userId = userId;
+            req.reason = "client_leave";
+            var address = Scene.GetSceneAddress(SceneType.Rooms);
+            resp = await Call<RoomsLeaveReq, RoomsLeaveResp>(address, req);
+            if (!resp.IsOk())
+            {
+                Log.Warning($"用户 {userId} RoomsLeave 失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("RoomsLeave 失败", resp.ToMessage());
+            }
+
+            var roomId = resp.room_id;
+            if (!player.TransitInRoomToLobby("client_leave"))
+            {
+                // Rooms 已离房成功，状态迁移失败时仍按 Rooms 权威回成功，避免双侧卡死
+                Log.Error(
+                    $"[Avatar] Rooms 已离房但 InRoom->Lobby 失败: userId={userId}, roomId={roomId}, state={player.State}");
+            }
+
+            return InnerResult.Ok(string.Empty, roomId);
+        }
+        catch (InvalidOperationException)
+        {
+            Log.Warning($"未找到 Rooms Scene，用户 {userId} 退出房间失败");
+            return InnerResult.Fail("未找到 Rooms Scene", userId);
+        }
+        finally
+        {
+            resp?.Dispose();
+        }
+    }
+
+    /// <summary>
     /// 玩家下线清理入口：仅编排调用各清理步骤。
     /// 后续新增步骤在此追加函数调用；若步骤异步则 await。
     /// </summary>
@@ -107,10 +159,12 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
 
         LeaveRoomIfNeeded(userId, reason);
         UnloadAvatar(userId, reason);
+        await FTask.CompletedTask;
     }
 
     /// <summary>
     /// 若玩家在房间中，通知 Rooms 离房检查，并把 Avatar 状态收回大厅。
+    /// 下线清理路径用单向 Notify，不阻塞会话清理。
     /// </summary>
     private void LeaveRoomIfNeeded(long userId, string? reason)
     {
@@ -169,6 +223,7 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
             Log.Error($"[Avatar] 通知 Rooms 离房失败: userId={userId}, reason={reason}, ex={ex}");
         }
     }
+
     /// <summary>
     /// 校验 Avatar 状态后转发客户端帧到 Rooms（单向，业务暂为日志骨架）。
     /// </summary>

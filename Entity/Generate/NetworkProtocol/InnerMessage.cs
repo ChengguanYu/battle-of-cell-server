@@ -211,6 +211,102 @@ namespace Fantasy
         public long room_id { get; set; }
     }
     /// <summary>
+    /// Gate -> Avatar 主动退出房间请求
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarLeaveRoomReq : AMessage, IAddressRequest
+    {
+        public static AvatarLeaveRoomReq Create(bool autoReturn = true)
+        {
+            var avatarLeaveRoomReq = MessageObjectPool<AvatarLeaveRoomReq>.Rent();
+            avatarLeaveRoomReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarLeaveRoomReq.SetIsPool(false);
+            }
+            
+            return avatarLeaveRoomReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            MessageObjectPool<AvatarLeaveRoomReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarLeaveRoomReq; } 
+        [ProtoIgnore]
+        public AvatarLeaveRoomResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long userId { get; set; }
+    }
+    /// <summary>
+    /// Gate -> Avatar 主动退出房间响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarLeaveRoomResp : AMessage, IAddressResponse
+    {
+        public static AvatarLeaveRoomResp Create(bool autoReturn = true)
+        {
+            var avatarLeaveRoomResp = MessageObjectPool<AvatarLeaveRoomResp>.Rent();
+            avatarLeaveRoomResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarLeaveRoomResp.SetIsPool(false);
+            }
+            
+            return avatarLeaveRoomResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            room_id = default;
+            MessageObjectPool<AvatarLeaveRoomResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarLeaveRoomResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+        /// <summary>
+        /// 离开成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
+    }
+    /// <summary>
     /// Gate -> Avatar 清理玩家通知（WsSession 清理后）
     /// </summary>
     [Serializable]
@@ -650,6 +746,108 @@ namespace Fantasy
         /// </summary>
         [ProtoMember(2)]
         public string reason { get; set; }
+    }
+    /// <summary>
+    /// Avatar -> Rooms 主动离房请求（在线退出，等待结果）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsLeaveReq : AMessage, IAddressRequest
+    {
+        public static RoomsLeaveReq Create(bool autoReturn = true)
+        {
+            var roomsLeaveReq = MessageObjectPool<RoomsLeaveReq>.Rent();
+            roomsLeaveReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsLeaveReq.SetIsPool(false);
+            }
+            
+            return roomsLeaveReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            reason = default;
+            MessageObjectPool<RoomsLeaveReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsLeaveReq; } 
+        [ProtoIgnore]
+        public RoomsLeaveResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long userId { get; set; }
+        /// <summary>
+        /// 离房原因，如 client_leave
+        /// </summary>
+        [ProtoMember(2)]
+        public string reason { get; set; }
+    }
+    /// <summary>
+    /// Avatar -> Rooms 主动离房响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsLeaveResp : AMessage, IAddressResponse
+    {
+        public static RoomsLeaveResp Create(bool autoReturn = true)
+        {
+            var roomsLeaveResp = MessageObjectPool<RoomsLeaveResp>.Rent();
+            roomsLeaveResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsLeaveResp.SetIsPool(false);
+            }
+            
+            return roomsLeaveResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            room_id = default;
+            MessageObjectPool<RoomsLeaveResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsLeaveResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+        /// <summary>
+        /// 离开成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
     }
     /// <summary>
     /// Avatar -> Rooms 客户端帧转发（业务暂为日志骨架）

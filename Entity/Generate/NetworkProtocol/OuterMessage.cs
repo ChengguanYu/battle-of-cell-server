@@ -599,6 +599,113 @@ namespace Fantasy
         public List<string> args { get; set; } = new List<string>();
     }
     /// <summary>
+    /// 客户端主动退出房间请求
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class PlayerLeaveRoomReq : AMessage, IRequest
+    {
+        public static PlayerLeaveRoomReq Create(bool autoReturn = true)
+        {
+            var playerLeaveRoomReq = MessageObjectPool<PlayerLeaveRoomReq>.Rent();
+            playerLeaveRoomReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                playerLeaveRoomReq.SetIsPool(false);
+            }
+            
+            return playerLeaveRoomReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            MessageObjectPool<PlayerLeaveRoomReq>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.PlayerLeaveRoomReq; } 
+        [ProtoIgnore]
+        public PlayerLeaveRoomResp ResponseType { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class PlayerLeaveRoomResp : AMessage, IResponse
+    {
+        public static PlayerLeaveRoomResp Create(bool autoReturn = true)
+        {
+            var playerLeaveRoomResp = MessageObjectPool<PlayerLeaveRoomResp>.Rent();
+            playerLeaveRoomResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                playerLeaveRoomResp.SetIsPool(false);
+            }
+            
+            return playerLeaveRoomResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            if (meta != null)
+            {
+                meta.Dispose();
+                meta = null;
+            }
+            foreach (var __t in error) __t.Dispose();
+            error.Clear();
+            ok = default;
+            room_id = default;
+            MessageObjectPool<PlayerLeaveRoomResp>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.PlayerLeaveRoomResp; } 
+        [ProtoMember(4)]
+        public uint ErrorCode { get; set; }
+        [ProtoMember(1)]
+        public MetaData meta { get; set; }
+        [ProtoMember(2)]
+        public List<RespError> error { get; set; } = new List<RespError>();
+        /// <summary>
+        /// 业务是否成功（与 meta 同级；true 时 LightProto 会写出该字段）
+        /// </summary>
+        [ProtoMember(3)]
+        public bool ok { get; set; }
+        /// <summary>
+        /// 离开成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(5)]
+        public long room_id { get; set; }
+    }
+    /// <summary>
     /// 客户端发起匹配请求
     /// </summary>
     [Serializable]

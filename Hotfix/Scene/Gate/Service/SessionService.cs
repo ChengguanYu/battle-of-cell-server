@@ -87,6 +87,37 @@ public sealed class SessionService() : ServiceBase(), ISessionService
         }
     }
     /// <summary>
+    /// 主动退出房间：通过内部 RPC 转发到 Avatars Scene。
+    /// 成功时 Args[0] 为 roomId。
+    /// </summary>
+    public async FTask<InnerResult> PlayerLeaveRoom(long userId)
+    {
+        AvatarLeaveRoomResp? resp = null;
+        try
+        {
+            var req = AvatarLeaveRoomReq.Create();
+            req.userId = userId;
+            var address = Scene.GetSceneAddress(SceneType.Avatars);
+            resp = await Call<AvatarLeaveRoomReq, AvatarLeaveRoomResp>(address, req);
+            if (!resp.IsOk())
+            {
+                Log.Warning($"用户 {userId} AvatarLeaveRoom 失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("AvatarLeaveRoom 失败", resp.ToMessage());
+            }
+
+            return InnerResult.Ok(string.Empty, resp.room_id);
+        }
+        catch (InvalidOperationException)
+        {
+            Log.Warning($"未找到 Avatars Scene，用户 {userId} 退出房间失败");
+            return InnerResult.Fail("未找到 Avatars Scene", userId);
+        }
+        finally
+        {
+            resp?.Dispose();
+        }
+    }
+    /// <summary>
     /// 转发客户端帧到 Avatars Scene（单向，业务暂为日志骨架）。
     /// </summary>
     public void ForwardClientFrame(long userId, ulong frameNumber, int framesCount)
@@ -112,3 +143,4 @@ public sealed class SessionService() : ServiceBase(), ISessionService
         }
     }
 }
+

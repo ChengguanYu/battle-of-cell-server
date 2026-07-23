@@ -20,6 +20,12 @@ public interface IAvatarsService
     FTask<InnerResult> Match(long userId);
 
     /// <summary>
+    /// 主动退出房间：仅 InRoom 可退出；Rooms 确认后再迁回 Lobby。
+    /// 成功时 Args[0] 为 roomId。
+    /// </summary>
+    FTask<InnerResult> LeaveRoom(long userId);
+
+    /// <summary>
     /// 清理玩家：由 Gate 在 WsSession 清理后通知。
     /// </summary>
     FTask CleanupPlayer(long userId, string? reason);

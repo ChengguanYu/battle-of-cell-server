@@ -13,4 +13,8 @@ namespace Fantasy
     public partial class PlayerMatchResp : ICommonResponse
     {
     }
+
+    public partial class PlayerLeaveRoomResp : ICommonResponse
+    {
+    }
 }

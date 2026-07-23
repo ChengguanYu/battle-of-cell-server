@@ -19,9 +19,14 @@ public interface ISessionService
     /// 发起匹配：通过内部 RPC 转发到 Avatars Scene。
     /// </summary>
     FTask<InnerResult> PlayerMatch(long userId);
+    /// <summary>
+    /// 主动退出房间：通过内部 RPC 转发到 Avatars Scene。
+    /// </summary>
+    FTask<InnerResult> PlayerLeaveRoom(long userId);
 
     /// <summary>
     /// 转发客户端帧到 Avatars Scene（单向，业务暂为日志骨架）。
     /// </summary>
     void ForwardClientFrame(long userId, ulong frameNumber, int framesCount);
 }
+

@@ -87,6 +87,17 @@ namespace Fantasy
 			session.Send(RespError_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<PlayerLeaveRoomResp> PlayerLeaveRoomReq(this Session session, PlayerLeaveRoomReq PlayerLeaveRoomReq_request)
+		{
+			return (PlayerLeaveRoomResp)await session.Call(PlayerLeaveRoomReq_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<PlayerLeaveRoomResp> PlayerLeaveRoomReq(this Session session)
+		{
+			using var PlayerLeaveRoomReq_request = Fantasy.PlayerLeaveRoomReq.Create();
+			return (PlayerLeaveRoomResp)await session.Call(PlayerLeaveRoomReq_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static async FTask<PlayerMatchResp> PlayerMatchReq(this Session session, PlayerMatchReq PlayerMatchReq_request)
 		{
 			return (PlayerMatchResp)await session.Call(PlayerMatchReq_request);
