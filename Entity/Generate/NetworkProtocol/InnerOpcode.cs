@@ -7,6 +7,7 @@ namespace Fantasy
     public static partial class InnerOpcode
     {
         public const uint AvatarCleanupNotify = 939534097;
+        public const uint AvatarClientFrameNotify = 939534098;
         public const uint AvatarMatchReq = 1073751825;
         public const uint AvatarMatchResp = 1207969553;
         public const uint MatchReq = 1073751826;
@@ -16,6 +17,7 @@ namespace Fantasy
         public const uint PlayerEntryReq = 1073751828;
         public const uint PlayerEntryResp = 1207969556;
         public const uint RoomSnapItem = 536880913;
+        public const uint RoomsClientFrameNotify = 939534099;
         public const uint RoomsCreateAndEntryReq = 1073751829;
         public const uint RoomsCreateAndEntryResp = 1207969557;
         public const uint RoomsCreateReq = 1073751830;
@@ -26,6 +28,6 @@ namespace Fantasy
         public const uint RoomsGetRoomListSnapResp = 1207969560;
         public const uint RoomsJoinReq = 1073751833;
         public const uint RoomsJoinResp = 1207969561;
-        public const uint RoomsPlayerLeaveNotify = 939534098;
+        public const uint RoomsPlayerLeaveNotify = 939534100;
     }
 }

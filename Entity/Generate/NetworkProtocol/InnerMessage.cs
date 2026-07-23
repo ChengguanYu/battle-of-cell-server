@@ -261,6 +261,59 @@ namespace Fantasy
         public string reason { get; set; }
     }
     /// <summary>
+    /// Gate -> Avatar 客户端帧转发（业务暂为日志骨架）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarClientFrameNotify : AMessage, IAddressMessage
+    {
+        public static AvatarClientFrameNotify Create(bool autoReturn = true)
+        {
+            var avatarClientFrameNotify = MessageObjectPool<AvatarClientFrameNotify>.Rent();
+            avatarClientFrameNotify.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarClientFrameNotify.SetIsPool(false);
+            }
+            
+            return avatarClientFrameNotify;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            frame_number = default;
+            frames_count = default;
+            MessageObjectPool<AvatarClientFrameNotify>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarClientFrameNotify; } 
+        [ProtoMember(1)]
+        public long userId { get; set; }
+        [ProtoMember(2)]
+        public ulong frame_number { get; set; }
+        /// <summary>
+        /// frames 数量，仅供日志/骨架透传，完整操作后续再扩展
+        /// </summary>
+        [ProtoMember(3)]
+        public int frames_count { get; set; }
+    }
+    /// <summary>
     /// Avatar -> Match 匹配请求（旧链路，保留兼容）
     /// </summary>
     [Serializable]
@@ -597,6 +650,59 @@ namespace Fantasy
         /// </summary>
         [ProtoMember(2)]
         public string reason { get; set; }
+    }
+    /// <summary>
+    /// Avatar -> Rooms 客户端帧转发（业务暂为日志骨架）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsClientFrameNotify : AMessage, IAddressMessage
+    {
+        public static RoomsClientFrameNotify Create(bool autoReturn = true)
+        {
+            var roomsClientFrameNotify = MessageObjectPool<RoomsClientFrameNotify>.Rent();
+            roomsClientFrameNotify.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsClientFrameNotify.SetIsPool(false);
+            }
+            
+            return roomsClientFrameNotify;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            userId = default;
+            frame_number = default;
+            frames_count = default;
+            MessageObjectPool<RoomsClientFrameNotify>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsClientFrameNotify; } 
+        [ProtoMember(1)]
+        public long userId { get; set; }
+        [ProtoMember(2)]
+        public ulong frame_number { get; set; }
+        /// <summary>
+        /// frames 数量，仅供日志/骨架透传，完整操作后续再扩展
+        /// </summary>
+        [ProtoMember(3)]
+        public int frames_count { get; set; }
     }
     /// <summary>
     /// 房间列表快照条目（非权威，仅供 Match 选房线索）
