@@ -231,9 +231,6 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
     /// </summary>
     public void ForwardClientFrame(long userId, ulong frameNumber, int framesCount)
     {
-        Log.Debug(
-            $"[Avatar] 收到 client_frame 转发: userId={userId}, frame={frameNumber}, ops={framesCount}");
-
         if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)
         {
             Log.Warning($"[Avatar] client_frame 丢弃：Avatar 未加载, userId={userId}, frame={frameNumber}");
@@ -255,8 +252,6 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
             msg.frame_number = frameNumber;
             msg.frames_count = framesCount;
             Send(address, msg);
-            Log.Debug(
-                $"[Avatar] 已转发 client_frame 到 Rooms: userId={userId}, frame={frameNumber}, ops={framesCount}, address={address}");
         }
         catch (InvalidOperationException)
         {

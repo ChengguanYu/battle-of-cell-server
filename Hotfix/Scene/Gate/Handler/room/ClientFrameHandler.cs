@@ -22,9 +22,6 @@ public sealed class ClientFrameHandler : Message<client_frame>
         }
 
         var framesCount = message.frames?.Count ?? 0;
-        Log.Debug(
-            $"[Gate] 收到 client_frame: userId={userId}, frame={message.frame_number}, ops={framesCount}");
-
         ISessionService sessionService = session.Scene.GetComponent<SessionService>();
         sessionService.ForwardClientFrame(userId, message.frame_number, framesCount);
         await FTask.CompletedTask;

@@ -11,7 +11,6 @@ public sealed partial class RoomsService
     /// </summary>
     public async FTask<InnerResult> Join(long userId, uint roomId)
     {
-        Log.Debug($"RoomsService.Join 转发 Entry: userId={userId}, roomId={roomId}");
         return await Entry(userId, roomId);
     }
 }

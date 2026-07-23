@@ -130,8 +130,6 @@ public sealed class SessionService() : ServiceBase(), ISessionService
             msg.frame_number = frameNumber;
             msg.frames_count = framesCount;
             Send(address, msg);
-            Log.Debug(
-                $"[Gate] 已转发 client_frame 到 Avatars: userId={userId}, frame={frameNumber}, ops={framesCount}, address={address}");
         }
         catch (InvalidOperationException)
         {
