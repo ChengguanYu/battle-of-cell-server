@@ -169,4 +169,45 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
             Log.Error($"[Avatar] 通知 Rooms 离房失败: userId={userId}, reason={reason}, ex={ex}");
         }
     }
+    /// <summary>
+    /// 校验 Avatar 状态后转发客户端帧到 Rooms（单向，业务暂为日志骨架）。
+    /// </summary>
+    public void ForwardClientFrame(long userId, ulong frameNumber, int framesCount)
+    {
+        Log.Debug(
+            $"[Avatar] 收到 client_frame 转发: userId={userId}, frame={frameNumber}, ops={framesCount}");
+
+        if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)
+        {
+            Log.Warning($"[Avatar] client_frame 丢弃：Avatar 未加载, userId={userId}, frame={frameNumber}");
+            return;
+        }
+
+        if (!player.IsInRoom)
+        {
+            Log.Warning(
+                $"[Avatar] client_frame 丢弃：非 InRoom, userId={userId}, state={player.State}, frame={frameNumber}");
+            return;
+        }
+
+        try
+        {
+            var address = Scene.GetSceneAddress(SceneType.Rooms);
+            var msg = RoomsClientFrameNotify.Create();
+            msg.userId = userId;
+            msg.frame_number = frameNumber;
+            msg.frames_count = framesCount;
+            Send(address, msg);
+            Log.Debug(
+                $"[Avatar] 已转发 client_frame 到 Rooms: userId={userId}, frame={frameNumber}, ops={framesCount}, address={address}");
+        }
+        catch (InvalidOperationException)
+        {
+            Log.Warning($"[Avatar] 未找到 Rooms Scene，client_frame 丢弃: userId={userId}, frame={frameNumber}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Avatar] 转发 client_frame 失败: userId={userId}, frame={frameNumber}, ex={ex}");
+        }
+    }
 }

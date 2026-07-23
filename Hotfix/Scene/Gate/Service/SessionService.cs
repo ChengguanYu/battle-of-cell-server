@@ -86,4 +86,29 @@ public sealed class SessionService() : ServiceBase(), ISessionService
             resp?.Dispose();
         }
     }
+    /// <summary>
+    /// 转发客户端帧到 Avatars Scene（单向，业务暂为日志骨架）。
+    /// </summary>
+    public void ForwardClientFrame(long userId, ulong frameNumber, int framesCount)
+    {
+        try
+        {
+            var address = Scene.GetSceneAddress(SceneType.Avatars);
+            var msg = AvatarClientFrameNotify.Create();
+            msg.userId = userId;
+            msg.frame_number = frameNumber;
+            msg.frames_count = framesCount;
+            Send(address, msg);
+            Log.Debug(
+                $"[Gate] 已转发 client_frame 到 Avatars: userId={userId}, frame={frameNumber}, ops={framesCount}, address={address}");
+        }
+        catch (InvalidOperationException)
+        {
+            Log.Warning($"[Gate] 未找到 Avatars Scene，client_frame 丢弃: userId={userId}, frame={frameNumber}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Gate] 转发 client_frame 失败: userId={userId}, frame={frameNumber}, ex={ex}");
+        }
+    }
 }

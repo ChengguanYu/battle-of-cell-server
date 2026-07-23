@@ -23,4 +23,9 @@ public interface IAvatarsService
     /// 清理玩家：由 Gate 在 WsSession 清理后通知。
     /// </summary>
     FTask CleanupPlayer(long userId, string? reason);
+
+    /// <summary>
+    /// 转发客户端帧到 Rooms Scene（单向，业务暂为日志骨架）。
+    /// </summary>
+    void ForwardClientFrame(long userId, ulong frameNumber, int framesCount);
 }
