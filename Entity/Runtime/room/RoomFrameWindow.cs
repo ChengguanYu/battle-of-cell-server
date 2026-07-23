@@ -5,7 +5,10 @@ namespace Entity.Runtime.room;
 /// <summary>
 /// 按帧号索引的预分配帧窗口。
 /// 每个槽聚合消息对象与占用/可清标记；写帧只改槽内容，不新建消息对象。
-/// 可写条件：未占用，或已标记可清（Clearable）；占用且未可清时拒绝异帧覆盖。
+/// 写空帧可写条件：
+/// - 未占用，或 Clearable；
+/// - 或槽上帧号严格小于待写帧（当前 tick 之前的帧一律视为可覆盖）。
+/// 同帧重复写幂等；槽上帧号更大时拒绝回写。
 /// 非线程安全。
 /// </summary>
 public sealed class RoomFrameWindow
@@ -54,7 +57,8 @@ public sealed class RoomFrameWindow
 
     /// <summary>
     /// 将指定帧号对应槽重置为空帧（仅改字段，不新建对象）。
-    /// 可写：未占用，或 Clearable；占用且未可清时仅允许同帧幂等。
+    /// 可写：未占用 / Clearable / 槽上旧帧 &lt; 待写帧（当前 tick 前一律可覆盖）。
+    /// 同帧幂等；槽上更新帧时拒绝。
     /// </summary>
     public bool TryWriteEmpty(ulong frameNumber, out string? error)
     {
@@ -65,21 +69,91 @@ public sealed class RoomFrameWindow
         {
             if (slot.Matches(frameNumber))
             {
-                // 同帧重复写：保持占用、未可清（空帧场景幂等）
+                // 同帧重复写：保持占用与已有 ops（幂等）
                 error = null;
                 return true;
             }
 
-            error =
-                $"槽位未消费不可覆盖: index={index}, occupiedFrame={slot.Frame.frame_number}, writeFrame={frameNumber}";
-            return false;
+            // 当前 tick 之前的帧一律可写覆盖
+            if (slot.Frame.frame_number < frameNumber)
+            {
+                // fall through to reset
+            }
+            else
+            {
+                error =
+                    $"槽位不可回写更旧帧: index={index}, occupiedFrame={slot.Frame.frame_number}, writeFrame={frameNumber}";
+                return false;
+            }
         }
 
-        // 未占用，或 Clearable：写入前清空
+        // 未占用 / Clearable / 旧帧可覆盖：写入前清空
         slot.ResetContent();
         slot.Frame.frame_number = frameNumber;
         slot.Occupied = true;
         slot.Clearable = false;
+        error = null;
+        return true;
+    }
+
+    /// <summary>
+    /// 确保目标帧槽可追加：同帧已打开则直接用；否则按写空帧规则打开。
+    /// </summary>
+    public bool TryEnsureOpen(ulong frameNumber, out string? error)
+    {
+        var index = SlotIndex(frameNumber);
+        ref var slot = ref _slots[index];
+
+        if (slot.Occupied && !slot.Clearable && slot.Matches(frameNumber))
+        {
+            error = null;
+            return true;
+        }
+
+        return TryWriteEmpty(frameNumber, out error);
+    }
+
+    /// <summary>
+    /// 向目标帧追加客户端操作（深拷贝）。调用前应确保槽已打开且帧号匹配。
+    /// ops 为空视为成功。
+    /// </summary>
+    public bool TryAppendOps(ulong frameNumber, IReadOnlyList<frame>? ops, out string? error)
+    {
+        if (ops == null || ops.Count == 0)
+        {
+            error = null;
+            return true;
+        }
+
+        var index = SlotIndex(frameNumber);
+        ref var slot = ref _slots[index];
+
+        if (!slot.Occupied || slot.Clearable)
+        {
+            error =
+                $"槽位不可追加: index={index}, frameNumber={frameNumber}, occupied={slot.Occupied}, clearable={slot.Clearable}";
+            return false;
+        }
+
+        if (!slot.Matches(frameNumber))
+        {
+            error =
+                $"追加失败：帧号不匹配, index={index}, expected={frameNumber}, actual={slot.Frame.frame_number}";
+            return false;
+        }
+
+        slot.Frame.frames ??= new List<frame>();
+        for (var i = 0; i < ops.Count; i++)
+        {
+            var src = ops[i];
+            if (src == null)
+            {
+                continue;
+            }
+
+            slot.Frame.frames.Add(CloneFrame(src));
+        }
+
         error = null;
         return true;
     }
@@ -157,6 +231,42 @@ public sealed class RoomFrameWindow
     private int SlotIndex(ulong frameNumber)
     {
         return (int)(frameNumber % (ulong)Capacity);
+    }
+
+    /// <summary>深拷贝一条 frame（含子对象），供窗口持有/发送路径独立生命周期。</summary>
+    internal static frame CloneFrame(frame src)
+    {
+        // 池化对象：ResetContent 里 Dispose 可正确回收
+        var dst = frame.Create();
+        dst.op = src.op;
+        if (src.data != null)
+        {
+            dst.data = ClonePlayer(src.data);
+        }
+
+        return dst;
+    }
+
+    private static player ClonePlayer(player src)
+    {
+        var dst = player.Create();
+        dst.speed = src.speed;
+        dst.eid = src.eid;
+        if (src.direction != null)
+        {
+            dst.direction = vec2d.Create();
+            dst.direction.x = src.direction.x;
+            dst.direction.y = src.direction.y;
+        }
+
+        if (src.position != null)
+        {
+            dst.position = position2d.Create();
+            dst.position.x = src.position.x;
+            dst.position.y = src.position.y;
+        }
+
+        return dst;
     }
 
     /// <summary>

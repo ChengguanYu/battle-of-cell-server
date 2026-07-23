@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Entity.DTOs;
+using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
 
@@ -25,8 +27,8 @@ public interface ISessionService
     FTask<InnerResult> PlayerLeaveRoom(long userId);
 
     /// <summary>
-    /// 转发客户端帧到 Avatars Scene（单向，业务暂为日志骨架）。
+    /// 转发客户端帧到 Avatars Scene（单向）。
     /// </summary>
-    void ForwardClientFrame(long userId, ulong frameNumber, int framesCount);
+    void ForwardClientFrame(long userId, ulong frameNumber, List<frame>? frames);
 }
 

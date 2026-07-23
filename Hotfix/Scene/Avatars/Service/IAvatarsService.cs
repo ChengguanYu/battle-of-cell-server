@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Entity.DTOs;
+using Fantasy;
 using Fantasy.Async;
 
 namespace Hotfix.Scene.Avatars.Service;
@@ -31,7 +33,7 @@ public interface IAvatarsService
     FTask CleanupPlayer(long userId, string? reason);
 
     /// <summary>
-    /// 转发客户端帧到 Rooms Scene（单向，业务暂为日志骨架）。
+    /// 转发客户端帧到 Rooms Scene（单向）。
     /// </summary>
-    void ForwardClientFrame(long userId, ulong frameNumber, int framesCount);
+    void ForwardClientFrame(long userId, ulong frameNumber, List<frame>? frames);
 }

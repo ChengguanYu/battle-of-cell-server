@@ -357,7 +357,7 @@ namespace Fantasy
         public string reason { get; set; }
     }
     /// <summary>
-    /// Gate -> Avatar 客户端帧转发（业务暂为日志骨架）
+    /// Gate -> Avatar 客户端帧转发
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -395,7 +395,8 @@ namespace Fantasy
             if (!IsPool()) return; 
             userId = default;
             frame_number = default;
-            frames_count = default;
+            foreach (var __t in frames) __t.Dispose();
+            frames.Clear();
             MessageObjectPool<AvatarClientFrameNotify>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.AvatarClientFrameNotify; } 
@@ -404,10 +405,10 @@ namespace Fantasy
         [ProtoMember(2)]
         public ulong frame_number { get; set; }
         /// <summary>
-        /// frames 数量，仅供日志/骨架透传，完整操作后续再扩展
+        /// 客户端本帧操作列表（与 Outer client_frame.frames 同构）
         /// </summary>
         [ProtoMember(3)]
-        public int frames_count { get; set; }
+        public List<frame> frames { get; set; } = new List<frame>();
     }
     /// <summary>
     /// Avatar -> Match 匹配请求（旧链路，保留兼容）
@@ -850,7 +851,7 @@ namespace Fantasy
         public long room_id { get; set; }
     }
     /// <summary>
-    /// Avatar -> Rooms 客户端帧转发（业务暂为日志骨架）
+    /// Avatar -> Rooms 客户端帧转发
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -888,7 +889,8 @@ namespace Fantasy
             if (!IsPool()) return; 
             userId = default;
             frame_number = default;
-            frames_count = default;
+            foreach (var __t in frames) __t.Dispose();
+            frames.Clear();
             MessageObjectPool<RoomsClientFrameNotify>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.RoomsClientFrameNotify; } 
@@ -897,10 +899,10 @@ namespace Fantasy
         [ProtoMember(2)]
         public ulong frame_number { get; set; }
         /// <summary>
-        /// frames 数量，仅供日志/骨架透传，完整操作后续再扩展
+        /// 客户端本帧操作列表（与 Outer client_frame.frames 同构）
         /// </summary>
         [ProtoMember(3)]
-        public int frames_count { get; set; }
+        public List<frame> frames { get; set; } = new List<frame>();
     }
     /// <summary>
     /// 房间列表快照条目（非权威，仅供 Match 选房线索）

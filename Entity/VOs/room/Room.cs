@@ -188,6 +188,20 @@ public sealed class Room : IRoomStateMachine
         _frameSync.OnTick(tickIndex, _memberUserIds);
     }
 
+    /// <summary>
+    /// 将客户端帧操作写入房间帧窗口（Opened 且成员有效时）。
+    /// </summary>
+    public bool TryAppendClientOps(ulong frameNumber, IReadOnlyList<frame>? ops, out string? error)
+    {
+        if (_state != RoomState.Opened)
+        {
+            error = $"房间非 Opened, state={_state}";
+            return false;
+        }
+
+        return _frameSync.TryAppendClientOps(frameNumber, ops, out error);
+    }
+
     private void CommitOpen(uint roomId, int capacity)
     {
         _roomId = roomId;

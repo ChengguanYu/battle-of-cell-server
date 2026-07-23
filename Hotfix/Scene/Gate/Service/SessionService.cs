@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Entity.DTOs;
 using Entity.Managers;
 using Fantasy;
@@ -118,9 +119,15 @@ public sealed class SessionService() : ServiceBase(), ISessionService
         }
     }
     /// <summary>
-    /// 转发客户端帧到 Avatars Scene（单向，业务暂为日志骨架）。
+    /// 转发客户端帧到 Avatars Scene（单向）。
     /// </summary>
-    public void ForwardClientFrame(long userId, ulong frameNumber, int framesCount)
+    /// <remarks>
+    /// FIXME: 依赖上游 Handler 手工转移 frames 所有权，待统一收口。
+    /// 原因：入站 message 在 Handler finally 中 Dispose 会级联释放 frames；上游摘引用后由本方法接管。
+    /// 当前写法：成功则 msg.frames=frames 后 Send（ServiceBase.Send finally 回收整包）；失败路径本方法 DisposeFrames。
+    /// 后续：边界深拷贝 / 明确单所有者 API，去掉每跳手写交接。
+    /// </remarks>
+    public void ForwardClientFrame(long userId, ulong frameNumber, List<frame>? frames)
     {
         try
         {
@@ -128,17 +135,37 @@ public sealed class SessionService() : ServiceBase(), ISessionService
             var msg = AvatarClientFrameNotify.Create();
             msg.userId = userId;
             msg.frame_number = frameNumber;
-            msg.frames_count = framesCount;
+            if (frames is { Count: > 0 })
+            {
+                msg.frames = frames;
+            }
             Send(address, msg);
         }
         catch (InvalidOperationException)
         {
+            DisposeFrames(frames);
             Log.Warning($"[Gate] 未找到 Avatars Scene，client_frame 丢弃: userId={userId}, frame={frameNumber}");
         }
         catch (Exception ex)
         {
+            DisposeFrames(frames);
             Log.Error($"[Gate] 转发 client_frame 失败: userId={userId}, frame={frameNumber}, ex={ex}");
         }
+    }
+
+    private static void DisposeFrames(List<frame>? frames)
+    {
+        if (frames == null || frames.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var f in frames)
+        {
+            f?.Dispose();
+        }
+
+        frames.Clear();
     }
 }
 
