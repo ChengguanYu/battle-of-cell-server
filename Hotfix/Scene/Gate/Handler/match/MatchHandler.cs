@@ -8,8 +8,8 @@ using Hotfix.Utils;
 namespace Hotfix.Scene.Gate.Handler.Match;
 
 /// <summary>
-/// 客户端 Outer MatchReq 空转发：取 Session 绑定 userId，直连 Avatars。
-/// 不调用 SessionService.PlayerMatch，当前不消费 match_type。
+/// 客户端 Outer MatchReq：取 Session 绑定 userId，透传 match_type 到 Avatars。
+/// 不调用 SessionService.PlayerMatch。
 /// </summary>
 public sealed class MatchHandler : MessageRPC<MatchReq, MatchResp>
 {
@@ -26,6 +26,7 @@ public sealed class MatchHandler : MessageRPC<MatchReq, MatchResp>
         try
         {
             req.user_id = userId;
+            req.match_type = request.match_type;
             var address = session.Scene.GetSceneAddress(SceneType.Avatars);
             avatarResp = (AvatarRelayClientMatchResp)await session.Scene.Call(address, req);
             if (!avatarResp.IsOk())

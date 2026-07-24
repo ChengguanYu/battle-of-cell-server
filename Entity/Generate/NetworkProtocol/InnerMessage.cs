@@ -211,7 +211,7 @@ namespace Fantasy
         public long room_id { get; set; }
     }
     /// <summary>
-    /// Gate -> Avatar 客户端匹配转发请求（空转发骨架，对应 Outer MatchReq）
+    /// Gate -> Avatar 客户端匹配转发请求（对应 Outer MatchReq）
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -248,6 +248,7 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             user_id = default;
+            match_type = default;
             MessageObjectPool<AvatarRelayClientMatchReq>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.AvatarRelayClientMatchReq; } 
@@ -255,6 +256,8 @@ namespace Fantasy
         public AvatarRelayClientMatchResp ResponseType { get; set; }
         [ProtoMember(1)]
         public long user_id { get; set; }
+        [ProtoMember(2)]
+        public MatchType match_type { get; set; }
     }
     /// <summary>
     /// Gate -> Avatar 客户端匹配响应
@@ -597,7 +600,7 @@ namespace Fantasy
         public long room_id { get; set; }
     }
     /// <summary>
-    /// Avatar -> Match 客户端匹配转发请求（空转发骨架，对应 Outer MatchReq）
+    /// Avatar -> Match 客户端匹配转发请求（对应 Outer MatchReq）
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -634,6 +637,7 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             user_id = default;
+            match_type = default;
             MessageObjectPool<InnerClientMatchReq>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.InnerClientMatchReq; } 
@@ -641,6 +645,8 @@ namespace Fantasy
         public InnerClientMatchResp ResponseType { get; set; }
         [ProtoMember(1)]
         public long user_id { get; set; }
+        [ProtoMember(2)]
+        public MatchType match_type { get; set; }
     }
     /// <summary>
     /// Avatar -> Match 客户端匹配转发响应

@@ -8,7 +8,7 @@ using FScene = Fantasy.Scene;
 namespace Hotfix.Scene.Avatars.Handler;
 
 /// <summary>
-/// Gate -> Avatars 客户端匹配空转发：透传到 Match。
+/// Gate -> Avatars 客户端匹配转发：透传 user_id / match_type 到 Match。
 /// 文件位于 Handler/Relay。不调用 AvatarsService / Relay Service。
 /// </summary>
 public sealed class RelayClientMatch : AddressRPC<FScene, AvatarRelayClientMatchReq, AvatarRelayClientMatchResp>
@@ -20,6 +20,7 @@ public sealed class RelayClientMatch : AddressRPC<FScene, AvatarRelayClientMatch
         try
         {
             matchReq.user_id = req.user_id;
+            matchReq.match_type = req.match_type;
             var address = scene.GetSceneAddress(SceneType.Match);
             matchResp = (InnerClientMatchResp)await scene.Call(address, matchReq);
             if (!matchResp.IsOk())

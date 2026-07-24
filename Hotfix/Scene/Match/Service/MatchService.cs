@@ -2,7 +2,10 @@ using Entity.DTOs;
 using Fantasy;
 using Fantasy.Async;
 using Hotfix.Common.Abstract.Service;
+using Hotfix.Database;
 using Hotfix.Utils;
+using StackExchange.Redis;
+using System.Text.Json;
 
 namespace Hotfix.Scene.Match.Service;
 
@@ -11,6 +14,9 @@ namespace Hotfix.Scene.Match.Service;
 /// </summary>
 public sealed class MatchService() : ServiceBase(), IMatchService
 {
+    private const string EnvMatchResultTopic = "MATCH_RESULT_TOPIC";
+    private const string EnvMatchResultTtlSeconds = "MATCH_RESULT_TTL_SECONDS";
+
     /// <summary>
     /// 匹配：拉取 Rooms 列表快照；无房 CreateAndEntry，有房随机 Join。
     /// 成功时 Args[0] 为 roomId。
@@ -49,6 +55,72 @@ public sealed class MatchService() : ServiceBase(), IMatchService
         catch (InvalidOperationException)
         {
             Log.Warning($"未找到 Rooms Scene，用户 {userId} 匹配失败");
+            return InnerResult.Fail("未找到 Rooms Scene", userId);
+        }
+        finally
+        {
+            snapResp?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// 客户端匹配：与旧逻辑一致选房/无房创建，但不入房；成功后写 Redis 匹配结果。
+    /// 成功时 Args[0] 为 roomId。
+    /// </summary>
+    public async FTask<InnerResult> ClientMatch(long userId, Fantasy.MatchType matchType)
+    {
+        RoomsGetRoomListSnapResp? snapResp = null;
+        try
+        {
+            var address = Scene.GetSceneAddress(SceneType.Rooms);
+            var req = RoomsGetRoomListSnapReq.Create();
+            snapResp = await Call<RoomsGetRoomListSnapReq, RoomsGetRoomListSnapResp>(address, req);
+            if (!snapResp.IsOk())
+            {
+                Log.Warning($"用户 {userId} ClientMatch GetRoomListSnap 失败，status={snapResp.ToMessage()}");
+                return InnerResult.Fail("GetRoomListSnap 失败", snapResp.ToMessage());
+            }
+
+            long roomId;
+            if (snapResp.is_empty || snapResp.rooms is not { Count: > 0 })
+            {
+                Log.Debug($"用户 {userId} ClientMatch 无候选房，走 Create");
+                var createResult = await Create(address, userId);
+                if (!createResult.IsSuccess)
+                {
+                    return createResult;
+                }
+
+                roomId = TryGetRoomId(createResult);
+            }
+            else
+            {
+                var rooms = snapResp.rooms;
+                var pick = rooms[Random.Shared.Next(rooms.Count)];
+                roomId = pick.room_id;
+                Log.Debug(
+                    $"用户 {userId} ClientMatch 候选={rooms.Count}，随机选 room_id={roomId}（不入房）");
+            }
+
+            if (roomId <= 0)
+            {
+                Log.Warning($"用户 {userId} ClientMatch 得到非法 room_id={roomId}");
+                return InnerResult.Fail("未得到有效 room_id", userId, roomId);
+            }
+
+            var writeResult = WriteMatchResult(userId, roomId, matchType);
+            if (!writeResult.IsSuccess)
+            {
+                return writeResult;
+            }
+
+            Log.Info(
+                $"玩家 {userId} ClientMatch 成功: roomId={roomId}, matchType={matchType}");
+            return InnerResult.Ok(string.Empty, roomId > 0 && roomId <= uint.MaxValue ? (uint)roomId : 0u);
+        }
+        catch (InvalidOperationException)
+        {
+            Log.Warning($"未找到 Rooms Scene，用户 {userId} ClientMatch 失败");
             return InnerResult.Fail("未找到 Rooms Scene", userId);
         }
         finally
@@ -120,5 +192,108 @@ public sealed class MatchService() : ServiceBase(), IMatchService
         {
             resp?.Dispose();
         }
+    }
+
+    /// <summary>
+    /// 无候选房时：仅 Create（Open/Start，不入房）。成功时 Args[0] 为 roomId。
+    /// </summary>
+    private async FTask<InnerResult> Create(long roomsAddress, long userId)
+    {
+        RoomsCreateResp? resp = null;
+        try
+        {
+            var req = RoomsCreateReq.Create();
+            req.user_id = userId;
+            resp = await Call<RoomsCreateReq, RoomsCreateResp>(roomsAddress, req);
+            if (!resp.IsOk())
+            {
+                Log.Warning($"用户 {userId} Create 房间失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("Create 失败", resp.ToMessage());
+            }
+
+            if (resp.room_id <= 0)
+            {
+                Log.Warning($"用户 {userId} Create 成功但 room_id 非法: {resp.room_id}");
+                return InnerResult.Fail("Create 未返回有效 room_id", userId);
+            }
+
+            Log.Info($"玩家 {userId} Create 成功: roomId={resp.room_id}");
+            return InnerResult.Ok(string.Empty, (uint)resp.room_id);
+        }
+        finally
+        {
+            resp?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// 将匹配结果写入 Redis：key={topic}:{userId}，JSON value，键级 TTL。
+    /// </summary>
+    private static InnerResult WriteMatchResult(long userId, long roomId, Fantasy.MatchType matchType)
+    {
+        var topic = Environment.GetEnvironmentVariable(EnvMatchResultTopic);
+        if (string.IsNullOrWhiteSpace(topic))
+        {
+            Log.Warning($"用户 {userId} ClientMatch Redis 配置缺失: {EnvMatchResultTopic}");
+            return InnerResult.Fail($"{EnvMatchResultTopic} 未配置", userId);
+        }
+
+        var ttlRaw = Environment.GetEnvironmentVariable(EnvMatchResultTtlSeconds);
+        if (!int.TryParse(ttlRaw, out var ttlSeconds) || ttlSeconds <= 0)
+        {
+            Log.Warning(
+                $"用户 {userId} ClientMatch Redis TTL 非法: {EnvMatchResultTtlSeconds}={ttlRaw}");
+            return InnerResult.Fail($"{EnvMatchResultTtlSeconds} 非法", userId, ttlRaw ?? string.Empty);
+        }
+
+        var key = $"{topic.Trim()}:{userId}";
+        var payload = new MatchResultMessage
+        {
+            user_id = userId,
+            room_id = roomId,
+            match_type = (int)matchType,
+            matched_at_unix_ms = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            ttl_seconds = ttlSeconds,
+        };
+
+        try
+        {
+            var json = JsonSerializer.Serialize(payload);
+            var db = RedisManager.GetDatabase();
+            var ok = db.StringSet(key, json, TimeSpan.FromSeconds(ttlSeconds));
+            if (!ok)
+            {
+                Log.Warning($"用户 {userId} ClientMatch Redis StringSet 返回 false: key={key}");
+                return InnerResult.Fail("Redis 写入失败", userId, roomId);
+            }
+
+            Log.Debug(
+                $"用户 {userId} ClientMatch Redis 写入成功: key={key}, ttl={ttlSeconds}s, roomId={roomId}");
+            return InnerResult.Ok();
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"用户 {userId} ClientMatch Redis 写入异常: key={key}, ex={ex}");
+            return InnerResult.Fail("Redis 写入异常", userId, roomId);
+        }
+    }
+
+    private static long TryGetRoomId(InnerResult result)
+    {
+        if (result.Args is { Count: > 0 } && result.Args[0] is uint roomId)
+        {
+            return roomId;
+        }
+
+        return 0;
+    }
+
+    private sealed class MatchResultMessage
+    {
+        public long user_id { get; set; }
+        public long room_id { get; set; }
+        public int match_type { get; set; }
+        public long matched_at_unix_ms { get; set; }
+        public int ttl_seconds { get; set; }
     }
 }
