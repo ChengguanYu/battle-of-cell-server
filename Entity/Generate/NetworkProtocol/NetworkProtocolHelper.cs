@@ -61,17 +61,6 @@ namespace Fantasy
 			session.Send(ClientFrame_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<EntryRoomResp> EntryRoomReq(this Session session, EntryRoomReq EntryRoomReq_request)
-		{
-			return (EntryRoomResp)await session.Call(EntryRoomReq_request);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<EntryRoomResp> EntryRoomReq(this Session session)
-		{
-			using var EntryRoomReq_request = Fantasy.EntryRoomReq.Create();
-			return (EntryRoomResp)await session.Call(EntryRoomReq_request);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void MetaData(this Session session, MetaData MetaData_message)
 		{
 			session.Send(MetaData_message);
@@ -130,6 +119,17 @@ namespace Fantasy
 			using var MatchReq_request = Fantasy.MatchReq.Create();
 			MatchReq_request.match_type = match_type;
 			return (MatchResp)await session.Call(MatchReq_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<EntryRoomResp> EntryRoomReq(this Session session, EntryRoomReq EntryRoomReq_request)
+		{
+			return (EntryRoomResp)await session.Call(EntryRoomReq_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<EntryRoomResp> EntryRoomReq(this Session session)
+		{
+			using var EntryRoomReq_request = Fantasy.EntryRoomReq.Create();
+			return (EntryRoomResp)await session.Call(EntryRoomReq_request);
 		}
 
    }
