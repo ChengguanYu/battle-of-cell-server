@@ -9,5 +9,10 @@ namespace Fantasy
 		LAUNCH = 1
 	}
 
+	public enum MatchType
+	{
+		NORMAL = 0
+	}
+
 
 }

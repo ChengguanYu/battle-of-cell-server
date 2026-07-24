@@ -12,9 +12,9 @@ namespace Hotfix.Scene.Match.Handler;
 /// <summary>
 /// Match Scene 处理匹配请求。
 /// </summary>
-public sealed class MatchHandler : AddressRPC<FScene, MatchReq, MatchResp>
+public sealed class MatchHandler : AddressRPC<FScene, InnerMatchReq, InnerMatchResp>
 {
-    protected override async FTask Run(FScene scene, MatchReq req, MatchResp resp, Action reply)
+    protected override async FTask Run(FScene scene, InnerMatchReq req, InnerMatchResp resp, Action reply)
     {
         IMatchService matchService = scene.GetComponent<MatchService>();
         var result = await matchService.Match(req.user_id);

@@ -119,6 +119,18 @@ namespace Fantasy
 			using var PlayerMatchReq_request = Fantasy.PlayerMatchReq.Create();
 			return (PlayerMatchResp)await session.Call(PlayerMatchReq_request);
 		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<MatchResp> MatchReq(this Session session, MatchReq MatchReq_request)
+		{
+			return (MatchResp)await session.Call(MatchReq_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<MatchResp> MatchReq(this Session session, MatchType match_type)
+		{
+			using var MatchReq_request = Fantasy.MatchReq.Create();
+			MatchReq_request.match_type = match_type;
+			return (MatchResp)await session.Call(MatchReq_request);
+		}
 
    }
 }

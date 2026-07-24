@@ -900,4 +900,105 @@ namespace Fantasy
         [ProtoMember(5)]
         public long room_id { get; set; }
     }
+    /// <summary>
+    /// 客户端匹配请求
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class MatchReq : AMessage, IRequest
+    {
+        public static MatchReq Create(bool autoReturn = true)
+        {
+            var matchReq = MessageObjectPool<MatchReq>.Rent();
+            matchReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                matchReq.SetIsPool(false);
+            }
+            
+            return matchReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            match_type = default;
+            MessageObjectPool<MatchReq>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.MatchReq; } 
+        [ProtoIgnore]
+        public MatchResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public MatchType match_type { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class MatchResp : AMessage, IResponse
+    {
+        public static MatchResp Create(bool autoReturn = true)
+        {
+            var matchResp = MessageObjectPool<MatchResp>.Rent();
+            matchResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                matchResp.SetIsPool(false);
+            }
+            
+            return matchResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            if (meta != null)
+            {
+                meta.Dispose();
+                meta = null;
+            }
+            foreach (var __t in error) __t.Dispose();
+            error.Clear();
+            ok = default;
+            MessageObjectPool<MatchResp>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.MatchResp; } 
+        [ProtoMember(4)]
+        public uint ErrorCode { get; set; }
+        [ProtoMember(1)]
+        public MetaData meta { get; set; }
+        [ProtoMember(2)]
+        public List<RespError> error { get; set; } = new List<RespError>();
+        [ProtoMember(3)]
+        public bool ok { get; set; }
+    }
 }

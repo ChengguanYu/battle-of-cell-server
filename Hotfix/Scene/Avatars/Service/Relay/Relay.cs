@@ -29,13 +29,13 @@ public sealed class Relay() : ServiceBase(), IRelay
             return InnerResult.Fail("当前状态不可匹配", player.State);
         }
 
-        MatchResp? resp = null;
+        InnerMatchResp? resp = null;
         try
         {
-            var req = MatchReq.Create();
+            var req = InnerMatchReq.Create();
             req.user_id = userId;
             var address = Scene.GetSceneAddress(SceneType.Match);
-            resp = await Call<MatchReq, MatchResp>(address, req);
+            resp = await Call<InnerMatchReq, InnerMatchResp>(address, req);
             if (!resp.IsOk())
             {
                 Log.Warning($"用户 {userId} Match 失败，status={resp.ToMessage()}");

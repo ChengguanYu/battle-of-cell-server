@@ -211,6 +211,96 @@ namespace Fantasy
         public long room_id { get; set; }
     }
     /// <summary>
+    /// Gate -> Avatar 客户端匹配转发请求（空转发骨架，对应 Outer MatchReq）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarRelayClientMatchReq : AMessage, IAddressRequest
+    {
+        public static AvatarRelayClientMatchReq Create(bool autoReturn = true)
+        {
+            var avatarRelayClientMatchReq = MessageObjectPool<AvatarRelayClientMatchReq>.Rent();
+            avatarRelayClientMatchReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarRelayClientMatchReq.SetIsPool(false);
+            }
+            
+            return avatarRelayClientMatchReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            user_id = default;
+            MessageObjectPool<AvatarRelayClientMatchReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarRelayClientMatchReq; } 
+        [ProtoIgnore]
+        public AvatarRelayClientMatchResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long user_id { get; set; }
+    }
+    /// <summary>
+    /// Gate -> Avatar 客户端匹配响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarRelayClientMatchResp : AMessage, IAddressResponse
+    {
+        public static AvatarRelayClientMatchResp Create(bool autoReturn = true)
+        {
+            var avatarRelayClientMatchResp = MessageObjectPool<AvatarRelayClientMatchResp>.Rent();
+            avatarRelayClientMatchResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarRelayClientMatchResp.SetIsPool(false);
+            }
+            
+            return avatarRelayClientMatchResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            MessageObjectPool<AvatarRelayClientMatchResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarRelayClientMatchResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+    }
+    /// <summary>
     /// Gate -> Avatar 主动退出房间转发请求（Avatar 门禁后转发到 Rooms）
     /// </summary>
     [Serializable]
@@ -411,22 +501,23 @@ namespace Fantasy
     }
     /// <summary>
     /// Avatar -> Match 匹配请求（查房列表 / Join / CreateAndEntry）
+    /// 命名 InnerMatch* 以避开 Outer MatchReq/MatchResp
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class MatchReq : AMessage, IAddressRequest
+    public partial class InnerMatchReq : AMessage, IAddressRequest
     {
-        public static MatchReq Create(bool autoReturn = true)
+        public static InnerMatchReq Create(bool autoReturn = true)
         {
-            var matchReq = MessageObjectPool<MatchReq>.Rent();
-            matchReq.AutoReturn = autoReturn;
+            var innerMatchReq = MessageObjectPool<InnerMatchReq>.Rent();
+            innerMatchReq.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                matchReq.SetIsPool(false);
+                innerMatchReq.SetIsPool(false);
             }
             
-            return matchReq;
+            return innerMatchReq;
         }
         
         public void Return()
@@ -447,11 +538,11 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             user_id = default;
-            MessageObjectPool<MatchReq>.Return(this);
+            MessageObjectPool<InnerMatchReq>.Return(this);
         }
-        public uint OpCode() { return InnerOpcode.MatchReq; } 
+        public uint OpCode() { return InnerOpcode.InnerMatchReq; } 
         [ProtoIgnore]
-        public MatchResp ResponseType { get; set; }
+        public InnerMatchResp ResponseType { get; set; }
         [ProtoMember(1)]
         public long user_id { get; set; }
     }
@@ -460,19 +551,19 @@ namespace Fantasy
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class MatchResp : AMessage, IAddressResponse
+    public partial class InnerMatchResp : AMessage, IAddressResponse
     {
-        public static MatchResp Create(bool autoReturn = true)
+        public static InnerMatchResp Create(bool autoReturn = true)
         {
-            var matchResp = MessageObjectPool<MatchResp>.Rent();
-            matchResp.AutoReturn = autoReturn;
+            var innerMatchResp = MessageObjectPool<InnerMatchResp>.Rent();
+            innerMatchResp.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                matchResp.SetIsPool(false);
+                innerMatchResp.SetIsPool(false);
             }
             
-            return matchResp;
+            return innerMatchResp;
         }
         
         public void Return()
@@ -494,9 +585,9 @@ namespace Fantasy
             if (!IsPool()) return; 
             ErrorCode = 0;
             room_id = default;
-            MessageObjectPool<MatchResp>.Return(this);
+            MessageObjectPool<InnerMatchResp>.Return(this);
         }
-        public uint OpCode() { return InnerOpcode.MatchResp; } 
+        public uint OpCode() { return InnerOpcode.InnerMatchResp; } 
         [ProtoMember(1)]
         public uint ErrorCode { get; set; }
         /// <summary>
@@ -504,6 +595,96 @@ namespace Fantasy
         /// </summary>
         [ProtoMember(2)]
         public long room_id { get; set; }
+    }
+    /// <summary>
+    /// Avatar -> Match 客户端匹配转发请求（空转发骨架，对应 Outer MatchReq）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class InnerClientMatchReq : AMessage, IAddressRequest
+    {
+        public static InnerClientMatchReq Create(bool autoReturn = true)
+        {
+            var innerClientMatchReq = MessageObjectPool<InnerClientMatchReq>.Rent();
+            innerClientMatchReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                innerClientMatchReq.SetIsPool(false);
+            }
+            
+            return innerClientMatchReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            user_id = default;
+            MessageObjectPool<InnerClientMatchReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.InnerClientMatchReq; } 
+        [ProtoIgnore]
+        public InnerClientMatchResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long user_id { get; set; }
+    }
+    /// <summary>
+    /// Avatar -> Match 客户端匹配转发响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class InnerClientMatchResp : AMessage, IAddressResponse
+    {
+        public static InnerClientMatchResp Create(bool autoReturn = true)
+        {
+            var innerClientMatchResp = MessageObjectPool<InnerClientMatchResp>.Rent();
+            innerClientMatchResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                innerClientMatchResp.SetIsPool(false);
+            }
+            
+            return innerClientMatchResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            MessageObjectPool<InnerClientMatchResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.InnerClientMatchResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
     }
     /// <summary>
     /// Avatar -> Rooms 玩家离房检查（会话清理等）
