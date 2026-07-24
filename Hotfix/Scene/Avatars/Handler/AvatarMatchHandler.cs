@@ -17,10 +17,10 @@ public sealed class AvatarMatchHandler : AddressRPC<FScene, AvatarMatchReq, Avat
     protected override async FTask Run(FScene scene, AvatarMatchReq req, AvatarMatchResp resp, Action reply)
     {
         IAvatarsService avatarsService = scene.GetComponent<AvatarsService>();
-        var result = await avatarsService.Match(req.userId);
+        var result = await avatarsService.Match(req.user_id);
         if (!result.IsSuccess)
         {
-            Log.Warning($"玩家 {req.userId} Avatar 匹配转发失败：{result.Reason}");
+            Log.Warning($"玩家 {req.user_id} Avatar 匹配转发失败：{result.Reason}");
             resp.room_id = 0;
             resp.SetError(StatusCode.MatchFailed);
             reply();

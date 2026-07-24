@@ -275,7 +275,7 @@ public sealed class SessionManager
             }
 
             var msg = AvatarCleanupNotify.Create();
-            msg.userId = userId;
+            msg.user_id = userId;
             msg.reason = reason ?? string.Empty;
             try
             {

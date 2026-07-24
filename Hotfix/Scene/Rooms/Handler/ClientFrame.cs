@@ -19,7 +19,7 @@ public sealed class RoomsClientFrameNotifyHandler : Address<FScene, RoomsClientF
 
         // 协议层所有权转移：摘 frames 后入窗深拷贝，再 Dispose 入站 ops。
         var frames = FrameMessageUtil.DetachFrames(message);
-        await roomsService.OnClientFrame(message.userId, message.frame_number, frames);
+        await roomsService.OnClientFrame(message.user_id, message.frame_number, frames);
         FrameMessageUtil.DisposeFrames(frames);
     }
 }

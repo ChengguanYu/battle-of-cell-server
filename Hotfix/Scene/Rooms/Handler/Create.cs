@@ -17,10 +17,10 @@ public sealed class RoomsCreateHandler : AddressRPC<FScene, RoomsCreateReq, Room
     protected override async FTask Run(FScene scene, RoomsCreateReq req, RoomsCreateResp resp, Action reply)
     {
         var roomsService = scene.GetComponent<RoomsService>();
-        var result = await roomsService.Create(req.userId);
+        var result = await roomsService.Create(req.user_id);
         if (!result.IsSuccess)
         {
-            Log.Warning($"玩家 {req.userId} Create 房间失败：{result.Reason}");
+            Log.Warning($"玩家 {req.user_id} Create 房间失败：{result.Reason}");
             resp.room_id = 0;
             resp.SetError(StatusCode.RoomsEnterFailed);
             reply();

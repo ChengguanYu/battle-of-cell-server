@@ -17,10 +17,10 @@ public sealed class AvatarLeaveRoomHandler : AddressRPC<FScene, AvatarLeaveRoomR
     protected override async FTask Run(FScene scene, AvatarLeaveRoomReq req, AvatarLeaveRoomResp resp, Action reply)
     {
         IAvatarsService avatarsService = scene.GetComponent<AvatarsService>();
-        var result = await avatarsService.LeaveRoom(req.userId);
+        var result = await avatarsService.LeaveRoom(req.user_id);
         if (!result.IsSuccess)
         {
-            Log.Warning($"玩家 {req.userId} Avatar 退出房间失败：{result.Reason}");
+            Log.Warning($"玩家 {req.user_id} Avatar 退出房间失败：{result.Reason}");
             resp.room_id = 0;
             resp.SetError(StatusCode.LeaveRoomFailed);
             reply();

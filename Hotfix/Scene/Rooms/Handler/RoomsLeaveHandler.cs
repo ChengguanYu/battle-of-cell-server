@@ -18,10 +18,10 @@ public sealed class RoomsLeaveHandler : AddressRPC<FScene, RoomsLeaveReq, RoomsL
     protected override async FTask Run(FScene scene, RoomsLeaveReq req, RoomsLeaveResp resp, Action reply)
     {
         var roomsService = scene.GetComponent<RoomsService>();
-        var result = await roomsService.Leave(req.userId, req.reason);
+        var result = await roomsService.Leave(req.user_id, req.reason);
         if (!result.IsSuccess)
         {
-            Log.Warning($"玩家 {req.userId} RoomsLeave 失败：{result.Reason}");
+            Log.Warning($"玩家 {req.user_id} RoomsLeave 失败：{result.Reason}");
             resp.room_id = 0;
             resp.SetError(StatusCode.LeaveRoomFailed);
             reply();

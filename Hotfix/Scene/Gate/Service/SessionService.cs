@@ -31,7 +31,7 @@ public sealed class SessionService() : ServiceBase(), ISessionService
         try
         {
             var req = PlayerEntryReq.Create();
-            req.userId = userId;
+            req.user_id = userId;
             // PlayerEntryHandle.cs
             var address = Scene.GetSceneAddress(SceneType.Avatars);
             resp = await Call<PlayerEntryReq, PlayerEntryResp>(address, req);
@@ -67,7 +67,7 @@ public sealed class SessionService() : ServiceBase(), ISessionService
         try
         {
             var req = AvatarMatchReq.Create();
-            req.userId = userId;
+            req.user_id = userId;
             var address = Scene.GetSceneAddress(SceneType.Avatars);
             resp = await Call<AvatarMatchReq, AvatarMatchResp>(address, req);
             if (!resp.IsOk())
@@ -98,7 +98,7 @@ public sealed class SessionService() : ServiceBase(), ISessionService
         try
         {
             var req = AvatarLeaveRoomReq.Create();
-            req.userId = userId;
+            req.user_id = userId;
             var address = Scene.GetSceneAddress(SceneType.Avatars);
             resp = await Call<AvatarLeaveRoomReq, AvatarLeaveRoomResp>(address, req);
             if (!resp.IsOk())
@@ -128,13 +128,13 @@ public sealed class SessionService() : ServiceBase(), ISessionService
     /// 当前写法：成功则 msg.frames=frames 后 Send（ServiceBase.Send finally 回收整包）；失败路径本方法 DisposeFrames。
     /// 后续：边界深拷贝 / 明确单所有者 API，去掉每跳手写交接。
     /// </remarks>
-    public void ForwardClientFrame(long userId, ulong frameNumber, List<frame>? frames)
+    public void ForwardClientFrame(long userId, ulong frameNumber, List<Frame>? frames)
     {
         try
         {
             var address = Scene.GetSceneAddress(SceneType.Avatars);
             var msg = AvatarClientFrameNotify.Create();
-            msg.userId = userId;
+            msg.user_id = userId;
             msg.frame_number = frameNumber;
             if (frames is { Count: > 0 })
             {
@@ -145,12 +145,12 @@ public sealed class SessionService() : ServiceBase(), ISessionService
         catch (InvalidOperationException)
         {
             FrameMessageUtil.DisposeFrames(frames);
-            Log.Warning($"[Gate] 未找到 Avatars Scene，client_frame 丢弃: userId={userId}, frame={frameNumber}");
+            Log.Warning($"[Gate] 未找到 Avatars Scene，ClientFrame 丢弃: userId={userId}, frame={frameNumber}");
         }
         catch (Exception ex)
         {
             FrameMessageUtil.DisposeFrames(frames);
-            Log.Error($"[Gate] 转发 client_frame 失败: userId={userId}, frame={frameNumber}, ex={ex}");
+            Log.Error($"[Gate] 转发 ClientFrame 失败: userId={userId}, frame={frameNumber}, ex={ex}");
         }
     }
 

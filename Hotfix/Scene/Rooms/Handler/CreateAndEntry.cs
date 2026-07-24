@@ -22,10 +22,10 @@ public sealed class RoomsCreateAndEntryHandler
         Action reply)
     {
         var roomsService = scene.GetComponent<RoomsService>();
-        var result = await roomsService.CreateAndEntry(req.userId);
+        var result = await roomsService.CreateAndEntry(req.user_id);
         if (!result.IsSuccess)
         {
-            Log.Warning($"玩家 {req.userId} CreateAndEntry 失败：{result.Reason}");
+            Log.Warning($"玩家 {req.user_id} CreateAndEntry 失败：{result.Reason}");
             resp.room_id = 0;
             resp.SetError(StatusCode.RoomsEnterFailed);
             reply();

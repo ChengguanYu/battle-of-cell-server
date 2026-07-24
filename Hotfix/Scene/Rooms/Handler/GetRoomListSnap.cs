@@ -27,11 +27,11 @@ public sealed class RoomsGetRoomListSnapHandler
         if (snaps is { Count: > 0 })
         {
             resp.rooms.AddRange(snaps);
-            resp.IsEmpty = false;
+            resp.is_empty = false;
         }
         else
         {
-            resp.IsEmpty = true;
+            resp.is_empty = true;
         }
 
         resp.SetOk();

@@ -191,7 +191,7 @@ public sealed class Room : IRoomStateMachine
     /// <summary>
     /// 将客户端帧操作写入房间帧窗口（Opened 且成员有效时）。
     /// </summary>
-    public bool TryAppendClientOps(ulong frameNumber, IReadOnlyList<frame>? ops, out string? error)
+    public bool TryAppendClientOps(ulong frameNumber, IReadOnlyList<Frame>? ops, out string? error)
     {
         if (_state != RoomState.Opened)
         {

@@ -15,6 +15,6 @@ public sealed class AvatarCleanupNotifyHandler : Address<FScene, AvatarCleanupNo
     protected override async FTask Run(FScene scene, AvatarCleanupNotify message)
     {
         IAvatarsService avatarsService = scene.GetComponent<AvatarsService>();
-        await avatarsService.CleanupPlayer(message.userId, message.reason);
+        await avatarsService.CleanupPlayer(message.user_id, message.reason);
     }
 }

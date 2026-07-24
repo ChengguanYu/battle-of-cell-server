@@ -14,7 +14,7 @@ public sealed class PlayerEntryHandler : AddressRPC<FScene, PlayerEntryReq, Play
 {
     protected override async FTask Run(FScene scene, PlayerEntryReq req, PlayerEntryResp resp, Action reply)
     {
-        User? user = await UserDao.FindByIdAsync(req.userId);
+        User? user = await UserDao.FindByIdAsync(req.user_id);
         if (user == null)
         {
             resp.SetError(StatusCode.PlayerNotFound);

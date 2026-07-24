@@ -19,7 +19,7 @@ public sealed class AvatarClientFrameNotifyHandler : Address<FScene, AvatarClien
 
         // 协议层所有权转移：摘 frames，父消息挂空 list，避免 Handler finally 级联 Dispose 造成 UAF。
         var frames = FrameMessageUtil.DetachFrames(message);
-        avatarsService.ForwardClientFrame(message.userId, message.frame_number, frames);
+        avatarsService.ForwardClientFrame(message.user_id, message.frame_number, frames);
         await FTask.CompletedTask;
     }
 }

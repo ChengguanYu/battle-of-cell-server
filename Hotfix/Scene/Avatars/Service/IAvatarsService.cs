@@ -35,5 +35,5 @@ public interface IAvatarsService
     /// <summary>
     /// 转发客户端帧到 Rooms Scene（单向）。
     /// </summary>
-    void ForwardClientFrame(long userId, ulong frameNumber, List<frame>? frames);
+    void ForwardClientFrame(long userId, ulong frameNumber, List<Frame>? frames);
 }

@@ -72,7 +72,7 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
         try
         {
             var req = MatchReq.Create();
-            req.userId = userId;
+            req.user_id = userId;
             var address = Scene.GetSceneAddress(SceneType.Match);
             resp = await Call<MatchReq, MatchResp>(address, req);
             if (!resp.IsOk())
@@ -120,7 +120,7 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
         try
         {
             var req = RoomsLeaveReq.Create();
-            req.userId = userId;
+            req.user_id = userId;
             req.reason = "client_leave";
             var address = Scene.GetSceneAddress(SceneType.Rooms);
             resp = await Call<RoomsLeaveReq, RoomsLeaveResp>(address, req);
@@ -213,7 +213,7 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
         {
             var address = Scene.GetSceneAddress(SceneType.Rooms);
             var msg = RoomsPlayerLeaveNotify.Create();
-            msg.userId = userId;
+            msg.user_id = userId;
             msg.reason = reason ?? string.Empty;
             Send(address, msg);
             Log.Info($"[Avatar] 已通知 Rooms 离房检查: userId={userId}, reason={reason}, address={address}");
@@ -237,12 +237,12 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
     /// 当前写法：成功则 msg.frames=frames 后 Send（ServiceBase.Send finally 回收整包）；校验/失败路径本方法 DisposeFrames。
     /// 后续：边界深拷贝 / 明确单所有者 API，去掉每跳手写交接。
     /// </remarks>
-    public void ForwardClientFrame(long userId, ulong frameNumber, List<frame>? frames)
+    public void ForwardClientFrame(long userId, ulong frameNumber, List<Frame>? frames)
     {
         if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)
         {
             FrameMessageUtil.DisposeFrames(frames);
-            Log.Warning($"[Avatar] client_frame 丢弃：Avatar 未加载, userId={userId}, frame={frameNumber}");
+            Log.Warning($"[Avatar] ClientFrame 丢弃：Avatar 未加载, userId={userId}, frame={frameNumber}");
             return;
         }
 
@@ -250,7 +250,7 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
         {
             FrameMessageUtil.DisposeFrames(frames);
             Log.Warning(
-                $"[Avatar] client_frame 丢弃：非 InRoom, userId={userId}, state={player.State}, frame={frameNumber}");
+                $"[Avatar] ClientFrame 丢弃：非 InRoom, userId={userId}, state={player.State}, frame={frameNumber}");
             return;
         }
 
@@ -258,7 +258,7 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
         {
             var address = Scene.GetSceneAddress(SceneType.Rooms);
             var msg = RoomsClientFrameNotify.Create();
-            msg.userId = userId;
+            msg.user_id = userId;
             msg.frame_number = frameNumber;
             if (frames is { Count: > 0 })
             {
@@ -269,12 +269,12 @@ public sealed class AvatarsService() : ServiceBase(), IAvatarsService
         catch (InvalidOperationException)
         {
             FrameMessageUtil.DisposeFrames(frames);
-            Log.Warning($"[Avatar] 未找到 Rooms Scene，client_frame 丢弃: userId={userId}, frame={frameNumber}");
+            Log.Warning($"[Avatar] 未找到 Rooms Scene，ClientFrame 丢弃: userId={userId}, frame={frameNumber}");
         }
         catch (Exception ex)
         {
             FrameMessageUtil.DisposeFrames(frames);
-            Log.Error($"[Avatar] 转发 client_frame 失败: userId={userId}, frame={frameNumber}, ex={ex}");
+            Log.Error($"[Avatar] 转发 ClientFrame 失败: userId={userId}, frame={frameNumber}, ex={ex}");
         }
     }
 

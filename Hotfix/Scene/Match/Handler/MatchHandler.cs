@@ -17,10 +17,10 @@ public sealed class MatchHandler : AddressRPC<FScene, MatchReq, MatchResp>
     protected override async FTask Run(FScene scene, MatchReq req, MatchResp resp, Action reply)
     {
         IMatchService matchService = scene.GetComponent<MatchService>();
-        var result = await matchService.Match(req.userId);
+        var result = await matchService.Match(req.user_id);
         if (!result.IsSuccess)
         {
-            Log.Warning($"玩家 {req.userId} 匹配失败：{result.Reason}");
+            Log.Warning($"玩家 {req.user_id} 匹配失败：{result.Reason}");
             resp.room_id = 0;
             resp.SetError(StatusCode.MatchFailed);
             reply();

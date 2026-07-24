@@ -29,7 +29,7 @@ public sealed class RoomFrameWindow
         for (var i = 0; i < capacity; i++)
         {
             // 预分配常驻消息：autoReturn=false，生命周期由窗口持有，写路径禁止 Create。
-            _slots[i] = new Slot(server_frame.Create(autoReturn: false));
+            _slots[i] = new Slot(ServerFrame.Create(autoReturn: false));
         }
     }
 
@@ -118,7 +118,7 @@ public sealed class RoomFrameWindow
     /// 向目标帧追加客户端操作（深拷贝）。调用前应确保槽已打开且帧号匹配。
     /// ops 为空视为成功。
     /// </summary>
-    public bool TryAppendOps(ulong frameNumber, IReadOnlyList<frame>? ops, out string? error)
+    public bool TryAppendOps(ulong frameNumber, IReadOnlyList<Frame>? ops, out string? error)
     {
         if (ops == null || ops.Count == 0)
         {
@@ -143,7 +143,7 @@ public sealed class RoomFrameWindow
             return false;
         }
 
-        slot.Frame.frames ??= new List<frame>();
+        slot.Frame.frames ??= new List<Frame>();
         for (var i = 0; i < ops.Count; i++)
         {
             var src = ops[i];
@@ -162,7 +162,7 @@ public sealed class RoomFrameWindow
     /// <summary>
     /// 按帧号读取槽位。仅占用且未可清、帧号匹配时可读。
     /// </summary>
-    public bool TryGet(ulong frameNumber, out server_frame? frame, out string? error)
+    public bool TryGet(ulong frameNumber, out ServerFrame? frame, out string? error)
     {
         frame = null;
         var index = SlotIndex(frameNumber);
@@ -241,11 +241,11 @@ public sealed class RoomFrameWindow
     /// </summary>
     private struct Slot
     {
-        public readonly server_frame Frame;
+        public readonly ServerFrame Frame;
         public bool Occupied;
         public bool Clearable;
 
-        public Slot(server_frame frame)
+        public Slot(ServerFrame frame)
         {
             Frame = frame ?? throw new ArgumentNullException(nameof(frame));
             Occupied = false;
@@ -259,7 +259,7 @@ public sealed class RoomFrameWindow
         /// </summary>
         public void ResetContent()
         {
-            // server_frame.Dispose 在非池对象上直接 return，不能用来清字段；手动清。
+            // ServerFrame.Dispose 在非池对象上直接 return，不能用来清字段；手动清。
             if (Frame.frames is { Count: > 0 })
             {
                 foreach (var op in Frame.frames)
@@ -271,7 +271,7 @@ public sealed class RoomFrameWindow
             }
 
             Frame.frame_number = default;
-            Frame.randomSeed = default;
+            Frame.random_seed = default;
 
             if (Frame.meta != null)
             {

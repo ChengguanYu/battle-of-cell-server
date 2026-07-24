@@ -34,7 +34,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
                 return InnerResult.Fail("GetRoomListSnap 失败", snapResp.ToMessage());
             }
 
-            if (snapResp.IsEmpty || snapResp.rooms is not { Count: > 0 })
+            if (snapResp.is_empty || snapResp.rooms is not { Count: > 0 })
             {
                 Log.Debug($"用户 {userId} GetRoomListSnap 为空，走 CreateAndEntry");
                 return await CreateAndEntry(address, userId);
@@ -66,7 +66,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
         try
         {
             var req = RoomsJoinReq.Create();
-            req.userId = userId;
+            req.user_id = userId;
             req.room_id = roomId;
             resp = await Call<RoomsJoinReq, RoomsJoinResp>(roomsAddress, req);
             if (!resp.IsOk())
@@ -99,7 +99,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
         try
         {
             var req = RoomsCreateAndEntryReq.Create();
-            req.userId = userId;
+            req.user_id = userId;
             resp = await Call<RoomsCreateAndEntryReq, RoomsCreateAndEntryResp>(roomsAddress, req);
             if (!resp.IsOk())
             {

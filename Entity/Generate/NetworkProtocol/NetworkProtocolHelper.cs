@@ -33,32 +33,32 @@ namespace Fantasy
 			return (SessionHeartbeatPong)await session.Call(SessionHeartbeatPing_request);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void server_frame(this Session session, server_frame server_frame_message)
+		public static void ServerFrame(this Session session, ServerFrame ServerFrame_message)
 		{
-			session.Send(server_frame_message);
+			session.Send(ServerFrame_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void server_frame(this Session session, List<frame> frames, ulong frame_number, uint randomSeed, MetaData meta)
+		public static void ServerFrame(this Session session, List<Frame> frames, ulong frame_number, uint random_seed, MetaData meta)
 		{
-			using var server_frame_message = Fantasy.server_frame.Create();
-			server_frame_message.frames = frames;
-			server_frame_message.frame_number = frame_number;
-			server_frame_message.randomSeed = randomSeed;
-			server_frame_message.meta = meta;
-			session.Send(server_frame_message);
+			using var ServerFrame_message = Fantasy.ServerFrame.Create();
+			ServerFrame_message.frames = frames;
+			ServerFrame_message.frame_number = frame_number;
+			ServerFrame_message.random_seed = random_seed;
+			ServerFrame_message.meta = meta;
+			session.Send(ServerFrame_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void client_frame(this Session session, client_frame client_frame_message)
+		public static void ClientFrame(this Session session, ClientFrame ClientFrame_message)
 		{
-			session.Send(client_frame_message);
+			session.Send(ClientFrame_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void client_frame(this Session session, List<frame> frames, ulong frame_number)
+		public static void ClientFrame(this Session session, List<Frame> frames, ulong frame_number)
 		{
-			using var client_frame_message = Fantasy.client_frame.Create();
-			client_frame_message.frames = frames;
-			client_frame_message.frame_number = frame_number;
-			session.Send(client_frame_message);
+			using var ClientFrame_message = Fantasy.ClientFrame.Create();
+			ClientFrame_message.frames = frames;
+			ClientFrame_message.frame_number = frame_number;
+			session.Send(ClientFrame_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void MetaData(this Session session, MetaData MetaData_message)

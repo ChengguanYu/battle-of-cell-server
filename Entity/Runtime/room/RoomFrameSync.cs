@@ -27,7 +27,7 @@ public sealed class RoomFrameSync
     public long CurrentTickIndex => _currentTickIndex;
 
     /// <summary>
-    /// 每逻辑帧：写入空 server_frame；tickIndex &gt;= DelayFrame 时广播帧 tickIndex - DelayFrame。
+    /// 每逻辑帧：写入空 ServerFrame；tickIndex &gt;= DelayFrame 时广播帧 tickIndex - DelayFrame。
     /// 写路径约定：当前 tick 之前的槽内容可覆盖。
     /// </summary>
     public void OnTick(long tickIndex, IReadOnlyCollection<long> memberUserIds)
@@ -63,7 +63,7 @@ public sealed class RoomFrameSync
     /// - 目标槽已 Clearable：拒绝
     /// 目标槽未打开时按写空帧规则打开后再追加。
     /// </summary>
-    public bool TryAppendClientOps(ulong clientFrameNumber, IReadOnlyList<frame>? ops, out string? error)
+    public bool TryAppendClientOps(ulong clientFrameNumber, IReadOnlyList<Frame>? ops, out string? error)
     {
         if (ops == null || ops.Count == 0)
         {

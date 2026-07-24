@@ -61,14 +61,14 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             MessageObjectPool<PlayerEntryReq>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.PlayerEntryReq; } 
         [ProtoIgnore]
         public PlayerEntryResp ResponseType { get; set; }
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
     }
     /// <summary>
     /// 玩家进入响应
@@ -151,14 +151,14 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             MessageObjectPool<AvatarMatchReq>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.AvatarMatchReq; } 
         [ProtoIgnore]
         public AvatarMatchResp ResponseType { get; set; }
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
     }
     /// <summary>
     /// Gate -> Avatar 匹配响应
@@ -247,14 +247,14 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             MessageObjectPool<AvatarLeaveRoomReq>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.AvatarLeaveRoomReq; } 
         [ProtoIgnore]
         public AvatarLeaveRoomResp ResponseType { get; set; }
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
     }
     /// <summary>
     /// Gate -> Avatar 主动退出房间响应
@@ -343,13 +343,13 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             reason = default;
             MessageObjectPool<AvatarCleanupNotify>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.AvatarCleanupNotify; } 
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
         /// <summary>
         /// 清理原因，如 timed_out_grace_expired
         /// </summary>
@@ -393,21 +393,21 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             frame_number = default;
             frames.Clear();
             MessageObjectPool<AvatarClientFrameNotify>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.AvatarClientFrameNotify; } 
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
         [ProtoMember(2)]
         public ulong frame_number { get; set; }
         /// <summary>
-        /// 客户端本帧操作列表（与 Outer client_frame.frames 同构）
+        /// 客户端本帧操作列表（与 Outer ClientFrame.frames 同构）
         /// </summary>
         [ProtoMember(3)]
-        public List<frame> frames { get; set; } = new List<frame>();
+        public List<Frame> frames { get; set; } = new List<Frame>();
     }
     /// <summary>
     /// Avatar -> Match 匹配请求（查房列表 / Join / CreateAndEntry）
@@ -446,14 +446,14 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             MessageObjectPool<MatchReq>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.MatchReq; } 
         [ProtoIgnore]
         public MatchResp ResponseType { get; set; }
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
     }
     /// <summary>
     /// Avatar -> Match 匹配响应
@@ -542,13 +542,13 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             reason = default;
             MessageObjectPool<RoomsPlayerLeaveNotify>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.RoomsPlayerLeaveNotify; } 
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
         /// <summary>
         /// 离房原因，如 timed_out_grace_expired
         /// </summary>
@@ -592,7 +592,7 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             reason = default;
             MessageObjectPool<RoomsLeaveReq>.Return(this);
         }
@@ -600,7 +600,7 @@ namespace Fantasy
         [ProtoIgnore]
         public RoomsLeaveResp ResponseType { get; set; }
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
         /// <summary>
         /// 离房原因，如 client_leave
         /// </summary>
@@ -694,21 +694,21 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             frame_number = default;
             frames.Clear();
             MessageObjectPool<RoomsClientFrameNotify>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.RoomsClientFrameNotify; } 
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
         [ProtoMember(2)]
         public ulong frame_number { get; set; }
         /// <summary>
-        /// 客户端本帧操作列表（与 Outer client_frame.frames 同构）
+        /// 客户端本帧操作列表（与 Outer ClientFrame.frames 同构）
         /// </summary>
         [ProtoMember(3)]
-        public List<frame> frames { get; set; } = new List<frame>();
+        public List<Frame> frames { get; set; } = new List<Frame>();
     }
     /// <summary>
     /// 房间列表快照条目（非权威，仅供 Match 选房线索）
@@ -849,7 +849,7 @@ namespace Fantasy
             ErrorCode = 0;
             foreach (var __t in rooms) __t.Dispose();
             rooms.Clear();
-            IsEmpty = default;
+            is_empty = default;
             MessageObjectPool<RoomsGetRoomListSnapResp>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.RoomsGetRoomListSnapResp; } 
@@ -861,7 +861,7 @@ namespace Fantasy
         /// 是否为空列表；true 表示当前无可观察房间
         /// </summary>
         [ProtoMember(3)]
-        public bool IsEmpty { get; set; }
+        public bool is_empty { get; set; }
     }
     /// <summary>
     /// Match -> Rooms 加入指定房间
@@ -900,7 +900,7 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             room_id = default;
             MessageObjectPool<RoomsJoinReq>.Return(this);
         }
@@ -908,7 +908,7 @@ namespace Fantasy
         [ProtoIgnore]
         public RoomsJoinResp ResponseType { get; set; }
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
         [ProtoMember(2)]
         public long room_id { get; set; }
     }
@@ -999,14 +999,14 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             MessageObjectPool<RoomsCreateReq>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.RoomsCreateReq; } 
         [ProtoIgnore]
         public RoomsCreateResp ResponseType { get; set; }
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
     }
     /// <summary>
     /// Match -> Rooms 创建房间响应
@@ -1095,14 +1095,14 @@ namespace Fantasy
         public void Dispose()
         {
             if (!IsPool()) return; 
-            userId = default;
+            user_id = default;
             MessageObjectPool<RoomsCreateAndEntryReq>.Return(this);
         }
         public uint OpCode() { return InnerOpcode.RoomsCreateAndEntryReq; } 
         [ProtoIgnore]
         public RoomsCreateAndEntryResp ResponseType { get; set; }
         [ProtoMember(1)]
-        public long userId { get; set; }
+        public long user_id { get; set; }
     }
     /// <summary>
     /// Match -> Rooms 创建并进入响应

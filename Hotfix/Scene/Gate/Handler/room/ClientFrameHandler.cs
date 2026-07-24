@@ -9,15 +9,15 @@ using Hotfix.Scene.Gate.Service;
 namespace Hotfix.Scene.Gate.Handler.Room;
 
 /// <summary>
-/// 接收客户端 client_frame（单向），校验绑定后转发到 Avatars。
+/// 接收客户端 ClientFrame（单向），校验绑定后转发到 Avatars。
 /// </summary>
-public sealed class ClientFrameHandler : Message<client_frame>
+public sealed class ClientFrameHandler : Message<ClientFrame>
 {
-    protected override async FTask Run(Session session, client_frame message)
+    protected override async FTask Run(Session session, ClientFrame message)
     {
         if (!SessionManager.Instance.TryGetUserId(session, out var userId))
         {
-            Log.Warning("client_frame 丢弃：Session 未绑定");
+            Log.Warning("ClientFrame 丢弃：Session 未绑定");
             return;
         }
 

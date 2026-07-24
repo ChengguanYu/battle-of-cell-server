@@ -19,17 +19,17 @@ public sealed class RoomsJoinHandler : AddressRPC<FScene, RoomsJoinReq, RoomsJoi
         var roomsService = scene.GetComponent<RoomsService>();
         if (req.room_id <= 0 || req.room_id > uint.MaxValue)
         {
-            Log.Warning($"玩家 {req.userId} Join 房间 {req.room_id} 失败：room_id 非法");
+            Log.Warning($"玩家 {req.user_id} Join 房间 {req.room_id} 失败：room_id 非法");
             resp.room_id = 0;
             resp.SetError(StatusCode.RoomsEnterFailed);
             reply();
             return;
         }
 
-        var result = await roomsService.Join(req.userId, (uint)req.room_id);
+        var result = await roomsService.Join(req.user_id, (uint)req.room_id);
         if (!result.IsSuccess)
         {
-            Log.Warning($"玩家 {req.userId} Join 房间 {req.room_id} 失败：{result.Reason}");
+            Log.Warning($"玩家 {req.user_id} Join 房间 {req.room_id} 失败：{result.Reason}");
             resp.room_id = 0;
             resp.SetError(StatusCode.RoomsEnterFailed);
             reply();

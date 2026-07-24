@@ -29,6 +29,6 @@ public interface ISessionService
     /// <summary>
     /// 转发客户端帧到 Avatars Scene（单向）。
     /// </summary>
-    void ForwardClientFrame(long userId, ulong frameNumber, List<frame>? frames);
+    void ForwardClientFrame(long userId, ulong frameNumber, List<Frame>? frames);
 }
 

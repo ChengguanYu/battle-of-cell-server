@@ -222,19 +222,19 @@ namespace Fantasy
     }
     [Serializable]
     [ProtoContract]
-    public partial class server_frame : AMessage, IMessage
+    public partial class ServerFrame : AMessage, IMessage
     {
-        public static server_frame Create(bool autoReturn = true)
+        public static ServerFrame Create(bool autoReturn = true)
         {
-            var server_frame = MessageObjectPool<server_frame>.Rent();
-            server_frame.AutoReturn = autoReturn;
+            var serverFrame = MessageObjectPool<ServerFrame>.Rent();
+            serverFrame.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                server_frame.SetIsPool(false);
+                serverFrame.SetIsPool(false);
             }
             
-            return server_frame;
+            return serverFrame;
         }
         
         public void Return()
@@ -257,39 +257,39 @@ namespace Fantasy
             foreach (var __t in frames) __t.Dispose();
             frames.Clear();
             frame_number = default;
-            randomSeed = default;
+            random_seed = default;
             if (meta != null)
             {
                 meta.Dispose();
                 meta = null;
             }
-            MessageObjectPool<server_frame>.Return(this);
+            MessageObjectPool<ServerFrame>.Return(this);
         }
-        public uint OpCode() { return OuterOpcode.server_frame; } 
+        public uint OpCode() { return OuterOpcode.ServerFrame; } 
         [ProtoMember(1)]
-        public List<frame> frames { get; set; } = new List<frame>();
+        public List<Frame> frames { get; set; } = new List<Frame>();
         [ProtoMember(2)]
         public ulong frame_number { get; set; }
         [ProtoMember(3)]
-        public uint randomSeed { get; set; }
+        public uint random_seed { get; set; }
         [ProtoMember(4)]
         public MetaData meta { get; set; }
     }
     [Serializable]
     [ProtoContract]
-    public partial class client_frame : AMessage, IMessage
+    public partial class ClientFrame : AMessage, IMessage
     {
-        public static client_frame Create(bool autoReturn = true)
+        public static ClientFrame Create(bool autoReturn = true)
         {
-            var client_frame = MessageObjectPool<client_frame>.Rent();
-            client_frame.AutoReturn = autoReturn;
+            var clientFrame = MessageObjectPool<ClientFrame>.Rent();
+            clientFrame.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                client_frame.SetIsPool(false);
+                clientFrame.SetIsPool(false);
             }
             
-            return client_frame;
+            return clientFrame;
         }
         
         public void Return()
@@ -312,21 +312,21 @@ namespace Fantasy
             foreach (var __t in frames) __t.Dispose();
             frames.Clear();
             frame_number = default;
-            MessageObjectPool<client_frame>.Return(this);
+            MessageObjectPool<ClientFrame>.Return(this);
         }
-        public uint OpCode() { return OuterOpcode.client_frame; } 
+        public uint OpCode() { return OuterOpcode.ClientFrame; } 
         [ProtoMember(1)]
-        public List<frame> frames { get; set; } = new List<frame>();
+        public List<Frame> frames { get; set; } = new List<Frame>();
         [ProtoMember(2)]
         public ulong frame_number { get; set; }
     }
     [Serializable]
     [ProtoContract]
-    public partial class vec2d : AMessage, IDisposable
+    public partial class Vec2d : AMessage, IDisposable
     {
-        public static vec2d Create(bool autoReturn = true)
+        public static Vec2d Create(bool autoReturn = true)
         {
-            var vec2d = MessageObjectPool<vec2d>.Rent();
+            var vec2d = MessageObjectPool<Vec2d>.Rent();
             vec2d.AutoReturn = autoReturn;
             
             if (!autoReturn)
@@ -356,7 +356,7 @@ namespace Fantasy
             if (!IsPool()) return; 
             x = default;
             y = default;
-            MessageObjectPool<vec2d>.Return(this);
+            MessageObjectPool<Vec2d>.Return(this);
         }
         [ProtoMember(1)]
         public long x { get; set; }
@@ -365,11 +365,11 @@ namespace Fantasy
     }
     [Serializable]
     [ProtoContract]
-    public partial class position2d : AMessage, IDisposable
+    public partial class Position2d : AMessage, IDisposable
     {
-        public static position2d Create(bool autoReturn = true)
+        public static Position2d Create(bool autoReturn = true)
         {
-            var position2d = MessageObjectPool<position2d>.Rent();
+            var position2d = MessageObjectPool<Position2d>.Rent();
             position2d.AutoReturn = autoReturn;
             
             if (!autoReturn)
@@ -399,7 +399,7 @@ namespace Fantasy
             if (!IsPool()) return; 
             x = default;
             y = default;
-            MessageObjectPool<position2d>.Return(this);
+            MessageObjectPool<Position2d>.Return(this);
         }
         [ProtoMember(1)]
         public int x { get; set; }
@@ -408,11 +408,11 @@ namespace Fantasy
     }
     [Serializable]
     [ProtoContract]
-    public partial class player : AMessage, IDisposable
+    public partial class Player : AMessage, IDisposable
     {
-        public static player Create(bool autoReturn = true)
+        public static Player Create(bool autoReturn = true)
         {
-            var player = MessageObjectPool<player>.Rent();
+            var player = MessageObjectPool<Player>.Rent();
             player.AutoReturn = autoReturn;
             
             if (!autoReturn)
@@ -452,24 +452,24 @@ namespace Fantasy
                 position = null;
             }
             eid = default;
-            MessageObjectPool<player>.Return(this);
+            MessageObjectPool<Player>.Return(this);
         }
         [ProtoMember(1)]
-        public vec2d direction { get; set; }
+        public Vec2d direction { get; set; }
         [ProtoMember(2)]
         public long speed { get; set; }
         [ProtoMember(3)]
-        public position2d position { get; set; }
+        public Position2d position { get; set; }
         [ProtoMember(4)]
         public uint eid { get; set; }
     }
     [Serializable]
     [ProtoContract]
-    public partial class frame : AMessage, IDisposable
+    public partial class Frame : AMessage, IDisposable
     {
-        public static frame Create(bool autoReturn = true)
+        public static Frame Create(bool autoReturn = true)
         {
-            var frame = MessageObjectPool<frame>.Rent();
+            var frame = MessageObjectPool<Frame>.Rent();
             frame.AutoReturn = autoReturn;
             
             if (!autoReturn)
@@ -503,12 +503,12 @@ namespace Fantasy
                 data.Dispose();
                 data = null;
             }
-            MessageObjectPool<frame>.Return(this);
+            MessageObjectPool<Frame>.Return(this);
         }
         [ProtoMember(2)]
         public Op op { get; set; }
         [ProtoMember(3)]
-        public player data { get; set; }
+        public Player data { get; set; }
     }
     [Serializable]
     [ProtoContract]
