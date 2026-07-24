@@ -72,56 +72,6 @@ public sealed class RoomManager
     }
 
     /// <summary>
-    /// 匹配入房：已在房则返回；有 Opened 未满房则加入；否则创建并加入。
-    /// </summary>
-    public Room? MatchOrCreate(long userId, int capacity = RoomConfig.DefaultCapacity)
-    {
-        if (userId <= 0)
-        {
-            return null;
-        }
-
-        if (TryGetByUser(userId, out var existing) && existing != null)
-        {
-            return existing;
-        }
-
-        Room? candidate = null;
-        foreach (var pair in _roomById)
-        {
-            var room = pair.Value;
-            if (room == null || !room.IsOpened() || room.IsFull)
-            {
-                continue;
-            }
-
-            if (candidate == null || room.RoomId < candidate.RoomId)
-            {
-                candidate = room;
-            }
-        }
-
-        if (candidate != null && Join(candidate.RoomId, userId))
-        {
-            return candidate;
-        }
-
-        // CreateWithMember 已弃用；改为 Create + Entry
-        Log.Debug($"RoomManager.MatchOrCreate 无候选房，走 Create+Entry: userId={userId}, capacity={capacity}");
-        var created = Create(capacity);
-        if (created == null)
-        {
-            Log.Debug($"RoomManager.MatchOrCreate Create 失败: userId={userId}");
-            return null;
-        }
-
-        var entered = Entry(created.RoomId, userId);
-        Log.Debug(
-            $"RoomManager.MatchOrCreate Create+Entry 结束: userId={userId}, roomId={created.RoomId}, ok={entered != null}");
-        return entered;
-    }
-
-    /// <summary>
     /// 创建房间并开启。
     /// </summary>
     public Room? Create(int capacity = RoomConfig.DefaultCapacity)
@@ -147,7 +97,7 @@ public sealed class RoomManager
     }
 
     /// <summary>
-    /// 玩家进入指定房间（从 CreateWithMember 的加入逻辑拆出）。
+    /// 玩家进入指定房间。
     /// 成功返回房间；失败返回 null。
     /// </summary>
     public Room? Entry(uint roomId, long userId)
@@ -176,25 +126,6 @@ public sealed class RoomManager
         return room;
     }
 
-//     /// <summary>
-//     /// 创建房间并加入首位成员。
-//     /// </summary>
-//     private Room? CreateWithMember(long userId, int capacity = RoomConfig.DefaultCapacity)
-//     {
-//         var room = Create(capacity);
-//         if (room == null)
-//         {
-//             return null;
-//         }
-// 
-//         if (!Join(room.RoomId, userId))
-//         {
-//             Remove(room.RoomId, reason: "create_with_member_failed");
-//             return null;
-//         }
-// 
-//         return room;
-//     }
 
     /// <summary>
     /// 玩家加入房间。

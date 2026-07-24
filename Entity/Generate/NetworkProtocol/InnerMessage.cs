@@ -395,7 +395,6 @@ namespace Fantasy
             if (!IsPool()) return; 
             userId = default;
             frame_number = default;
-            foreach (var __t in frames) __t.Dispose();
             frames.Clear();
             MessageObjectPool<AvatarClientFrameNotify>.Return(this);
         }
@@ -411,7 +410,7 @@ namespace Fantasy
         public List<frame> frames { get; set; } = new List<frame>();
     }
     /// <summary>
-    /// Avatar -> Match 匹配请求（旧链路，保留兼容）
+    /// Avatar -> Match 匹配请求（查房列表 / Join / CreateAndEntry）
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -457,7 +456,7 @@ namespace Fantasy
         public long userId { get; set; }
     }
     /// <summary>
-    /// Avatar -> Match 匹配响应（旧链路，保留兼容）
+    /// Avatar -> Match 匹配响应
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -502,198 +501,6 @@ namespace Fantasy
         public uint ErrorCode { get; set; }
         /// <summary>
         /// 匹配成功后的房间 ID；失败时为 0
-        /// </summary>
-        [ProtoMember(2)]
-        public long room_id { get; set; }
-    }
-    /// <summary>
-    /// Avatar -> Match 新匹配请求（Match 侧编排：查房列表 / Join / Create）
-    /// </summary>
-    [Serializable]
-    [ProtoContract]
-    public partial class NewMatchReq : AMessage, IAddressRequest
-    {
-        public static NewMatchReq Create(bool autoReturn = true)
-        {
-            var newMatchReq = MessageObjectPool<NewMatchReq>.Rent();
-            newMatchReq.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                newMatchReq.SetIsPool(false);
-            }
-            
-            return newMatchReq;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            userId = default;
-            MessageObjectPool<NewMatchReq>.Return(this);
-        }
-        public uint OpCode() { return InnerOpcode.NewMatchReq; } 
-        [ProtoIgnore]
-        public NewMatchResp ResponseType { get; set; }
-        [ProtoMember(1)]
-        public long userId { get; set; }
-    }
-    /// <summary>
-    /// Avatar -> Match 新匹配响应
-    /// </summary>
-    [Serializable]
-    [ProtoContract]
-    public partial class NewMatchResp : AMessage, IAddressResponse
-    {
-        public static NewMatchResp Create(bool autoReturn = true)
-        {
-            var newMatchResp = MessageObjectPool<NewMatchResp>.Rent();
-            newMatchResp.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                newMatchResp.SetIsPool(false);
-            }
-            
-            return newMatchResp;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            ErrorCode = 0;
-            room_id = default;
-            MessageObjectPool<NewMatchResp>.Return(this);
-        }
-        public uint OpCode() { return InnerOpcode.NewMatchResp; } 
-        [ProtoMember(1)]
-        public uint ErrorCode { get; set; }
-        /// <summary>
-        /// 匹配成功后的房间 ID；失败时为 0
-        /// </summary>
-        [ProtoMember(2)]
-        public long room_id { get; set; }
-    }
-    /// <summary>
-    /// Match/Avatar -> Rooms 进入房间请求（旧链路 MatchOrCreate，保留兼容）
-    /// </summary>
-    [Serializable]
-    [ProtoContract]
-    public partial class RoomsEnterReq : AMessage, IAddressRequest
-    {
-        public static RoomsEnterReq Create(bool autoReturn = true)
-        {
-            var roomsEnterReq = MessageObjectPool<RoomsEnterReq>.Rent();
-            roomsEnterReq.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                roomsEnterReq.SetIsPool(false);
-            }
-            
-            return roomsEnterReq;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            userId = default;
-            MessageObjectPool<RoomsEnterReq>.Return(this);
-        }
-        public uint OpCode() { return InnerOpcode.RoomsEnterReq; } 
-        [ProtoIgnore]
-        public RoomsEnterResp ResponseType { get; set; }
-        [ProtoMember(1)]
-        public long userId { get; set; }
-    }
-    /// <summary>
-    /// Match/Avatar -> Rooms 进入房间响应（旧链路）
-    /// </summary>
-    [Serializable]
-    [ProtoContract]
-    public partial class RoomsEnterResp : AMessage, IAddressResponse
-    {
-        public static RoomsEnterResp Create(bool autoReturn = true)
-        {
-            var roomsEnterResp = MessageObjectPool<RoomsEnterResp>.Rent();
-            roomsEnterResp.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                roomsEnterResp.SetIsPool(false);
-            }
-            
-            return roomsEnterResp;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            ErrorCode = 0;
-            room_id = default;
-            MessageObjectPool<RoomsEnterResp>.Return(this);
-        }
-        public uint OpCode() { return InnerOpcode.RoomsEnterResp; } 
-        [ProtoMember(1)]
-        public uint ErrorCode { get; set; }
-        /// <summary>
-        /// 进入成功后的房间 ID；失败时为 0
         /// </summary>
         [ProtoMember(2)]
         public long room_id { get; set; }
@@ -889,7 +696,6 @@ namespace Fantasy
             if (!IsPool()) return; 
             userId = default;
             frame_number = default;
-            foreach (var __t in frames) __t.Dispose();
             frames.Clear();
             MessageObjectPool<RoomsClientFrameNotify>.Return(this);
         }
