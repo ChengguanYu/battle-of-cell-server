@@ -4,11 +4,12 @@ using Fantasy.Async;
 using Hotfix.Common.Abstract.Service;
 using Hotfix.Database;
 using Hotfix.Utils;
-
+//todo: 所有服务层错误应该使用抛出错误来传递，不需要通过返回值
 namespace Hotfix.Scene.Match.Service;
 
 /// <summary>
 /// Match Scene 级服务（挂在 Scene 上，全 Handler 共享同一实例）。
+/// 只负责编排：拉可加入房间列表 / Create / Join / 写匹配结果；房间满员规则由 Rooms 负责。
 /// </summary>
 public sealed class MatchService() : ServiceBase(), IMatchService
 {
@@ -27,7 +28,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
     }
 
     /// <summary>
-    /// 匹配：拉取 Rooms 列表快照；无房 CreateAndEntry，有房随机 Join。
+    /// 匹配：拉取 Rooms 可加入列表快照；无房 CreateAndEntry，有房随机 Join。
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
     public async FTask<InnerResult> Match(long userId)
@@ -73,7 +74,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
     }
 
     /// <summary>
-    /// 客户端匹配：与旧逻辑一致选房/无房创建，但不入房；成功后写 Redis 匹配结果。
+    /// 客户端匹配：选房/无房创建但不入房，成功后写 Redis。
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
     public async FTask<InnerResult> ClientMatch(long userId, Fantasy.MatchType matchType)

@@ -4,6 +4,7 @@ using Fantasy;
 using Fantasy.Async;
 
 namespace Hotfix.Scene.Rooms.Service;
+// TODO: 关房时可能仍残留 match:{roomId}:* 占位 key，待后续清理策略。
 
 public sealed partial class RoomsService
 {

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Fantasy;
+using StackExchange.Redis;
 
 namespace Hotfix.Database;
 
@@ -72,17 +73,65 @@ public static class MatchResultDao
         }
     }
 
+    /// <summary>
+    /// 统计房间匹配占位条数：pattern={topic}:{roomId}:*。
+    /// 每条 match 请求占 1 位。
+    /// </summary>
+    /// <remarks>
+    /// FIXME: 同一 user 既在房间成员中又有占位 key 时会双计（业务错误，暂不去重）。
+    /// </remarks>
+    public static bool TryCountPlaceholders(RedisComponent redis, long roomId, out int count, out string error)
+    {
+        count = 0;
+        error = string.Empty;
+
+        if (redis == null)
+        {
+            error = "Redis 实例缺失";
+            return false;
+        }
+
+        if (roomId <= 0)
+        {
+            error = "参数非法";
+            return false;
+        }
+
+        if (!TryResolveTopic(out var topic, out error))
+        {
+            return false;
+        }
+
+        var pattern = BuildRoomPattern(topic, roomId);
+        try
+        {
+            var server = redis.GetServer();
+            var db = redis.GetDatabase();
+            // Keys 在 StackExchange.Redis 中默认走 SCAN，避免 KEYS 阻塞。
+            foreach (var _ in server.Keys(database: db.Database, pattern: pattern, pageSize: 256))
+            {
+                count++;
+            }
+
+            Log.Debug($"MatchResultDao.TryCountPlaceholders: roomId={roomId}, pattern={pattern}, count={count}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = "Redis 占位计数异常";
+            Log.Error($"MatchResultDao.TryCountPlaceholders 异常: roomId={roomId}, pattern={pattern}, ex={ex}");
+            return false;
+        }
+    }
+
     private static bool TryResolveConfig(out string topic, out int ttlSeconds, out string error)
     {
         topic = string.Empty;
         ttlSeconds = 0;
         error = string.Empty;
 
-        var topicRaw = Environment.GetEnvironmentVariable(EnvMatchResultTopic);
-        if (string.IsNullOrWhiteSpace(topicRaw))
+        if (!TryResolveTopic(out topic, out error))
         {
-            error = $"{EnvMatchResultTopic} 未配置";
-            Log.Warning($"MatchResultDao 配置缺失: {EnvMatchResultTopic}");
             return false;
         }
 
@@ -94,6 +143,22 @@ public static class MatchResultDao
             return false;
         }
 
+        return true;
+    }
+
+    private static bool TryResolveTopic(out string topic, out string error)
+    {
+        topic = string.Empty;
+        error = string.Empty;
+
+        var topicRaw = Environment.GetEnvironmentVariable(EnvMatchResultTopic);
+        if (string.IsNullOrWhiteSpace(topicRaw))
+        {
+            error = $"{EnvMatchResultTopic} 未配置";
+            Log.Warning($"MatchResultDao 配置缺失: {EnvMatchResultTopic}");
+            return false;
+        }
+
         topic = topicRaw.Trim();
         return true;
     }
@@ -101,6 +166,11 @@ public static class MatchResultDao
     private static string BuildKey(string topic, long roomId, long userId)
     {
         return $"{topic}:{roomId}:{userId}";
+    }
+
+    private static string BuildRoomPattern(string topic, long roomId)
+    {
+        return $"{topic}:{roomId}:*";
     }
 
     private sealed class MatchResultMessage

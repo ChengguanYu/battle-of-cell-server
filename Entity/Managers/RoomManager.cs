@@ -194,6 +194,20 @@ public sealed class RoomManager
     }
 
     /// <summary>
+    /// 经 roomId 取房间。
+    /// </summary>
+    public bool TryGetById(uint roomId, out Room? room)
+    {
+        room = null;
+        if (roomId == 0)
+        {
+            return false;
+        }
+
+        return _roomById.TryGetValue(roomId, out room) && room != null;
+    }
+
+    /// <summary>
     /// 关闭并移除房间。
     /// </summary>
     public bool Remove(uint roomId, string? reason = null)
