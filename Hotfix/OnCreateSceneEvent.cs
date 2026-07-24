@@ -29,6 +29,7 @@ public sealed class OnCreateSceneEvent : AsyncEventSystem<OnCreateScene>
                 break;
             case SceneType.Avatars:
                 scene.AddComponent<AvatarsService>();
+                scene.AddComponent<Relay>();
                 Log.Info($"[Avatars] scene started. sceneId={scene.SceneConfigId}");
                 break;
             case SceneType.Match:

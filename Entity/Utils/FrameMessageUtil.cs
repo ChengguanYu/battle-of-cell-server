@@ -72,9 +72,9 @@ public static class FrameMessageUtil
     }
 
     /// <summary>
-    /// 从 AvatarClientFrameNotify 摘下 frames 所有权，并挂上空 list。
+    /// 从 AvatarRelayClientFrameNotify 摘下 frames 所有权，并挂上空 list。
     /// </summary>
-    public static List<Frame> DetachFrames(AvatarClientFrameNotify message)
+    public static List<Frame> DetachFrames(AvatarRelayClientFrameNotify message)
     {
         var frames = message.frames;
         message.frames = new List<Frame>();

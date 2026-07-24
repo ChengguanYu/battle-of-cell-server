@@ -10,17 +10,17 @@ using FScene = Fantasy.Scene;
 namespace Hotfix.Scene.Avatars.Handler;
 
 /// <summary>
-/// Avatars Scene 接收 Gate 的匹配请求，纯转发到 Match Scene。
+/// 匹配转发：门禁后转发到 Match。文件位于 Handler/Relay。
 /// </summary>
-public sealed class AvatarMatchHandler : AddressRPC<FScene, AvatarMatchReq, AvatarMatchResp>
+public sealed class RelayMatch : AddressRPC<FScene, AvatarRelayMatchReq, AvatarRelayMatchResp>
 {
-    protected override async FTask Run(FScene scene, AvatarMatchReq req, AvatarMatchResp resp, Action reply)
+    protected override async FTask Run(FScene scene, AvatarRelayMatchReq req, AvatarRelayMatchResp resp, Action reply)
     {
-        IAvatarsService avatarsService = scene.GetComponent<AvatarsService>();
-        var result = await avatarsService.Match(req.user_id);
+        IRelay relay = scene.GetComponent<Relay>();
+        var result = await relay.Match(req.user_id);
         if (!result.IsSuccess)
         {
-            Log.Warning($"玩家 {req.user_id} Avatar 匹配转发失败：{result.Reason}");
+            Log.Warning($"玩家 {req.user_id} RelayMatch 失败：{result.Reason}");
             resp.room_id = 0;
             resp.SetError(StatusCode.MatchFailed);
             reply();

@@ -7,11 +7,11 @@ namespace Fantasy
     public static partial class InnerOpcode
     {
         public const uint AvatarCleanupNotify = 939534097;
-        public const uint AvatarClientFrameNotify = 939534098;
-        public const uint AvatarLeaveRoomReq = 1073751825;
-        public const uint AvatarLeaveRoomResp = 1207969553;
-        public const uint AvatarMatchReq = 1073751826;
-        public const uint AvatarMatchResp = 1207969554;
+        public const uint AvatarRelayClientFrameNotify = 939534098;
+        public const uint AvatarRelayLeaveRoomReq = 1073751825;
+        public const uint AvatarRelayLeaveRoomResp = 1207969553;
+        public const uint AvatarRelayMatchReq = 1073751826;
+        public const uint AvatarRelayMatchResp = 1207969554;
         public const uint MatchReq = 1073751827;
         public const uint MatchResp = 1207969555;
         public const uint PlayerEntryReq = 1073751828;

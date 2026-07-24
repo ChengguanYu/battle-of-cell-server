@@ -63,17 +63,17 @@ public sealed class SessionService() : ServiceBase(), ISessionService
     /// </summary>
     public async FTask<InnerResult> PlayerMatch(long userId)
     {
-        AvatarMatchResp? resp = null;
+        AvatarRelayMatchResp? resp = null;
         try
         {
-            var req = AvatarMatchReq.Create();
+            var req = AvatarRelayMatchReq.Create();
             req.user_id = userId;
             var address = Scene.GetSceneAddress(SceneType.Avatars);
-            resp = await Call<AvatarMatchReq, AvatarMatchResp>(address, req);
+            resp = await Call<AvatarRelayMatchReq, AvatarRelayMatchResp>(address, req);
             if (!resp.IsOk())
             {
-                Log.Warning($"用户 {userId} AvatarMatch 失败，status={resp.ToMessage()}");
-                return InnerResult.Fail("AvatarMatch 失败", resp.ToMessage());
+                Log.Warning($"用户 {userId} AvatarRelayMatch 失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("AvatarRelayMatch 失败", resp.ToMessage());
             }
 
             return InnerResult.Ok(string.Empty, resp.room_id > 0 && resp.room_id <= uint.MaxValue ? (uint)resp.room_id : 0u);
@@ -94,17 +94,17 @@ public sealed class SessionService() : ServiceBase(), ISessionService
     /// </summary>
     public async FTask<InnerResult> PlayerLeaveRoom(long userId)
     {
-        AvatarLeaveRoomResp? resp = null;
+        AvatarRelayLeaveRoomResp? resp = null;
         try
         {
-            var req = AvatarLeaveRoomReq.Create();
+            var req = AvatarRelayLeaveRoomReq.Create();
             req.user_id = userId;
             var address = Scene.GetSceneAddress(SceneType.Avatars);
-            resp = await Call<AvatarLeaveRoomReq, AvatarLeaveRoomResp>(address, req);
+            resp = await Call<AvatarRelayLeaveRoomReq, AvatarRelayLeaveRoomResp>(address, req);
             if (!resp.IsOk())
             {
-                Log.Warning($"用户 {userId} AvatarLeaveRoom 失败，status={resp.ToMessage()}");
-                return InnerResult.Fail("AvatarLeaveRoom 失败", resp.ToMessage());
+                Log.Warning($"用户 {userId} AvatarRelayLeaveRoom 失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("AvatarRelayLeaveRoom 失败", resp.ToMessage());
             }
 
             return InnerResult.Ok(string.Empty, resp.room_id > 0 && resp.room_id <= uint.MaxValue ? (uint)resp.room_id : 0u);
@@ -133,7 +133,7 @@ public sealed class SessionService() : ServiceBase(), ISessionService
         try
         {
             var address = Scene.GetSceneAddress(SceneType.Avatars);
-            var msg = AvatarClientFrameNotify.Create();
+            var msg = AvatarRelayClientFrameNotify.Create();
             msg.user_id = userId;
             msg.frame_number = frameNumber;
             if (frames is { Count: > 0 })

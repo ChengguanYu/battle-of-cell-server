@@ -25,7 +25,7 @@ using Fantasy.Serialize;
 namespace Fantasy
 {
     /// <summary>
-    /// 玩家进入请求
+    /// 玩家进入请求（Avatar 本域：加载玩家）
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -115,23 +115,23 @@ namespace Fantasy
         public uint ErrorCode { get; set; }
     }
     /// <summary>
-    /// Gate -> Avatar 匹配请求
+    /// Gate -> Avatar 匹配转发请求（Avatar 仅门禁后转发到 Match）
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class AvatarMatchReq : AMessage, IAddressRequest
+    public partial class AvatarRelayMatchReq : AMessage, IAddressRequest
     {
-        public static AvatarMatchReq Create(bool autoReturn = true)
+        public static AvatarRelayMatchReq Create(bool autoReturn = true)
         {
-            var avatarMatchReq = MessageObjectPool<AvatarMatchReq>.Rent();
-            avatarMatchReq.AutoReturn = autoReturn;
+            var avatarRelayMatchReq = MessageObjectPool<AvatarRelayMatchReq>.Rent();
+            avatarRelayMatchReq.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                avatarMatchReq.SetIsPool(false);
+                avatarRelayMatchReq.SetIsPool(false);
             }
             
-            return avatarMatchReq;
+            return avatarRelayMatchReq;
         }
         
         public void Return()
@@ -152,32 +152,32 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             user_id = default;
-            MessageObjectPool<AvatarMatchReq>.Return(this);
+            MessageObjectPool<AvatarRelayMatchReq>.Return(this);
         }
-        public uint OpCode() { return InnerOpcode.AvatarMatchReq; } 
+        public uint OpCode() { return InnerOpcode.AvatarRelayMatchReq; } 
         [ProtoIgnore]
-        public AvatarMatchResp ResponseType { get; set; }
+        public AvatarRelayMatchResp ResponseType { get; set; }
         [ProtoMember(1)]
         public long user_id { get; set; }
     }
     /// <summary>
-    /// Gate -> Avatar 匹配响应
+    /// Gate -> Avatar 匹配转发响应
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class AvatarMatchResp : AMessage, IAddressResponse
+    public partial class AvatarRelayMatchResp : AMessage, IAddressResponse
     {
-        public static AvatarMatchResp Create(bool autoReturn = true)
+        public static AvatarRelayMatchResp Create(bool autoReturn = true)
         {
-            var avatarMatchResp = MessageObjectPool<AvatarMatchResp>.Rent();
-            avatarMatchResp.AutoReturn = autoReturn;
+            var avatarRelayMatchResp = MessageObjectPool<AvatarRelayMatchResp>.Rent();
+            avatarRelayMatchResp.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                avatarMatchResp.SetIsPool(false);
+                avatarRelayMatchResp.SetIsPool(false);
             }
             
-            return avatarMatchResp;
+            return avatarRelayMatchResp;
         }
         
         public void Return()
@@ -199,9 +199,9 @@ namespace Fantasy
             if (!IsPool()) return; 
             ErrorCode = 0;
             room_id = default;
-            MessageObjectPool<AvatarMatchResp>.Return(this);
+            MessageObjectPool<AvatarRelayMatchResp>.Return(this);
         }
-        public uint OpCode() { return InnerOpcode.AvatarMatchResp; } 
+        public uint OpCode() { return InnerOpcode.AvatarRelayMatchResp; } 
         [ProtoMember(1)]
         public uint ErrorCode { get; set; }
         /// <summary>
@@ -211,23 +211,23 @@ namespace Fantasy
         public long room_id { get; set; }
     }
     /// <summary>
-    /// Gate -> Avatar 主动退出房间请求
+    /// Gate -> Avatar 主动退出房间转发请求（Avatar 门禁后转发到 Rooms）
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class AvatarLeaveRoomReq : AMessage, IAddressRequest
+    public partial class AvatarRelayLeaveRoomReq : AMessage, IAddressRequest
     {
-        public static AvatarLeaveRoomReq Create(bool autoReturn = true)
+        public static AvatarRelayLeaveRoomReq Create(bool autoReturn = true)
         {
-            var avatarLeaveRoomReq = MessageObjectPool<AvatarLeaveRoomReq>.Rent();
-            avatarLeaveRoomReq.AutoReturn = autoReturn;
+            var avatarRelayLeaveRoomReq = MessageObjectPool<AvatarRelayLeaveRoomReq>.Rent();
+            avatarRelayLeaveRoomReq.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                avatarLeaveRoomReq.SetIsPool(false);
+                avatarRelayLeaveRoomReq.SetIsPool(false);
             }
             
-            return avatarLeaveRoomReq;
+            return avatarRelayLeaveRoomReq;
         }
         
         public void Return()
@@ -248,32 +248,32 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             user_id = default;
-            MessageObjectPool<AvatarLeaveRoomReq>.Return(this);
+            MessageObjectPool<AvatarRelayLeaveRoomReq>.Return(this);
         }
-        public uint OpCode() { return InnerOpcode.AvatarLeaveRoomReq; } 
+        public uint OpCode() { return InnerOpcode.AvatarRelayLeaveRoomReq; } 
         [ProtoIgnore]
-        public AvatarLeaveRoomResp ResponseType { get; set; }
+        public AvatarRelayLeaveRoomResp ResponseType { get; set; }
         [ProtoMember(1)]
         public long user_id { get; set; }
     }
     /// <summary>
-    /// Gate -> Avatar 主动退出房间响应
+    /// Gate -> Avatar 主动退出房间转发响应
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class AvatarLeaveRoomResp : AMessage, IAddressResponse
+    public partial class AvatarRelayLeaveRoomResp : AMessage, IAddressResponse
     {
-        public static AvatarLeaveRoomResp Create(bool autoReturn = true)
+        public static AvatarRelayLeaveRoomResp Create(bool autoReturn = true)
         {
-            var avatarLeaveRoomResp = MessageObjectPool<AvatarLeaveRoomResp>.Rent();
-            avatarLeaveRoomResp.AutoReturn = autoReturn;
+            var avatarRelayLeaveRoomResp = MessageObjectPool<AvatarRelayLeaveRoomResp>.Rent();
+            avatarRelayLeaveRoomResp.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                avatarLeaveRoomResp.SetIsPool(false);
+                avatarRelayLeaveRoomResp.SetIsPool(false);
             }
             
-            return avatarLeaveRoomResp;
+            return avatarRelayLeaveRoomResp;
         }
         
         public void Return()
@@ -295,9 +295,9 @@ namespace Fantasy
             if (!IsPool()) return; 
             ErrorCode = 0;
             room_id = default;
-            MessageObjectPool<AvatarLeaveRoomResp>.Return(this);
+            MessageObjectPool<AvatarRelayLeaveRoomResp>.Return(this);
         }
-        public uint OpCode() { return InnerOpcode.AvatarLeaveRoomResp; } 
+        public uint OpCode() { return InnerOpcode.AvatarRelayLeaveRoomResp; } 
         [ProtoMember(1)]
         public uint ErrorCode { get; set; }
         /// <summary>
@@ -307,7 +307,7 @@ namespace Fantasy
         public long room_id { get; set; }
     }
     /// <summary>
-    /// Gate -> Avatar 清理玩家通知（WsSession 清理后）
+    /// Gate -> Avatar 清理玩家通知（Avatar 本域下线编排，非跨 Scene 业务转发）
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -357,23 +357,23 @@ namespace Fantasy
         public string reason { get; set; }
     }
     /// <summary>
-    /// Gate -> Avatar 客户端帧转发
+    /// Gate -> Avatar 客户端帧转发通知（Avatar 门禁后转发到 Rooms）
     /// </summary>
     [Serializable]
     [ProtoContract]
-    public partial class AvatarClientFrameNotify : AMessage, IAddressMessage
+    public partial class AvatarRelayClientFrameNotify : AMessage, IAddressMessage
     {
-        public static AvatarClientFrameNotify Create(bool autoReturn = true)
+        public static AvatarRelayClientFrameNotify Create(bool autoReturn = true)
         {
-            var avatarClientFrameNotify = MessageObjectPool<AvatarClientFrameNotify>.Rent();
-            avatarClientFrameNotify.AutoReturn = autoReturn;
+            var avatarRelayClientFrameNotify = MessageObjectPool<AvatarRelayClientFrameNotify>.Rent();
+            avatarRelayClientFrameNotify.AutoReturn = autoReturn;
             
             if (!autoReturn)
             {
-                avatarClientFrameNotify.SetIsPool(false);
+                avatarRelayClientFrameNotify.SetIsPool(false);
             }
             
-            return avatarClientFrameNotify;
+            return avatarRelayClientFrameNotify;
         }
         
         public void Return()
@@ -396,9 +396,9 @@ namespace Fantasy
             user_id = default;
             frame_number = default;
             frames.Clear();
-            MessageObjectPool<AvatarClientFrameNotify>.Return(this);
+            MessageObjectPool<AvatarRelayClientFrameNotify>.Return(this);
         }
-        public uint OpCode() { return InnerOpcode.AvatarClientFrameNotify; } 
+        public uint OpCode() { return InnerOpcode.AvatarRelayClientFrameNotify; } 
         [ProtoMember(1)]
         public long user_id { get; set; }
         [ProtoMember(2)]

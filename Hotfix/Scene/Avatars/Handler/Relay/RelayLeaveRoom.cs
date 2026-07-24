@@ -10,17 +10,17 @@ using FScene = Fantasy.Scene;
 namespace Hotfix.Scene.Avatars.Handler;
 
 /// <summary>
-/// Avatars Scene 接收 Gate 的主动退出房间请求。
+/// 退出房间转发：门禁后转发到 Rooms。文件位于 Handler/Relay。
 /// </summary>
-public sealed class AvatarLeaveRoomHandler : AddressRPC<FScene, AvatarLeaveRoomReq, AvatarLeaveRoomResp>
+public sealed class RelayLeaveRoom : AddressRPC<FScene, AvatarRelayLeaveRoomReq, AvatarRelayLeaveRoomResp>
 {
-    protected override async FTask Run(FScene scene, AvatarLeaveRoomReq req, AvatarLeaveRoomResp resp, Action reply)
+    protected override async FTask Run(FScene scene, AvatarRelayLeaveRoomReq req, AvatarRelayLeaveRoomResp resp, Action reply)
     {
-        IAvatarsService avatarsService = scene.GetComponent<AvatarsService>();
-        var result = await avatarsService.LeaveRoom(req.user_id);
+        IRelay relay = scene.GetComponent<Relay>();
+        var result = await relay.LeaveRoom(req.user_id);
         if (!result.IsSuccess)
         {
-            Log.Warning($"玩家 {req.user_id} Avatar 退出房间失败：{result.Reason}");
+            Log.Warning($"玩家 {req.user_id} RelayLeaveRoom 失败：{result.Reason}");
             resp.room_id = 0;
             resp.SetError(StatusCode.LeaveRoomFailed);
             reply();
