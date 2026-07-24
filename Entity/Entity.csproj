@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <RootNamespace>Entity</RootNamespace>
@@ -8,10 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Fantasy-Net" Version="*" />
     <PackageReference Include="SqlSugarCore" Version="5.1.4.215" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.31" />
   </ItemGroup>
-
 </Project>

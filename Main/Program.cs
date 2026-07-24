@@ -8,7 +8,8 @@
 //   2. 强制加载引用程序集，触发 ModuleInitializer 执行
 //   3. 创建 NLog 日志实例
 //   4. 执行数据库迁移（创建/检查数据库和表结构）
-//   5. 启动 Fantasy.Net 框架（传入 NLog 日志实例）
+//   5. 检查 Redis 连接（失败则阻止启动）
+//   6. 启动 Fantasy.Net 框架（传入 NLog 日志实例）
 // ================================================================================
 
 using System.Reflection;
@@ -52,6 +53,9 @@ try
     // 执行数据库迁移（创建/检查数据库和表结构）
     // 在 Fantasy 框架启动前完成，失败则阻止服务器启动
     DatabaseMigrator.Initialize();
+
+    // 检查 Redis 连接，失败则阻止服务器启动
+    RedisManager.Initialize();
 
     // 启动 Fantasy.Net 框架（使用 NLog）
     await Fantasy.Platform.Net.Entry.Start(logger);
