@@ -227,7 +227,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
     }
 
     /// <summary>
-    /// 将匹配结果写入 Redis：key={topic}:{userId}，JSON value，键级 TTL。
+    /// 将匹配结果写入 Redis：key={topic}:{roomId}:{userId}，JSON value，键级 TTL。
     /// </summary>
     private static InnerResult WriteMatchResult(long userId, long roomId, Fantasy.MatchType matchType)
     {
@@ -246,7 +246,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
             return InnerResult.Fail($"{EnvMatchResultTtlSeconds} 非法", userId, ttlRaw ?? string.Empty);
         }
 
-        var key = $"{topic.Trim()}:{userId}";
+        var key = $"{topic.Trim()}:{roomId}:{userId}";
         var payload = new MatchResultMessage
         {
             user_id = userId,
