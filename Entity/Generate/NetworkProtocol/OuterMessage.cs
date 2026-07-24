@@ -512,6 +512,94 @@ namespace Fantasy
     }
     [Serializable]
     [ProtoContract]
+    public partial class EntryRoomReq : AMessage, IRequest
+    {
+        public static EntryRoomReq Create(bool autoReturn = true)
+        {
+            var entryRoomReq = MessageObjectPool<EntryRoomReq>.Rent();
+            entryRoomReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                entryRoomReq.SetIsPool(false);
+            }
+            
+            return entryRoomReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            MessageObjectPool<EntryRoomReq>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.EntryRoomReq; } 
+        [ProtoIgnore]
+        public EntryRoomResp ResponseType { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class EntryRoomResp : AMessage, IResponse
+    {
+        public static EntryRoomResp Create(bool autoReturn = true)
+        {
+            var entryRoomResp = MessageObjectPool<EntryRoomResp>.Rent();
+            entryRoomResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                entryRoomResp.SetIsPool(false);
+            }
+            
+            return entryRoomResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            ok = default;
+            foreach (var __t in error) __t.Dispose();
+            error.Clear();
+            MessageObjectPool<EntryRoomResp>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.EntryRoomResp; } 
+        [ProtoMember(3)]
+        public uint ErrorCode { get; set; }
+        [ProtoMember(1)]
+        public bool ok { get; set; }
+        [ProtoMember(2)]
+        public List<RespError> error { get; set; } = new List<RespError>();
+    }
+    [Serializable]
+    [ProtoContract]
     public partial class MetaData : AMessage, IMessage
     {
         public static MetaData Create(bool autoReturn = true)
