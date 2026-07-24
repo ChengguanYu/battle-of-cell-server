@@ -3,6 +3,7 @@ using Entity.Managers;
 using Fantasy;
 using Fantasy.Async;
 using Hotfix.Common.Abstract.Service;
+using Hotfix.Database;
 
 namespace Hotfix.Scene.Rooms.Service;
 
@@ -12,6 +13,20 @@ namespace Hotfix.Scene.Rooms.Service;
 /// </summary>
 public sealed partial class RoomsService : ServiceBase
 {
+    /// <summary>
+    /// 本 Scene 的独立 Redis 实例；Scene 创建时绑定，调用路径不再 GetComponent。
+    /// </summary>
+    private RedisComponent? _redis;
+
+    /// <summary>
+    /// 绑定当前 Rooms Scene 的 Redis 实例。
+    /// </summary>
+    public void BindRedis(RedisComponent redis)
+    {
+        ArgumentNullException.ThrowIfNull(redis);
+        _redis = redis;
+    }
+
     /// <summary>
     /// 进入指定房间。成功时 Args[0] 为 roomId。
     /// </summary>

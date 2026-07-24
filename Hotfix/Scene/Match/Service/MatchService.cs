@@ -13,6 +13,20 @@ namespace Hotfix.Scene.Match.Service;
 public sealed class MatchService() : ServiceBase(), IMatchService
 {
     /// <summary>
+    /// 本 Scene 的独立 Redis 实例；Scene 创建时绑定，调用路径不再 GetComponent。
+    /// </summary>
+    private RedisComponent? _redis;
+
+    /// <summary>
+    /// 绑定当前 Match Scene 的 Redis 实例。
+    /// </summary>
+    public void BindRedis(RedisComponent redis)
+    {
+        ArgumentNullException.ThrowIfNull(redis);
+        _redis = redis;
+    }
+
+    /// <summary>
     /// 匹配：拉取 Rooms 列表快照；无房 CreateAndEntry，有房随机 Join。
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
@@ -103,14 +117,13 @@ public sealed class MatchService() : ServiceBase(), IMatchService
                 return InnerResult.Fail("未得到有效 room_id", userId, roomId);
             }
 
-            var redis = Scene.GetComponent<RedisComponent>();
-            if (redis == null)
+            if (_redis == null)
             {
-                Log.Warning($"用户 {userId} ClientMatch 失败：当前 Scene 未挂载 RedisComponent");
+                Log.Warning($"用户 {userId} ClientMatch 失败：MatchService 未绑定 Redis");
                 return InnerResult.Fail("Redis 实例缺失", userId, roomId);
             }
 
-            if (!MatchResultDao.TrySave(redis, userId, roomId, (int)matchType, out var error))
+            if (!MatchResultDao.TrySave(_redis, userId, roomId, (int)matchType, out var error))
             {
                 Log.Warning($"用户 {userId} ClientMatch 写匹配结果失败: roomId={roomId}, error={error}");
                 return InnerResult.Fail(error, userId, roomId);
