@@ -4,8 +4,6 @@ using Fantasy.Async;
 using Hotfix.Common.Abstract.Service;
 using Hotfix.Database;
 using Hotfix.Utils;
-using StackExchange.Redis;
-using System.Text.Json;
 
 namespace Hotfix.Scene.Match.Service;
 
@@ -14,9 +12,6 @@ namespace Hotfix.Scene.Match.Service;
 /// </summary>
 public sealed class MatchService() : ServiceBase(), IMatchService
 {
-    private const string EnvMatchResultTopic = "MATCH_RESULT_TOPIC";
-    private const string EnvMatchResultTtlSeconds = "MATCH_RESULT_TTL_SECONDS";
-
     /// <summary>
     /// 匹配：拉取 Rooms 列表快照；无房 CreateAndEntry，有房随机 Join。
     /// 成功时 Args[0] 为 roomId。
@@ -108,10 +103,17 @@ public sealed class MatchService() : ServiceBase(), IMatchService
                 return InnerResult.Fail("未得到有效 room_id", userId, roomId);
             }
 
-            var writeResult = WriteMatchResult(userId, roomId, matchType);
-            if (!writeResult.IsSuccess)
+            var redis = Scene.GetComponent<RedisComponent>();
+            if (redis == null)
             {
-                return writeResult;
+                Log.Warning($"用户 {userId} ClientMatch 失败：当前 Scene 未挂载 RedisComponent");
+                return InnerResult.Fail("Redis 实例缺失", userId, roomId);
+            }
+
+            if (!MatchResultDao.TrySave(redis, userId, roomId, (int)matchType, out var error))
+            {
+                Log.Warning($"用户 {userId} ClientMatch 写匹配结果失败: roomId={roomId}, error={error}");
+                return InnerResult.Fail(error, userId, roomId);
             }
 
             Log.Info(
@@ -226,58 +228,6 @@ public sealed class MatchService() : ServiceBase(), IMatchService
         }
     }
 
-    /// <summary>
-    /// 将匹配结果写入 Redis：key={topic}:{roomId}:{userId}，JSON value，键级 TTL。
-    /// </summary>
-    private static InnerResult WriteMatchResult(long userId, long roomId, Fantasy.MatchType matchType)
-    {
-        var topic = Environment.GetEnvironmentVariable(EnvMatchResultTopic);
-        if (string.IsNullOrWhiteSpace(topic))
-        {
-            Log.Warning($"用户 {userId} ClientMatch Redis 配置缺失: {EnvMatchResultTopic}");
-            return InnerResult.Fail($"{EnvMatchResultTopic} 未配置", userId);
-        }
-
-        var ttlRaw = Environment.GetEnvironmentVariable(EnvMatchResultTtlSeconds);
-        if (!int.TryParse(ttlRaw, out var ttlSeconds) || ttlSeconds <= 0)
-        {
-            Log.Warning(
-                $"用户 {userId} ClientMatch Redis TTL 非法: {EnvMatchResultTtlSeconds}={ttlRaw}");
-            return InnerResult.Fail($"{EnvMatchResultTtlSeconds} 非法", userId, ttlRaw ?? string.Empty);
-        }
-
-        var key = $"{topic.Trim()}:{roomId}:{userId}";
-        var payload = new MatchResultMessage
-        {
-            user_id = userId,
-            room_id = roomId,
-            match_type = (int)matchType,
-            matched_at_unix_ms = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            ttl_seconds = ttlSeconds,
-        };
-
-        try
-        {
-            var json = JsonSerializer.Serialize(payload);
-            var db = RedisManager.GetDatabase();
-            var ok = db.StringSet(key, json, TimeSpan.FromSeconds(ttlSeconds));
-            if (!ok)
-            {
-                Log.Warning($"用户 {userId} ClientMatch Redis StringSet 返回 false: key={key}");
-                return InnerResult.Fail("Redis 写入失败", userId, roomId);
-            }
-
-            Log.Debug(
-                $"用户 {userId} ClientMatch Redis 写入成功: key={key}, ttl={ttlSeconds}s, roomId={roomId}");
-            return InnerResult.Ok();
-        }
-        catch (Exception ex)
-        {
-            Log.Error($"用户 {userId} ClientMatch Redis 写入异常: key={key}, ex={ex}");
-            return InnerResult.Fail("Redis 写入异常", userId, roomId);
-        }
-    }
-
     private static long TryGetRoomId(InnerResult result)
     {
         if (result.Args is { Count: > 0 } && result.Args[0] is uint roomId)
@@ -286,14 +236,5 @@ public sealed class MatchService() : ServiceBase(), IMatchService
         }
 
         return 0;
-    }
-
-    private sealed class MatchResultMessage
-    {
-        public long user_id { get; set; }
-        public long room_id { get; set; }
-        public int match_type { get; set; }
-        public long matched_at_unix_ms { get; set; }
-        public int ttl_seconds { get; set; }
     }
 }
