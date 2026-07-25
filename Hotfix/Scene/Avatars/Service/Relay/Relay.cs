@@ -60,6 +60,50 @@ public sealed class Relay() : ServiceBase(), IRelay
         }
     }
 
+    public async FTask<InnerResult> EntryRoom(long userId)
+    {
+        if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)
+        {
+            return InnerResult.Fail("Avatar 未加载", userId);
+        }
+
+        if (!player.IsInLobby)
+        {
+            Log.Warning($"用户 {userId} 当前不可进房，state={player.State}");
+            return InnerResult.Fail("当前状态不可进房", player.State);
+        }
+
+        RoomsEntryRoomResp? resp = null;
+        try
+        {
+            var req = RoomsEntryRoomReq.Create();
+            req.user_id = userId;
+            var address = Scene.GetSceneAddress(SceneType.Rooms);
+            resp = await Call<RoomsEntryRoomReq, RoomsEntryRoomResp>(address, req);
+            if (!resp.IsOk())
+            {
+                Log.Warning($"用户 {userId} RoomsEntryRoom 失败，status={resp.ToMessage()}");
+                return InnerResult.Fail("RoomsEntryRoom 失败", resp.ToMessage());
+            }
+
+            if (!player.TransitLobbyToInRoom())
+            {
+                return InnerResult.Fail("Avatar 进入房间失败", player.State);
+            }
+
+            return InnerResult.Ok(string.Empty, resp.room_id > 0 && resp.room_id <= uint.MaxValue ? (uint)resp.room_id : 0u);
+        }
+        catch (InvalidOperationException)
+        {
+            Log.Warning($"未找到 Rooms Scene，用户 {userId} 进房失败");
+            return InnerResult.Fail("未找到 Rooms Scene", userId);
+        }
+        finally
+        {
+            resp?.Dispose();
+        }
+    }
+
     public async FTask<InnerResult> LeaveRoom(long userId)
     {
         if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)

@@ -17,6 +17,11 @@ public interface IRelay
     FTask<InnerResult> Match(long userId);
 
     /// <summary>
+    /// 客户端进房转发到 Rooms。成功时 Args[0] 为 roomId。
+    /// </summary>
+    FTask<InnerResult> EntryRoom(long userId);
+
+    /// <summary>
     /// 退出房间转发到 Rooms。成功时 Args[0] 为 roomId。
     /// </summary>
     FTask<InnerResult> LeaveRoom(long userId);

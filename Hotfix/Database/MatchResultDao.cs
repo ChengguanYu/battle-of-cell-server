@@ -192,6 +192,102 @@ public static class MatchResultDao
     }
 
     /// <summary>
+    /// 按用户查询匹配结果：pattern={topic}:*:{userId}。
+    /// 多条时取 matched_at_unix_ms 最新一条；成功时 roomId 为解析出的房间 ID。
+    /// </summary>
+    public static bool TryFindByUserId(RedisComponent redis, long userId, out long roomId, out string error)
+    {
+        roomId = 0;
+        error = string.Empty;
+
+        if (redis == null)
+        {
+            error = "Redis 实例缺失";
+            return false;
+        }
+
+        if (userId <= 0)
+        {
+            error = "参数非法";
+            return false;
+        }
+
+        if (!TryResolveTopic(out var topic, out error))
+        {
+            return false;
+        }
+
+        var pattern = BuildUserPattern(topic, userId);
+        try
+        {
+            var server = redis.GetServer();
+            var db = redis.GetDatabase();
+            var found = false;
+            var bestMatchedAt = long.MinValue;
+            var bestRoomId = 0L;
+            var scanned = 0;
+
+            foreach (var key in server.Keys(database: db.Database, pattern: pattern, pageSize: 256))
+            {
+                scanned++;
+                var value = db.StringGet(key);
+                if (value.IsNullOrEmpty)
+                {
+                    continue;
+                }
+
+                MatchResultMessage? payload;
+                try
+                {
+                    payload = JsonSerializer.Deserialize<MatchResultMessage>((string)value!);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning($"MatchResultDao.TryFindByUserId 解析失败: key={key}, userId={userId}, ex={ex.Message}");
+                    continue;
+                }
+
+                if (payload == null || payload.room_id <= 0)
+                {
+                    continue;
+                }
+
+                // 兼容脏数据：JSON 里 user_id 不一致时仍以 key 后缀为准，但日志提示。
+                if (payload.user_id > 0 && payload.user_id != userId)
+                {
+                    Log.Warning(
+                        $"MatchResultDao.TryFindByUserId user_id 不一致: key={key}, expect={userId}, actual={payload.user_id}, roomId={payload.room_id}");
+                }
+
+                if (!found || payload.matched_at_unix_ms >= bestMatchedAt)
+                {
+                    found = true;
+                    bestMatchedAt = payload.matched_at_unix_ms;
+                    bestRoomId = payload.room_id;
+                }
+            }
+
+            if (!found)
+            {
+                error = "未找到匹配结果";
+                Log.Debug($"MatchResultDao.TryFindByUserId 无结果: userId={userId}, pattern={pattern}, scanned={scanned}");
+                return false;
+            }
+
+            roomId = bestRoomId;
+            Log.Debug(
+                $"MatchResultDao.TryFindByUserId 成功: userId={userId}, roomId={roomId}, pattern={pattern}, scanned={scanned}, matchedAt={bestMatchedAt}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = "Redis 查询匹配结果异常";
+            Log.Error($"MatchResultDao.TryFindByUserId 异常: userId={userId}, pattern={pattern}, ex={ex}");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// 删除指定用户在房间的匹配占位：key={topic}:{roomId}:{userId}。
     /// key 不存在视为成功（幂等）。
     /// </summary>
@@ -344,6 +440,11 @@ public static class MatchResultDao
         return $"{topic}:{roomId}:*";
     }
 
+    private static string BuildUserPattern(string topic, long userId)
+    {
+        return $"{topic}:*:{userId}";
+    }
+
     private sealed class MatchResultMessage
     {
         public long user_id { get; set; }
@@ -353,3 +454,4 @@ public static class MatchResultDao
         public int ttl_seconds { get; set; }
     }
 }
+
