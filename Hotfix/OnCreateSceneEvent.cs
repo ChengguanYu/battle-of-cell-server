@@ -48,9 +48,11 @@ public sealed class OnCreateSceneEvent : AsyncEventSystem<OnCreateScene>
                 var redis = AttachRedis(scene);
                 var roomsService = scene.AddComponent<RoomsService>();
                 roomsService.BindRedis(redis);
-                // 绑定 Rooms Scene 作为各房间私有 tick 的定时器宿主
+                // 绑定 Rooms Scene 作为各房间私有 tick / hold 的定时器宿主
                 RoomManager.Instance.SetTimerScene(scene);
-                Log.Info($"[Rooms] scene started. sceneId={scene.SceneConfigId} runtimeId={scene.RuntimeId}, RoomsService attached, RoomTimer bound");
+                RoomManager.Instance.SetEmptyRoomHandler(roomsService.OnRoomEmpty);
+                RoomManager.Instance.SetHoldTimeoutHandler(roomsService.OnHoldTimeout);
+                Log.Info($"[Rooms] scene started. sceneId={scene.SceneConfigId} runtimeId={scene.RuntimeId}, RoomsService attached, RoomTimer/EmptyRoom/HoldTimeout bound");
                 break;
             }
         }
