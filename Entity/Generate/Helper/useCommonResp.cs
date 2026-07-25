@@ -10,9 +10,10 @@ namespace Fantasy
     {
     }
 
-    public partial class PlayerMatchResp : ICommonResponse
-    {
-    }
+    // [旧逻辑已废弃] 匹配直接进入
+    // public partial class PlayerMatchResp : ICommonResponse
+    // {
+    // }
 
     public partial class PlayerLeaveRoomResp : ICommonResponse
     {

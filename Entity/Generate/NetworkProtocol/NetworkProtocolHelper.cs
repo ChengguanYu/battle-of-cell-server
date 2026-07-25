@@ -98,17 +98,6 @@ namespace Fantasy
 			return (PlayerLeaveRoomResp)await session.Call(PlayerLeaveRoomReq_request);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<PlayerMatchResp> PlayerMatchReq(this Session session, PlayerMatchReq PlayerMatchReq_request)
-		{
-			return (PlayerMatchResp)await session.Call(PlayerMatchReq_request);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<PlayerMatchResp> PlayerMatchReq(this Session session)
-		{
-			using var PlayerMatchReq_request = Fantasy.PlayerMatchReq.Create();
-			return (PlayerMatchResp)await session.Call(PlayerMatchReq_request);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static async FTask<MatchResp> MatchReq(this Session session, MatchReq MatchReq_request)
 		{
 			return (MatchResp)await session.Call(MatchReq_request);
