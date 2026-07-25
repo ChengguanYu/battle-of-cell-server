@@ -8,7 +8,6 @@ using Fantasy.Network;
 using Hotfix.Common.Abstract.Service;
 using Hotfix.Scene.Http.Repositories;
 using Hotfix.Utils;
-using FScene = Fantasy.Scene;
 
 namespace Hotfix.Scene.Gate.Service;
 
@@ -58,37 +57,6 @@ public sealed class SessionService() : ServiceBase(), ISessionService
     }
 
     /// <summary>
-    /// 发起匹配请求：通过内部 RPC 转发到 Avatars Scene，由 Avatar 再转 Match。
-    /// 成功时 Args[0] 为 roomId。
-    /// </summary>
-    public async FTask<InnerResult> PlayerMatch(long userId)
-    {
-        AvatarRelayMatchResp? resp = null;
-        try
-        {
-            var req = AvatarRelayMatchReq.Create();
-            req.user_id = userId;
-            var address = Scene.GetSceneAddress(SceneType.Avatars);
-            resp = await Call<AvatarRelayMatchReq, AvatarRelayMatchResp>(address, req);
-            if (!resp.IsOk())
-            {
-                Log.Warning($"用户 {userId} AvatarRelayMatch 失败，status={resp.ToMessage()}");
-                return InnerResult.Fail("AvatarRelayMatch 失败", resp.ToMessage());
-            }
-
-            return InnerResult.Ok(string.Empty, resp.room_id > 0 && resp.room_id <= uint.MaxValue ? (uint)resp.room_id : 0u);
-        }
-        catch (InvalidOperationException)
-        {
-            Log.Warning($"未找到 Avatars Scene，用户 {userId} 匹配失败");
-            return InnerResult.Fail("未找到 Avatars Scene", userId);
-        }
-        finally
-        {
-            resp?.Dispose();
-        }
-    }
-    /// <summary>
     /// 主动退出房间：通过内部 RPC 转发到 Avatars Scene。
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
@@ -119,6 +87,7 @@ public sealed class SessionService() : ServiceBase(), ISessionService
             resp?.Dispose();
         }
     }
+
     /// <summary>
     /// 转发客户端帧到 Avatars Scene（单向）。
     /// </summary>
@@ -153,6 +122,4 @@ public sealed class SessionService() : ServiceBase(), ISessionService
             Log.Error($"[Gate] 转发 ClientFrame 失败: userId={userId}, frame={frameNumber}, ex={ex}");
         }
     }
-
 }
-

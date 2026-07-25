@@ -12,11 +12,6 @@ namespace Hotfix.Scene.Avatars.Service;
 public interface IRelay
 {
     /// <summary>
-    /// 匹配转发到 Match。成功时 Args[0] 为 roomId。
-    /// </summary>
-    FTask<InnerResult> Match(long userId);
-
-    /// <summary>
     /// 客户端进房转发到 Rooms。成功时 Args[0] 为 roomId。
     /// </summary>
     FTask<InnerResult> EntryRoom(long userId);

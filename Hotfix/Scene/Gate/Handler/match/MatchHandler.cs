@@ -9,7 +9,6 @@ namespace Hotfix.Scene.Gate.Handler.Match;
 
 /// <summary>
 /// 客户端 Outer MatchReq：取 Session 绑定 userId，透传 match_type 到 Avatars。
-/// 不调用 SessionService.PlayerMatch。
 /// </summary>
 public sealed class MatchHandler : MessageRPC<MatchReq, MatchResp>
 {
