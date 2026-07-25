@@ -400,6 +400,102 @@ namespace Fantasy
         public long room_id { get; set; }
     }
     /// <summary>
+    /// Gate -> Avatar 客户端进房转发请求（对应 Outer EntryRoomReq）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarRelayEntryRoomReq : AMessage, IAddressRequest
+    {
+        public static AvatarRelayEntryRoomReq Create(bool autoReturn = true)
+        {
+            var avatarRelayEntryRoomReq = MessageObjectPool<AvatarRelayEntryRoomReq>.Rent();
+            avatarRelayEntryRoomReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarRelayEntryRoomReq.SetIsPool(false);
+            }
+            
+            return avatarRelayEntryRoomReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            user_id = default;
+            MessageObjectPool<AvatarRelayEntryRoomReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarRelayEntryRoomReq; } 
+        [ProtoIgnore]
+        public AvatarRelayEntryRoomResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long user_id { get; set; }
+    }
+    /// <summary>
+    /// Gate -> Avatar 客户端进房转发响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class AvatarRelayEntryRoomResp : AMessage, IAddressResponse
+    {
+        public static AvatarRelayEntryRoomResp Create(bool autoReturn = true)
+        {
+            var avatarRelayEntryRoomResp = MessageObjectPool<AvatarRelayEntryRoomResp>.Rent();
+            avatarRelayEntryRoomResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                avatarRelayEntryRoomResp.SetIsPool(false);
+            }
+            
+            return avatarRelayEntryRoomResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            room_id = default;
+            MessageObjectPool<AvatarRelayEntryRoomResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarRelayEntryRoomResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+        /// <summary>
+        /// 进入成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
+    }
+    /// <summary>
     /// Gate -> Avatar 清理玩家通知（Avatar 本域下线编排，非跨 Scene 业务转发）
     /// </summary>
     [Serializable]
@@ -1337,6 +1433,102 @@ namespace Fantasy
         public uint ErrorCode { get; set; }
         /// <summary>
         /// 成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
+    }
+    /// <summary>
+    /// Avatar -> Rooms 客户端进房请求（读 Redis 匹配结果后 Entry）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsEntryRoomReq : AMessage, IAddressRequest
+    {
+        public static RoomsEntryRoomReq Create(bool autoReturn = true)
+        {
+            var roomsEntryRoomReq = MessageObjectPool<RoomsEntryRoomReq>.Rent();
+            roomsEntryRoomReq.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsEntryRoomReq.SetIsPool(false);
+            }
+            
+            return roomsEntryRoomReq;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            user_id = default;
+            MessageObjectPool<RoomsEntryRoomReq>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsEntryRoomReq; } 
+        [ProtoIgnore]
+        public RoomsEntryRoomResp ResponseType { get; set; }
+        [ProtoMember(1)]
+        public long user_id { get; set; }
+    }
+    /// <summary>
+    /// Avatar -> Rooms 客户端进房响应
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class RoomsEntryRoomResp : AMessage, IAddressResponse
+    {
+        public static RoomsEntryRoomResp Create(bool autoReturn = true)
+        {
+            var roomsEntryRoomResp = MessageObjectPool<RoomsEntryRoomResp>.Rent();
+            roomsEntryRoomResp.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                roomsEntryRoomResp.SetIsPool(false);
+            }
+            
+            return roomsEntryRoomResp;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            room_id = default;
+            MessageObjectPool<RoomsEntryRoomResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsEntryRoomResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
+        /// <summary>
+        /// 进入成功后的房间 ID；失败时为 0
         /// </summary>
         [ProtoMember(2)]
         public long room_id { get; set; }

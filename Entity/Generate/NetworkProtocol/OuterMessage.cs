@@ -988,20 +988,33 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             ErrorCode = 0;
-            ok = default;
+            if (meta != null)
+            {
+                meta.Dispose();
+                meta = null;
+            }
             foreach (var __t in error) __t.Dispose();
             error.Clear();
-            roomId = default;
+            ok = default;
+            room_id = default;
             MessageObjectPool<EntryRoomResp>.Return(this);
         }
         public uint OpCode() { return OuterOpcode.EntryRoomResp; } 
         [ProtoMember(4)]
         public uint ErrorCode { get; set; }
         [ProtoMember(1)]
-        public bool ok { get; set; }
+        public MetaData meta { get; set; }
         [ProtoMember(2)]
         public List<RespError> error { get; set; } = new List<RespError>();
+        /// <summary>
+        /// 业务是否成功（与 meta 同级；true 时 LightProto 会写出该字段）
+        /// </summary>
         [ProtoMember(3)]
-        public long roomId { get; set; }
+        public bool ok { get; set; }
+        /// <summary>
+        /// 进入成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(5)]
+        public long room_id { get; set; }
     }
 }
