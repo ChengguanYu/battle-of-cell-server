@@ -857,7 +857,7 @@ namespace Fantasy
         public int state { get; set; }
     }
     /// <summary>
-    /// Match -> Rooms 拉取可观察房间列表快照（只读线索，Join 结果才是权威）
+    /// Match -> Rooms 拉取可观察房间列表快照（只读线索，Entry 结果才是权威）
     /// </summary>
     [Serializable]
     [ProtoContract]
@@ -954,7 +954,7 @@ namespace Fantasy
         public bool is_empty { get; set; }
     }
     /// <summary>
-    /// Match -> Rooms 创建房间并加入首位成员
+    /// Match -> Rooms 创建房间（不入房）
     /// </summary>
     [Serializable]
     [ProtoContract]
