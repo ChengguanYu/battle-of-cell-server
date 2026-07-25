@@ -10,7 +10,7 @@ public sealed partial class RoomsService
     /// 逻辑人数 = 房间实际人数 + 房间匹配占位人数。
     /// </summary>
     /// <remarks>
-    /// 匹配人数来自 Redis 占位 key 计数；同一 user 既在房又有占位时暂会双计。
+    /// 匹配人数来自 Redis 占位 key 计数；Entry 成功后会清理本人占位，避免与成员双计。
     /// </remarks>
     private bool TryGetLogicalMemberCount(Room room, out int logicalCount, out string error)
     {

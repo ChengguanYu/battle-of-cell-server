@@ -8,6 +8,7 @@ namespace Hotfix.Database;
 /// 匹配结果 Redis 访问层。
 /// 业务层只通过本 DAO 访问匹配结果；底层连接必须来自当前 Scene 的 <see cref="RedisComponent"/>。
 /// </summary>
+// TODO:批量删Try
 public static class MatchResultDao
 {
     private const string EnvMatchResultTopic = "MATCH_RESULT_TOPIC";
@@ -77,9 +78,6 @@ public static class MatchResultDao
     /// 统计房间匹配占位条数：pattern={topic}:{roomId}:*。
     /// 每条 match 请求占 1 位。
     /// </summary>
-    /// <remarks>
-    /// FIXME: 同一 user 既在房间成员中又有占位 key 时会双计（业务错误，暂不去重）。
-    /// </remarks>
     public static bool TryCountPlaceholders(RedisComponent redis, long roomId, out int count, out string error)
     {
         count = 0;
@@ -120,6 +118,48 @@ public static class MatchResultDao
         {
             error = "Redis 占位计数异常";
             Log.Error($"MatchResultDao.TryCountPlaceholders 异常: roomId={roomId}, pattern={pattern}, ex={ex}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 删除指定用户在房间的匹配占位：key={topic}:{roomId}:{userId}。
+    /// key 不存在视为成功（幂等）。
+    /// </summary>
+    public static bool Delete(RedisComponent redis, long roomId, long userId, out string error)
+    {
+        error = string.Empty;
+
+        if (redis == null)
+        {
+            error = "Redis 实例缺失";
+            return false;
+        }
+
+        if (userId <= 0 || roomId <= 0)
+        {
+            error = "参数非法";
+            return false;
+        }
+
+        if (!TryResolveTopic(out var topic, out error))
+        {
+            return false;
+        }
+
+        var key = BuildKey(topic, roomId, userId);
+        try
+        {
+            var db = redis.GetDatabase();
+            var deleted = db.KeyDelete(key);
+            Log.Debug(
+                $"MatchResultDao.Delete: key={key}, userId={userId}, roomId={roomId}, deleted={deleted}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = "Redis 删除占位异常";
+            Log.Error($"MatchResultDao.Delete 异常: key={key}, userId={userId}, roomId={roomId}, ex={ex}");
             return false;
         }
     }

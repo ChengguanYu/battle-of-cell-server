@@ -6,7 +6,7 @@ using Hotfix.Common.Abstract.Service;
 using Hotfix.Database;
 
 namespace Hotfix.Scene.Rooms.Service;
-
+//TODO: 不要到处写 redis == null, 改为抛出错误
 /// <summary>
 /// Rooms Scene 级服务（挂在 Scene 上，全 Handler 共享同一实例）。
 /// 方法按 partial 文件拆分：Entry/Leave/Join/Create/GetRoomListSnap。
@@ -51,6 +51,16 @@ public sealed partial class RoomsService : ServiceBase
         // 已在目标房：幂等成功，不再走加入路径。
         if (existingRoom.ContainsMember(userId))
         {
+            // 清掉redis的匹配状态，防止逻辑出现空占用
+            if (_redis == null)
+            {
+                Log.Warning($"RoomsService.Entry 清理占位跳过：Redis 实例缺失, userId={userId}, roomId={existingRoom.RoomId}");
+            }
+            else if (!MatchResultDao.Delete(_redis, existingRoom.RoomId, userId, out var clearError))
+            {
+                Log.Warning(
+                    $"RoomsService.Entry 清理占位失败: userId={userId}, roomId={existingRoom.RoomId}, error={clearError}");
+            }
             Log.Info(
                 $"玩家 {userId} Entry 房间成功(已在房): roomId={existingRoom.RoomId}, memberCount={existingRoom.MemberCount}/{existingRoom.Capacity}, state={existingRoom.State}");
             return InnerResult.Ok(string.Empty, existingRoom.RoomId);
@@ -72,6 +82,16 @@ public sealed partial class RoomsService : ServiceBase
             return InnerResult.Fail("Entry 失败：无法加入", userId, roomId);
         }
 
+        // 先入房再删占位：避免低估导致超加；删失败只记日志，不回滚 Entry。
+        if (_redis == null)
+        {
+            Log.Warning($"RoomsService.Entry 清理占位跳过：Redis 实例缺失, userId={userId}, roomId={joined.RoomId}");
+        }
+        else if (!MatchResultDao.Delete(_redis, joined.RoomId, userId, out var clearError))
+        {
+            Log.Warning(
+                $"RoomsService.Entry 清理占位失败: userId={userId}, roomId={joined.RoomId}, error={clearError}");
+        }
         Log.Info(
             $"玩家 {userId} Entry 房间成功: roomId={joined.RoomId}, memberCount={joined.MemberCount}/{joined.Capacity}, logicalCountBefore={logicalCount}, state={joined.State}");
         return InnerResult.Ok(string.Empty, joined.RoomId);
