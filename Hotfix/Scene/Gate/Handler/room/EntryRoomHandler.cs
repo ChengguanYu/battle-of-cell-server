@@ -51,6 +51,9 @@ public sealed class EntryRoomHandler : MessageRPC<EntryRoomReq, EntryRoomResp>
     private static void ReplyOk(EntryRoomResp response, Action reply, long roomId)
     {
         response.room_id = roomId;
+         response.world = WorldInit.Create();
+         response.world.x_size = 5000;
+         response.world.y_size = 5000;
         response.SetOk();
         reply();
     }

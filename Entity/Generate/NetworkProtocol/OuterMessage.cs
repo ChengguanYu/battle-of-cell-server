@@ -706,101 +706,6 @@ namespace Fantasy
         public List<string> args { get; set; } = new List<string>();
     }
     /// <summary>
-    /// 地图配置（WorldInit 的子消息）
-    /// </summary>
-    [Serializable]
-    [ProtoContract]
-    public partial class MapConfig : AMessage, IMessage
-    {
-        public static MapConfig Create(bool autoReturn = true)
-        {
-            var mapConfig = MessageObjectPool<MapConfig>.Rent();
-            mapConfig.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                mapConfig.SetIsPool(false);
-            }
-            
-            return mapConfig;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            x_size = default;
-            y_size = default;
-            MessageObjectPool<MapConfig>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.MapConfig; }
-        [ProtoMember(1)]
-        public ulong x_size { get; set; }
-        [ProtoMember(2)]
-        public ulong y_size { get; set; }
-    }
-    /// <summary>
-    /// 世界初始化参数
-    /// </summary>
-    [Serializable]
-    [ProtoContract]
-    public partial class WorldInit : AMessage, IMessage
-    {
-        public static WorldInit Create(bool autoReturn = true)
-        {
-            var worldInit = MessageObjectPool<WorldInit>.Rent();
-            worldInit.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                worldInit.SetIsPool(false);
-            }
-            
-            return worldInit;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            if (map != null)
-            {
-                map.Dispose();
-                map = null;
-            }
-            MessageObjectPool<WorldInit>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.WorldInit; }
-        [ProtoMember(1)]
-        public MapConfig map { get; set; }
-    }
-    /// <summary>
     /// 客户端匹配请求
     /// </summary>
     [Serializable]
@@ -984,11 +889,16 @@ namespace Fantasy
             foreach (var __t in error) __t.Dispose();
             error.Clear();
             ok = default;
+            if (world != null)
+            {
+                world.Dispose();
+                world = null;
+            }
             room_id = default;
             MessageObjectPool<EntryRoomResp>.Return(this);
         }
         public uint OpCode() { return OuterOpcode.EntryRoomResp; } 
-        [ProtoMember(4)]
+        [ProtoMember(6)]
         public uint ErrorCode { get; set; }
         [ProtoMember(1)]
         public MetaData meta { get; set; }
@@ -1000,14 +910,58 @@ namespace Fantasy
         [ProtoMember(3)]
         public bool ok { get; set; }
         /// <summary>
+        /// 房间的世界参数；注意 field 6 避免与 IResponse.ErrorCode 的 ProtoMember(4) 冲突
+        /// </summary>
+        [ProtoMember(4)]
+        public WorldInit world { get; set; }
+        /// <summary>
         /// 进入成功后的房间 ID；失败时为 0
         /// </summary>
         [ProtoMember(5)]
         public long room_id { get; set; }
-        /// <summary>
-        /// 房间的世界参数
-        /// </summary>
-        [ProtoMember(6)]
-        public WorldInit world { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class WorldInit : AMessage, IMessage
+    {
+        public static WorldInit Create(bool autoReturn = true)
+        {
+            var worldInit = MessageObjectPool<WorldInit>.Rent();
+            worldInit.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                worldInit.SetIsPool(false);
+            }
+            
+            return worldInit;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            x_size = default;
+            y_size = default;
+            MessageObjectPool<WorldInit>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.WorldInit; } 
+        [ProtoMember(1)]
+        public ulong x_size { get; set; }
+        [ProtoMember(2)]
+        public ulong y_size { get; set; }
     }
 }

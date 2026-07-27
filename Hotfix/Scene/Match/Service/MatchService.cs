@@ -31,7 +31,7 @@ public sealed class MatchService() : ServiceBase(), IMatchService
     /// 客户端匹配：选房/无房创建但不入房，成功后写 Redis。
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
-    public async FTask<InnerResult> ClientMatch(long userId, Fantasy.MatchType matchType)
+    public async FTask<InnerResult> ClientMatch(long userId, MatchType matchType)
     {
         RoomsGetRoomListSnapResp? snapResp = null;
         try

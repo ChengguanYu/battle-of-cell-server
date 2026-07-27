@@ -14,5 +14,5 @@ public interface IMatchService
     /// 房间可加入性由 Rooms.GetRoomListSnap 负责。
     /// 成功时 Args[0] 为 roomId。
     /// </summary>
-    FTask<InnerResult> ClientMatch(long userId, Fantasy.MatchType matchType);
+    FTask<InnerResult> ClientMatch(long userId, MatchType matchType);
 }

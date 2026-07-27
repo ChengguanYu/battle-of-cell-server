@@ -120,6 +120,19 @@ namespace Fantasy
 			using var EntryRoomReq_request = Fantasy.EntryRoomReq.Create();
 			return (EntryRoomResp)await session.Call(EntryRoomReq_request);
 		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WorldInit(this Session session, WorldInit WorldInit_message)
+		{
+			session.Send(WorldInit_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WorldInit(this Session session, ulong x_size, ulong y_size)
+		{
+			using var WorldInit_message = Fantasy.WorldInit.Create();
+			WorldInit_message.x_size = x_size;
+			WorldInit_message.y_size = y_size;
+			session.Send(WorldInit_message);
+		}
 
    }
 }
