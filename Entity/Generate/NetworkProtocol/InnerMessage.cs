@@ -387,6 +387,11 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             ErrorCode = 0;
+            if (world != null)
+            {
+                world.Dispose();
+                world = null;
+            }
             room_id = default;
             MessageObjectPool<AvatarRelayEntryRoomResp>.Return(this);
         }
@@ -398,6 +403,11 @@ namespace Fantasy
         /// </summary>
         [ProtoMember(2)]
         public long room_id { get; set; }
+        /// <summary>
+        /// 房间的世界参数
+        /// </summary>
+        [ProtoMember(3)]
+        public WorldInit world { get; set; }
     }
     /// <summary>
     /// Gate -> Avatar 清理玩家通知（Avatar 本域下线编排，非跨 Scene 业务转发）
@@ -1133,6 +1143,11 @@ namespace Fantasy
         {
             if (!IsPool()) return; 
             ErrorCode = 0;
+            if (world != null)
+            {
+                world.Dispose();
+                world = null;
+            }
             room_id = default;
             MessageObjectPool<RoomsEntryRoomResp>.Return(this);
         }
@@ -1144,5 +1159,10 @@ namespace Fantasy
         /// </summary>
         [ProtoMember(2)]
         public long room_id { get; set; }
+        /// <summary>
+        /// 房间的世界参数
+        /// </summary>
+        [ProtoMember(3)]
+        public WorldInit world { get; set; }
     }
 }
