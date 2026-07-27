@@ -510,94 +510,6 @@ namespace Fantasy
         [ProtoMember(3)]
         public Player data { get; set; }
     }
-    [Serializable]
-    [ProtoContract]
-    public partial class MetaData : AMessage, IMessage
-    {
-        public static MetaData Create(bool autoReturn = true)
-        {
-            var metaData = MessageObjectPool<MetaData>.Rent();
-            metaData.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                metaData.SetIsPool(false);
-            }
-            
-            return metaData;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            status_code = default;
-            timestamp = default;
-            MessageObjectPool<MetaData>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.MetaData; } 
-        [ProtoMember(1)]
-        public uint status_code { get; set; }
-        [ProtoMember(2)]
-        public long timestamp { get; set; }
-    }
-    [Serializable]
-    [ProtoContract]
-    public partial class RespError : AMessage, IMessage
-    {
-        public static RespError Create(bool autoReturn = true)
-        {
-            var respError = MessageObjectPool<RespError>.Rent();
-            respError.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                respError.SetIsPool(false);
-            }
-            
-            return respError;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            message = default;
-            args.Clear();
-            MessageObjectPool<RespError>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.RespError; } 
-        [ProtoMember(1)]
-        public string message { get; set; }
-        [ProtoMember(2)]
-        public List<string> args { get; set; } = new List<string>();
-    }
     /// <summary>
     /// 客户端主动退出房间请求
     /// </summary>
@@ -704,6 +616,94 @@ namespace Fantasy
         /// </summary>
         [ProtoMember(5)]
         public long room_id { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class MetaData : AMessage, IMessage
+    {
+        public static MetaData Create(bool autoReturn = true)
+        {
+            var metaData = MessageObjectPool<MetaData>.Rent();
+            metaData.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                metaData.SetIsPool(false);
+            }
+            
+            return metaData;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            status_code = default;
+            timestamp = default;
+            MessageObjectPool<MetaData>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.MetaData; } 
+        [ProtoMember(1)]
+        public uint status_code { get; set; }
+        [ProtoMember(2)]
+        public long timestamp { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class RespError : AMessage, IMessage
+    {
+        public static RespError Create(bool autoReturn = true)
+        {
+            var respError = MessageObjectPool<RespError>.Rent();
+            respError.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                respError.SetIsPool(false);
+            }
+            
+            return respError;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            message = default;
+            args.Clear();
+            MessageObjectPool<RespError>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.RespError; } 
+        [ProtoMember(1)]
+        public string message { get; set; }
+        [ProtoMember(2)]
+        public List<string> args { get; set; } = new List<string>();
     }
     /// <summary>
     /// 客户端匹配请求

@@ -61,6 +61,17 @@ namespace Fantasy
 			session.Send(ClientFrame_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<PlayerLeaveRoomResp> PlayerLeaveRoomReq(this Session session, PlayerLeaveRoomReq PlayerLeaveRoomReq_request)
+		{
+			return (PlayerLeaveRoomResp)await session.Call(PlayerLeaveRoomReq_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static async FTask<PlayerLeaveRoomResp> PlayerLeaveRoomReq(this Session session)
+		{
+			using var PlayerLeaveRoomReq_request = Fantasy.PlayerLeaveRoomReq.Create();
+			return (PlayerLeaveRoomResp)await session.Call(PlayerLeaveRoomReq_request);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void MetaData(this Session session, MetaData MetaData_message)
 		{
 			session.Send(MetaData_message);
@@ -85,17 +96,6 @@ namespace Fantasy
 			RespError_message.message = message;
 			RespError_message.args = args;
 			session.Send(RespError_message);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<PlayerLeaveRoomResp> PlayerLeaveRoomReq(this Session session, PlayerLeaveRoomReq PlayerLeaveRoomReq_request)
-		{
-			return (PlayerLeaveRoomResp)await session.Call(PlayerLeaveRoomReq_request);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async FTask<PlayerLeaveRoomResp> PlayerLeaveRoomReq(this Session session)
-		{
-			using var PlayerLeaveRoomReq_request = Fantasy.PlayerLeaveRoomReq.Create();
-			return (PlayerLeaveRoomResp)await session.Call(PlayerLeaveRoomReq_request);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static async FTask<MatchResp> MatchReq(this Session session, MatchReq MatchReq_request)
