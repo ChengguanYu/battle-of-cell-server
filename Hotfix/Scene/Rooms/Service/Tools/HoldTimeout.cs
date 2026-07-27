@@ -1,6 +1,7 @@
 using Entity.Managers;
 using Entity.VOs.room;
 using Fantasy;
+using Hotfix.Scene.Rooms.System;
 using Hotfix.Database;
 
 namespace Hotfix.Scene.Rooms.Service;
@@ -18,7 +19,7 @@ public sealed partial class RoomsService
             return;
         }
 
-        if (!RoomManager.Instance.TryGetById(roomId, out var room) || room == null)
+        if (!Manager.TryGetById(roomId, out var room) || room == null)
         {
             Log.Debug($"Rooms OnRoomEmpty 忽略：房间不存在, roomId={roomId}, reason={reason}");
             return;
@@ -61,7 +62,7 @@ public sealed partial class RoomsService
             return;
         }
 
-        if (!RoomManager.Instance.Hold(roomId, remainMs))
+        if (!Manager.HoldRoom(roomId, remainMs))
         {
             Log.Warning(
                 $"Rooms OnRoomEmpty Hold 失败，正式关房: roomId={roomId}, remainMs={remainMs}, reason={closeReason}");
@@ -84,7 +85,7 @@ public sealed partial class RoomsService
             return;
         }
 
-        if (!RoomManager.Instance.TryGetById(roomId, out var room) || room == null)
+        if (!Manager.TryGetById(roomId, out var room) || room == null)
         {
             Log.Debug($"Rooms OnHoldTimeout 忽略：房间不存在, roomId={roomId}");
             return;
@@ -98,7 +99,7 @@ public sealed partial class RoomsService
 
         if (room.MemberCount > 0)
         {
-            if (!RoomManager.Instance.Resume(roomId))
+            if (!Manager.ResumeRoom(roomId))
             {
                 Log.Warning(
                     $"Rooms OnHoldTimeout 防御 Resume 失败: roomId={roomId}, memberCount={room.MemberCount}, state={room.State}");
@@ -129,7 +130,7 @@ public sealed partial class RoomsService
 
         if (remainMs > 0)
         {
-            if (!RoomManager.Instance.Hold(roomId, remainMs))
+            if (!Manager.HoldRoom(roomId, remainMs))
             {
                 Log.Warning(
                     $"Rooms OnHoldTimeout 续命失败，正式关房: roomId={roomId}, remainMs={remainMs}");
@@ -159,7 +160,7 @@ public sealed partial class RoomsService
             }
         }
 
-        if (!RoomManager.Instance.Remove(roomId, reason: reason))
+        if (!Manager.RemoveRoom(roomId, reason: reason))
         {
             Log.Warning($"Rooms 正式关房失败: roomId={roomId}, reason={reason}");
             return;

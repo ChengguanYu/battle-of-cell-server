@@ -2,6 +2,7 @@ using Entity.DTOs;
 using Entity.Managers;
 using Fantasy;
 using Fantasy.Async;
+using Hotfix.Scene.Rooms.System;
 
 namespace Hotfix.Scene.Rooms.Service;
 
@@ -21,7 +22,7 @@ public sealed partial class RoomsService
             return InnerResult.Fail("userId 非法", userId);
         }
 
-        if (!RoomManager.Instance.TryGetByUser(userId, out var room) || room == null)
+        if (!Manager.TryGetByUser(userId, out var room) || room == null)
         {
             Log.Info($"Rooms 离房跳过：玩家不在房间, userId={userId}, reason={reason}");
             return InnerResult.Fail("玩家不在房间", userId);
@@ -31,15 +32,15 @@ public sealed partial class RoomsService
         var memberCountBefore = room.MemberCount;
         var stateBefore = room.State;
 
-        if (!RoomManager.Instance.Leave(userId, reason: reason))
+        if (!Manager.LeaveRoom(userId, reason: reason))
         {
             Log.Warning(
                 $"Rooms 离房失败: userId={userId}, roomId={roomId}, memberBefore={memberCountBefore}, state={stateBefore}, reason={reason}");
             return InnerResult.Fail("离房失败", userId, roomId);
         }
 
-        var stillExists = RoomManager.Instance.Contains(roomId);
-        var stateAfter = stillExists && RoomManager.Instance.TryGetById(roomId, out var after) && after != null
+        var stillExists = Manager.ContainsRoom(roomId);
+        var stateAfter = stillExists && Manager.TryGetById(roomId, out var after) && after != null
             ? after.State.ToString()
             : "Removed";
         Log.Info(

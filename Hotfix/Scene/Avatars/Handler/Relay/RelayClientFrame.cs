@@ -1,9 +1,9 @@
-using Entity.Utils;
 using Fantasy;
 using Fantasy.Async;
 using Fantasy.Network;
 using Fantasy.Network.Interface;
 using Hotfix.Scene.Avatars.Service;
+using Hotfix.Utils;
 using FScene = Fantasy.Scene;
 
 namespace Hotfix.Scene.Avatars.Handler;

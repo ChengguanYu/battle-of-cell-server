@@ -1,6 +1,7 @@
 using Entity.Managers;
 using Fantasy;
 using Fantasy.Async;
+using Hotfix.Scene.Rooms.System;
 
 namespace Hotfix.Scene.Rooms.Service;
 
@@ -14,7 +15,7 @@ public sealed partial class RoomsService
     {
         await FTask.CompletedTask;
 
-        var rooms = RoomManager.Instance.GetRoomsSnapshot();
+        var rooms = Manager.GetRoomsSnapshot();
         var snaps = new List<RoomSnapItem>(rooms.Count);
 
         foreach (var room in rooms)

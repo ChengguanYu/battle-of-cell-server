@@ -2,6 +2,7 @@ using Entity.DTOs;
 using Entity.Managers;
 using Fantasy;
 using Fantasy.Async;
+using Hotfix.Scene.Rooms.System;
 
 namespace Hotfix.Scene.Rooms.Service;
 
@@ -20,7 +21,7 @@ public sealed partial class RoomsService
             return InnerResult.Fail("userId 非法", userId);
         }
 
-        var room = RoomManager.Instance.Create();
+        var room = Manager.CreateRoom();
         if (room == null)
         {
             Log.Warning($"玩家 {userId} Create 房间失败：无法创建");

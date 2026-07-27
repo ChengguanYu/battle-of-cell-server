@@ -7,6 +7,7 @@ using Hotfix.Scene.Gate.Service;
 using Hotfix.Scene.Avatars.Service;
 using Hotfix.Scene.Match.Service;
 using Hotfix.Scene.Rooms.Service;
+using Hotfix.Scene.Rooms.System;
 
 namespace Hotfix;
 
@@ -48,10 +49,11 @@ public sealed class OnCreateSceneEvent : AsyncEventSystem<OnCreateScene>
                 var redis = AttachRedis(scene);
                 var roomsService = scene.AddComponent<RoomsService>();
                 roomsService.BindRedis(redis);
+                var roomManager = scene.AddComponent<RoomManagerEntity>();
                 // 绑定 Rooms Scene 作为各房间私有 tick / hold 的定时器宿主
-                RoomManager.Instance.SetTimerScene(scene);
-                RoomManager.Instance.SetEmptyRoomHandler(roomsService.OnRoomEmpty);
-                RoomManager.Instance.SetHoldTimeoutHandler(roomsService.OnHoldTimeout);
+                roomManager.SetTimerScene(scene);
+                roomManager.SetEmptyRoomHandler(roomsService.OnRoomEmpty);
+                roomManager.SetHoldTimeoutHandler(roomsService.OnHoldTimeout);
                 Log.Info($"[Rooms] scene started. sceneId={scene.SceneConfigId} runtimeId={scene.RuntimeId}, RoomsService attached, RoomTimer/EmptyRoom/HoldTimeout bound");
                 break;
             }

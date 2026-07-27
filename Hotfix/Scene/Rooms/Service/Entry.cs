@@ -4,6 +4,7 @@ using Fantasy;
 using Fantasy.Async;
 using Hotfix.Common.Abstract.Service;
 using Hotfix.Database;
+using Hotfix.Scene.Rooms.System;
 
 namespace Hotfix.Scene.Rooms.Service;
 //TODO: 不要到处写 redis == null, 改为抛出错误
@@ -17,6 +18,8 @@ public sealed partial class RoomsService : ServiceBase
     /// 本 Scene 的独立 Redis 实例；Scene 创建时绑定，调用路径不再 GetComponent。
     /// </summary>
     private RedisComponent? _redis;
+
+    private RoomManagerEntity Manager => Scene.GetComponent<RoomManagerEntity>();
 
     /// <summary>
     /// 绑定当前 Rooms Scene 的 Redis 实例。
@@ -42,7 +45,7 @@ public sealed partial class RoomsService : ServiceBase
             return InnerResult.Fail("参数非法", userId, roomId);
         }
 
-        if (!RoomManager.Instance.TryGetById(roomId, out var existingRoom) || existingRoom == null)
+        if (!Manager.TryGetById(roomId, out var existingRoom) || existingRoom == null)
         {
             Log.Warning($"玩家 {userId} Entry 房间 {roomId} 失败：房间不存在");
             return InnerResult.Fail("Entry 失败：房间不存在", userId, roomId);
@@ -75,7 +78,7 @@ public sealed partial class RoomsService : ServiceBase
             return InnerResult.Fail(reason, userId, roomId);
         }
 
-        var joined = RoomManager.Instance.Entry(roomId, userId);
+        var joined = Manager.EnterRoom(roomId, userId);
         if (joined == null)
         {
             Log.Warning($"玩家 {userId} Entry 房间 {roomId} 失败：无法加入");

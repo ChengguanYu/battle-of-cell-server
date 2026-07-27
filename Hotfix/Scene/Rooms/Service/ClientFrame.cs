@@ -1,6 +1,7 @@
 using Entity.Managers;
 using Fantasy;
 using Fantasy.Async;
+using Hotfix.Scene.Rooms.System;
 
 namespace Hotfix.Scene.Rooms.Service;
 
@@ -19,7 +20,7 @@ public sealed partial class RoomsService
             return;
         }
 
-        if (!RoomManager.Instance.TryGetByUser(userId, out var room) || room == null)
+        if (!Manager.TryGetByUser(userId, out var room) || room == null)
         {
             Log.Warning(
                 $"[Rooms] ClientFrame 跳过：玩家不在房间, userId={userId}, frame={frameNumber}, ops={frames?.Count ?? 0}");
