@@ -40,6 +40,12 @@ public sealed class Relay() : ServiceBase(), IRelay
                 return null;
             }
 
+            if (!player.TransitLobbyToInRoom())
+            {
+                Log.Error($"用户 {userId} RelayEntryRoom 成功但状态转换 Lobby->InRoom 失败，state={player.State}");
+                return null;
+            }
+
             return resp;
         }
         catch (InvalidOperationException)
