@@ -20,13 +20,13 @@ public sealed class EntryRoomHandler : MessageRPC<EntryRoomReq, EntryRoomResp>
             return;
         }
 
-        RoomsEntryRoomResp? roomsResp = null;
-        var req = RoomsEntryRoomReq.Create();
+        AvatarRelayEntryRoomResp? roomsResp = null;
+        var req = AvatarRelayEntryRoomReq.Create();
         try
         {
             req.user_id = userId;
             var address = session.Scene.GetSceneAddress(SceneType.Avatars);
-            roomsResp = (RoomsEntryRoomResp)await session.Scene.Call(address, req);
+            roomsResp = (AvatarRelayEntryRoomResp)await session.Scene.Call(address, req);
             if (!roomsResp.IsOk())
             {
                 Log.Warning($"用户 {userId} EntryRoom 失败，status={roomsResp.ToMessage()}");

@@ -8,11 +8,11 @@ using FScene = Fantasy.Scene;
 namespace Hotfix.Scene.Avatars.Handler;
 
 /// <summary>
-/// Gate -> Avatar -> Rooms 进房转发：Avatar 层只做门禁 + 引用替换透传。
+/// Gate -> Avatar -> Rooms 进房转发：Avatar 层只做门禁 + 字段映射透传。
 /// </summary>
-public sealed class RelayEntryRoom : AddressRPC<FScene, RoomsEntryRoomReq, RoomsEntryRoomResp>
+public sealed class RelayEntryRoom : AddressRPC<FScene, AvatarRelayEntryRoomReq, AvatarRelayEntryRoomResp>
 {
-    protected override async FTask Run(FScene scene, RoomsEntryRoomReq req, RoomsEntryRoomResp resp, Action reply)
+    protected override async FTask Run(FScene scene, AvatarRelayEntryRoomReq req, AvatarRelayEntryRoomResp resp, Action reply)
     {
         IRelay relay = scene.GetComponent<Relay>();
         var roomsResp = await relay.EntryRoom(req.user_id);
@@ -25,7 +25,9 @@ public sealed class RelayEntryRoom : AddressRPC<FScene, RoomsEntryRoomReq, Rooms
             return;
         }
 
-        resp = roomsResp;
+        resp.room_id = roomsResp.room_id;
+        resp.world = roomsResp.world;
+        resp.SetOk();
         reply();
     }
 }
