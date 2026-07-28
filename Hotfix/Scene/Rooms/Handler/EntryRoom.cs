@@ -1,7 +1,5 @@
-using Entity.DTOs;
 using Fantasy;
 using Fantasy.Async;
-using Fantasy.Network;
 using Fantasy.Network.Interface;
 using Hotfix.Scene.Rooms.Service;
 using Hotfix.Utils;
@@ -17,7 +15,7 @@ public sealed class RoomsEntryRoomHandler : AddressRPC<FScene, RoomsEntryRoomReq
     protected override async FTask Run(FScene scene, RoomsEntryRoomReq req, RoomsEntryRoomResp resp, Action reply)
     {
         var roomsService = scene.GetComponent<RoomsService>();
-        var result = await roomsService.EntryRoom(req.user_id);
+        var result = await roomsService.EntryRoom(req.user_id, resp);
         if (!result.IsSuccess)
         {
             Log.Warning($"玩家 {req.user_id} EntryRoom 失败：{result.Reason}");
@@ -27,18 +25,7 @@ public sealed class RoomsEntryRoomHandler : AddressRPC<FScene, RoomsEntryRoomReq
             return;
         }
 
-        resp.room_id = TryGetRoomId(result);
         resp.SetOk();
         reply();
-    }
-
-    private static long TryGetRoomId(InnerResult result)
-    {
-        if (result.Args is { Count: > 0 } && result.Args[0] is uint roomId)
-        {
-            return roomId;
-        }
-
-        return 0;
     }
 }

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Entity.DTOs;
 using Fantasy;
 using Fantasy.Async;
@@ -12,9 +11,9 @@ namespace Hotfix.Scene.Avatars.Service;
 public interface IRelay
 {
     /// <summary>
-    /// 客户端进房转发到 Rooms。成功时 Args[0] 为 roomId。
+    /// 客户端进房门禁 + 转发到 Rooms。成功返回 RoomsEntryRoomResp，失败返回 null。
     /// </summary>
-    FTask<InnerResult> EntryRoom(long userId);
+    FTask<RoomsEntryRoomResp?> EntryRoom(long userId);
 
     /// <summary>
     /// 退出房间转发到 Rooms。成功时 Args[0] 为 roomId。

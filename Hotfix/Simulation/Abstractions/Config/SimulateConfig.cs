@@ -3,11 +3,10 @@ namespace Hotfix.Simulation.Abstractions.Config;
 
 public class SimulateConfig : SimulateDefaultCfg
 {
-    void SimulateDefaultCfg()
+    public SimulateConfig()
     {
-        Map.SetSize(MAP_X_SIZE,MAP_Y_SIZE);
+        Map.SetSize(MAP_X_SIZE, MAP_Y_SIZE);
     }
 
     public MapConfig Map = new ();
-
 }

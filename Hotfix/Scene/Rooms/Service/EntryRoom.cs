@@ -1,16 +1,19 @@
 using Entity.DTOs;
+using Entity.Managers;
 using Fantasy;
 using Fantasy.Async;
 using Hotfix.Database;
+using Hotfix.Simulation.Abstractions;
+using Hotfix.Simulation.System;
 
 namespace Hotfix.Scene.Rooms.Service;
 
 public sealed partial class RoomsService
 {
     /// <summary>
-    /// 客户端进房：读 Redis 匹配结果后 Entry。成功时 Args[0] 为 roomId。
+    /// 客户端进房：读 Redis 匹配结果后 Entry。成功时一并从模拟器读取世界参数。
     /// </summary>
-    public async FTask<InnerResult> EntryRoom(long userId)
+    public async FTask<InnerResult> EntryRoom(long userId, RoomsEntryRoomResp resp)
     {
         Log.Debug($"RoomsService.EntryRoom 开始: userId={userId}");
         if (userId <= 0)
@@ -40,6 +43,20 @@ public sealed partial class RoomsService
         var roomId = (uint)matchedRoomId;
         Log.Debug($"RoomsService.EntryRoom 命中匹配结果，继续 Entry: userId={userId}, roomId={roomId}");
         var entryResult = await Entry(userId, roomId);
+
+        if (entryResult.IsSuccess)
+        {
+            resp.room_id = roomId;
+
+            var simManager = Scene.GetComponent<SimulationManagerEntity>();
+            if (simManager.TryGet(roomId, out var sim) && sim is SimBase simBase)
+            {
+                resp.world = WorldInit.Create();
+                resp.world.x_size = simBase.Config.Map.X;
+                resp.world.y_size = simBase.Config.Map.Y;
+            }
+        }
+
         Log.Debug(
             $"RoomsService.EntryRoom 结束: userId={userId}, roomId={roomId}, ok={entryResult.IsSuccess}, reason={entryResult.Reason}");
         return entryResult;

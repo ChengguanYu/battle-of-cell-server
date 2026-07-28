@@ -8,7 +8,7 @@ using Hotfix.Utils;
 namespace Hotfix.Scene.Gate.Handler.Room;
 
 /// <summary>
-/// 客户端 Outer EntryRoomReq：取 Session 绑定 userId，转发到 Avatars 进房。
+/// 客户端 Outer EntryRoomReq：取 Session 绑定 userId，经 Avatar 门禁透传到 Rooms。
 /// </summary>
 public sealed class EntryRoomHandler : MessageRPC<EntryRoomReq, EntryRoomResp>
 {
@@ -20,42 +20,35 @@ public sealed class EntryRoomHandler : MessageRPC<EntryRoomReq, EntryRoomResp>
             return;
         }
 
-        AvatarRelayEntryRoomResp? avatarResp = null;
-        var req = AvatarRelayEntryRoomReq.Create();
+        RoomsEntryRoomResp? roomsResp = null;
+        var req = RoomsEntryRoomReq.Create();
         try
         {
             req.user_id = userId;
             var address = session.Scene.GetSceneAddress(SceneType.Avatars);
-            avatarResp = (AvatarRelayEntryRoomResp)await session.Scene.Call(address, req);
-            if (!avatarResp.IsOk())
+            roomsResp = (RoomsEntryRoomResp)await session.Scene.Call(address, req);
+            if (!roomsResp.IsOk())
             {
-                Log.Warning($"用户 {userId} AvatarRelayEntryRoom 失败，status={avatarResp.ToMessage()}");
-                ReplyFail(response, reply, StatusCode.RoomsEnterFailed, avatarResp.ToMessage());
+                Log.Warning($"用户 {userId} EntryRoom 失败，status={roomsResp.ToMessage()}");
+                ReplyFail(response, reply, StatusCode.RoomsEnterFailed, roomsResp.ToMessage());
                 return;
             }
 
-            ReplyOk(response, reply, avatarResp.room_id);
+            response.room_id = roomsResp.room_id;
+            response.world = roomsResp.world;
+            response.SetOk();
+            reply();
         }
         catch (InvalidOperationException)
         {
-            Log.Warning($"未找到 Avatars Scene，用户 {userId} EntryRoomReq 转发失败");
+            Log.Warning($"未找到 Avatars Scene，用户 {userId} EntryRoomReq 失败");
             ReplyFail(response, reply, StatusCode.RoomsEnterFailed, "未找到 Avatars Scene");
         }
         finally
         {
             req.Dispose();
-            avatarResp?.Dispose();
+            roomsResp?.Dispose();
         }
-    }
-
-    private static void ReplyOk(EntryRoomResp response, Action reply, long roomId)
-    {
-        response.room_id = roomId;
-         response.world = WorldInit.Create();
-         response.world.x_size = 5000;
-         response.world.y_size = 5000;
-        response.SetOk();
-        reply();
     }
 
     private static void ReplyFail(EntryRoomResp response, Action reply, StatusCode code, string? reason = null)

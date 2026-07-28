@@ -1,7 +1,5 @@
-using System.Collections.Generic;
-using Entity.DTOs;
 using Entity.Domains;
-using Entity.Utils;
+using Entity.DTOs;
 using Fantasy;
 using Fantasy.Async;
 using Hotfix.Common.Abstract.Service;
@@ -15,47 +13,46 @@ namespace Hotfix.Scene.Avatars.Service;
 /// </summary>
 public sealed class Relay() : ServiceBase(), IRelay
 {
-    public async FTask<InnerResult> EntryRoom(long userId)
+    public async FTask<RoomsEntryRoomResp?> EntryRoom(long userId)
     {
         if (!AvatarDomain.Inst.TryGet(userId, out var player) || player == null)
         {
-            return InnerResult.Fail("Avatar 未加载", userId);
+            Log.Warning($"用户 {userId} RelayEntryRoom 失败：Avatar 未加载");
+            return null;
         }
 
         if (!player.IsInLobby)
         {
             Log.Warning($"用户 {userId} 当前不可进房，state={player.State}");
-            return InnerResult.Fail("当前状态不可进房", player.State);
+            return null;
         }
 
         RoomsEntryRoomResp? resp = null;
+        var req = RoomsEntryRoomReq.Create();
         try
         {
-            var req = RoomsEntryRoomReq.Create();
             req.user_id = userId;
             var address = Scene.GetSceneAddress(SceneType.Rooms);
             resp = await Call<RoomsEntryRoomReq, RoomsEntryRoomResp>(address, req);
             if (!resp.IsOk())
             {
-                Log.Warning($"用户 {userId} RoomsEntryRoom 失败，status={resp.ToMessage()}");
-                return InnerResult.Fail("RoomsEntryRoom 失败", resp.ToMessage());
+                Log.Warning($"用户 {userId} Rooms 进房失败，status={resp.ToMessage()}");
+                return null;
             }
 
-            if (!player.TransitLobbyToInRoom())
-            {
-                return InnerResult.Fail("Avatar 进入房间失败", player.State);
-            }
-
-            return InnerResult.Ok(string.Empty, resp.room_id > 0 && resp.room_id <= uint.MaxValue ? (uint)resp.room_id : 0u);
+            return resp;
         }
         catch (InvalidOperationException)
         {
             Log.Warning($"未找到 Rooms Scene，用户 {userId} 进房失败");
-            return InnerResult.Fail("未找到 Rooms Scene", userId);
+            return null;
         }
         finally
         {
-            resp?.Dispose();
+            if (resp == null)
+            {
+                req.Dispose();
+            }
         }
     }
 

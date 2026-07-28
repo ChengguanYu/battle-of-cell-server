@@ -10,6 +10,7 @@ public abstract class SimBase : ISimulation
         _config = config;
     }
 
+    public SimulateConfig Config => _config;
     protected SimulateConfig _config;
     public void Run()
     {
