@@ -50,11 +50,13 @@ public sealed class OnCreateSceneEvent : AsyncEventSystem<OnCreateScene>
                 var roomsService = scene.AddComponent<RoomsService>();
                 roomsService.BindRedis(redis);
                 var roomManager = scene.AddComponent<RoomManagerEntity>();
+                // 模拟器管理器作为 Scene 级组件挂载，与房间 1:1 绑定
+                scene.AddComponent<SimulationManagerEntity>();
                 // 绑定 Rooms Scene 作为各房间私有 tick / hold 的定时器宿主
                 roomManager.SetTimerScene(scene);
                 roomManager.SetEmptyRoomHandler(roomsService.OnRoomEmpty);
                 roomManager.SetHoldTimeoutHandler(roomsService.OnHoldTimeout);
-                Log.Info($"[Rooms] scene started. sceneId={scene.SceneConfigId} runtimeId={scene.RuntimeId}, RoomsService attached, RoomTimer/EmptyRoom/HoldTimeout bound");
+                Log.Info($"[Rooms] scene started. sceneId={scene.SceneConfigId} runtimeId={scene.RuntimeId}, RoomsService attached, SimulationManager attached, RoomTimer/EmptyRoom/HoldTimeout bound");
                 break;
             }
         }

@@ -3,6 +3,8 @@ using Entity.Managers;
 using Entity.Runtime.room;
 using Entity.VOs.room;
 using Fantasy;
+using Hotfix.Simulation.System;
+using SimManager = Entity.Managers.SimulationManagerEntity;
 
 namespace Hotfix.Scene.Rooms.System;
 
@@ -88,6 +90,21 @@ public static class RoomManagerSystem
         }
 
         self.RoomById[roomId] = room;
+
+        // 房间与模拟器 1:1：创建成功后立即拉起对应模拟器
+        var simManager = self.Scene?.GetComponent<SimManager>();
+        if (simManager == null || !simManager.Create(roomId, out var sim) || sim == null)
+        {
+            Log.Error($"RoomManager.Create 模拟器创建失败，回滚房间: roomId={roomId}");
+            self.RoomById.TryRemove(roomId, out _);
+            room.Close("sim_create_failed");
+            self.RoomIdGenerator.Release(roomId);
+            return null;
+        }
+
+        // 状态转移：Created -> Running，由房间创建方显式驱动
+        sim.Run();
+
         Log.Debug($"RoomManager.Create 成功: roomId={roomId}, capacity={capacity}");
         return room;
     }
@@ -223,6 +240,10 @@ public static class RoomManagerSystem
 
         room.Close(reason);
         self.RoomIdGenerator.Release(roomId);
+
+        // 房间与模拟器 1:1：房间销毁时一并停止并移除对应模拟器
+        self.Scene?.GetComponent<SimManager>()?.Remove(roomId);
+
         return true;
     }
 

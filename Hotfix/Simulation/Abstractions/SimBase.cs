@@ -1,5 +1,6 @@
-using Hotfix.Simulation.Abstractions;
+using Entity.Simulation;
 using Hotfix.Simulation.Abstractions.Config;
+
 namespace Hotfix.Simulation.Abstractions;
 
 public abstract class SimBase : ISimulation

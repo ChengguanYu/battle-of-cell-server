@@ -1,3 +1,4 @@
+using Entity.Simulation;
 using Hotfix.Simulation.Abstractions;
 using Hotfix.Simulation.Abstractions.Config;
 

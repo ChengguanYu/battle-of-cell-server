@@ -1,3 +1,5 @@
+using Entity.Simulation;
+
 namespace Hotfix.Simulation.Abstractions;
 
 public class SimStateException : InvalidOperationException

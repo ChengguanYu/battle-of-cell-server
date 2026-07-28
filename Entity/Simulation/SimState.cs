@@ -1,4 +1,4 @@
-namespace Hotfix.Simulation.Abstractions;
+namespace Entity.Simulation;
 
 public enum SimState
 {
