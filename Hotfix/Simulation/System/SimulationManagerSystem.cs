@@ -24,9 +24,20 @@ public static class SimulationManagerSystem
             return false;
         }
 
-        var newSim = new BattleOfCellV1(new SimulateConfig());
+        var state = new SimStateEntity();
+        var newSim = new BattleOfCellV1(new SimulateConfig(), state);
+
+        // 两表同 key 同生命周期：sim 和 state 必须原子写入，失败则不留残骸
         if (self.SimByRoomId.TryAdd(roomId, newSim))
         {
+            if (!self.StateByRoomId.TryAdd(roomId, state))
+            {
+                // 极端竞态：sim 写入成功但 state 冲突，回滚 sim
+                self.SimByRoomId.TryRemove(roomId, out _);
+                Log.Warning($"SimulationManager.Create 状态写入冲突，已回滚: roomId={roomId}");
+                return false;
+            }
+
             sim = newSim;
             return true;
         }
@@ -46,6 +57,7 @@ public static class SimulationManagerSystem
         }
 
         sim.Stop();
+        self.StateByRoomId.TryRemove(roomId, out _);
         Log.Info($"SimulationManager.Remove 成功: roomId={roomId}");
         return true;
     }

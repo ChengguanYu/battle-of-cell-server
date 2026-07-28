@@ -10,4 +10,7 @@ namespace Entity.Managers;
 public sealed class SimulationManagerEntity : Fantasy.Entitas.Entity
 {
     public readonly ConcurrentDictionary<uint, ISimulation> SimByRoomId = new();
+
+    /// <summary>roomId -> 模拟器内部状态（含 Shape 列表）。与 SimByRoomId 同 key 同生命周期。</summary>
+    public readonly ConcurrentDictionary<uint, SimStateEntity> StateByRoomId = new();
 }
