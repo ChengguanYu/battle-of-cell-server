@@ -8,14 +8,9 @@ namespace Hotfix.Simulation.Versions.V1;
 
 public class BattleOfCellV1 : SimBase
 {
-    /// <summary>世界初始化给出的默认三角形数量。</summary>
-    private const int DefaultTriangleCount = 2;
-    /// <summary>凹多边形数量（5~8 边）。</summary>
-    private const int DefaultConcaveCount = 3;
-    /// <summary>凸多边形数量（4/5/6/8/10/12 边）。</summary>
-    private const int DefaultConvexCount = 5;
-    // 2 + 3 + 5 = 10
-    // 三角形(3边) + 凹多边形(5~8边) + 凸多边形(4/5/6/8/10/12边)
+    /// <summary>世界总形状数。</summary>
+    private const int DefaultTotalCount = 12;
+    // 每个形状的顶点数（3~12）和凹凸性均由随机决定：n=3 走三角形特例路径
 
     /// <summary>
     /// 世界随机种子。固定值保证帧同步可复现；
@@ -47,14 +42,13 @@ public class BattleOfCellV1 : SimBase
     }
 
     /// <summary>
-    /// 初始化世界：生成默认 10 个互不重叠的形状，
-    /// 以三角形→凹多边形→凸多边形的顺序生成，顶点数按类型池随机选取，并打印顶点坐标。
+    /// 初始化世界：生成 <see cref="DefaultTotalCount"/> 个互不重叠的形状，
+    /// 每个形状的边数（3~12）和凹凸性由随机决定并打印顶点坐标。
+    /// 边数 = 3 时走三角形特例路径（最小内角约束）。
     /// </summary>
     private void InitWorld()
     {
-        int target = DefaultTriangleCount + DefaultConcaveCount + DefaultConvexCount;
-        int targetTri = DefaultTriangleCount;
-        int targetConcave = DefaultConcaveCount;
+        int target = DefaultTotalCount;
         int w = (int)Config.Map.X;
         int h = (int)Config.Map.Y;
 
@@ -64,10 +58,8 @@ public class BattleOfCellV1 : SimBase
         int concaveGenerated = 0;
         int convexGenerated = 0;
 
-        // 凸多边形可选顶点数池（4 替代矩形，6/8/10/12 丰富花样）
-        int[] convexVertexPool = { 4, 5, 6, 8, 10, 12 };
-        // 凹多边形可选顶点数池
-        int[] concaveVertexPool = { 5, 6, 7, 8 };
+        // 顶点数池：3 为三角形，4~12 为凸/凹多边形
+        int[] vertexPool = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
 
         var shapes = SimState.Shapes;
         while (shapes.Count < target && attempts < MaxGenerateAttempts)
@@ -75,23 +67,23 @@ public class BattleOfCellV1 : SimBase
             attempts++;
 
             AbstShape? shape = null;
-            if (triGenerated < targetTri)
+            int n = vertexPool[rng.Next(vertexPool.Length)];
+
+            if (n == 3)
             {
+                // n=3：三角形特例（最小内角约束）
                 var tri = RandomTriangle(rng, w, h, TargetShapeArea2);
                 if (tri == null || tri.IsDegenerate) continue;
                 shape = tri;
             }
-            else if (concaveGenerated < targetConcave)
+            else
             {
-                int vc = concaveVertexPool[rng.Next(concaveVertexPool.Length)];
-                shape = RandomConcavePolygon(rng, w, h, TargetShapeArea2, vc);
-                if (shape == null) continue;
-            }
-            else // convex
-            {
-                // 实际 count 由 targetConvex 兜底，不会溢出
-                int vc = convexVertexPool[rng.Next(convexVertexPool.Length)];
-                shape = RandomConvexPolygon(rng, w, h, TargetShapeArea2, vc);
+                // n>=4：随机凹凸（凹多边形需 n>=5，否则退化为凸）
+                bool isConcave = n >= 5 && rng.Next(2) == 0;
+                if (isConcave)
+                    shape = RandomConcavePolygon(rng, w, h, TargetShapeArea2, n);
+                else
+                    shape = RandomConvexPolygon(rng, w, h, TargetShapeArea2, n);
                 if (shape == null) continue;
             }
 
