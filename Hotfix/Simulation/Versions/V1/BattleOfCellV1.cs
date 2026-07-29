@@ -9,9 +9,13 @@ namespace Hotfix.Simulation.Versions.V1;
 public class BattleOfCellV1 : SimBase
 {
     /// <summary>世界初始化给出的默认三角形数量。</summary>
-    private const int DefaultTriangleCount = 10;
-    /// <summary>世界中凹多边形的数量；总数仍为 DefaultTriangleCount。</summary>
+    private const int DefaultTriangleCount = 2;
+    /// <summary>凹多边形数量（5~8 边）。</summary>
     private const int DefaultConcaveCount = 3;
+    /// <summary>凸多边形数量（4/5/6/8/10/12 边）。</summary>
+    private const int DefaultConvexCount = 5;
+    // 2 + 3 + 5 = 10
+    // 三角形(3边) + 凹多边形(5~8边) + 凸多边形(4/5/6/8/10/12边)
 
     /// <summary>
     /// 世界随机种子。固定值保证帧同步可复现；
@@ -44,18 +48,26 @@ public class BattleOfCellV1 : SimBase
 
     /// <summary>
     /// 初始化世界：生成默认 10 个互不重叠的形状，
-    /// 其中前 DefaultConcaveCount 个为凹多边形，其余为三角形，并打印顶点坐标。
+    /// 以三角形→凹多边形→凸多边形的顺序生成，顶点数按类型池随机选取，并打印顶点坐标。
     /// </summary>
     private void InitWorld()
     {
-        int target = DefaultTriangleCount;
+        int target = DefaultTriangleCount + DefaultConcaveCount + DefaultConvexCount;
+        int targetTri = DefaultTriangleCount;
         int targetConcave = DefaultConcaveCount;
         int w = (int)Config.Map.X;
         int h = (int)Config.Map.Y;
 
         var rng = new global::System.Random(WorldSeed);
         int attempts = 0;
+        int triGenerated = 0;
         int concaveGenerated = 0;
+        int convexGenerated = 0;
+
+        // 凸多边形可选顶点数池（4 替代矩形，6/8/10/12 丰富花样）
+        int[] convexVertexPool = { 4, 5, 6, 8, 10, 12 };
+        // 凹多边形可选顶点数池
+        int[] concaveVertexPool = { 5, 6, 7, 8 };
 
         var shapes = SimState.Shapes;
         while (shapes.Count < target && attempts < MaxGenerateAttempts)
@@ -63,22 +75,24 @@ public class BattleOfCellV1 : SimBase
             attempts++;
 
             AbstShape? shape = null;
-            if (concaveGenerated < targetConcave)
-            {
-                shape = RandomConcavePolygon(rng, w, h, TargetShapeArea2);
-                if (shape == null)
-                {
-                    continue;
-                }
-            }
-            else
+            if (triGenerated < targetTri)
             {
                 var tri = RandomTriangle(rng, w, h, TargetShapeArea2);
-                if (tri == null || tri.IsDegenerate)
-                {
-                    continue;
-                }
+                if (tri == null || tri.IsDegenerate) continue;
                 shape = tri;
+            }
+            else if (concaveGenerated < targetConcave)
+            {
+                int vc = concaveVertexPool[rng.Next(concaveVertexPool.Length)];
+                shape = RandomConcavePolygon(rng, w, h, TargetShapeArea2, vc);
+                if (shape == null) continue;
+            }
+            else // convex
+            {
+                // 实际 count 由 targetConvex 兜底，不会溢出
+                int vc = convexVertexPool[rng.Next(convexVertexPool.Length)];
+                shape = RandomConvexPolygon(rng, w, h, TargetShapeArea2, vc);
+                if (shape == null) continue;
             }
 
             // 与已有任一形状重叠则丢弃重试（凸/凹混合由基类 OverlapsWith 统一分派）
@@ -95,14 +109,22 @@ public class BattleOfCellV1 : SimBase
             if (!overlap)
             {
                 shapes.Add(shape);
-                if (shape is ConcavePolygon)
+                switch (shape)
                 {
-                    concaveGenerated++;
+                    case Triangle:
+                        triGenerated++;
+                        break;
+                    case ConcavePolygon:
+                        concaveGenerated++;
+                        break;
+                    case ConvexPolygon:
+                        convexGenerated++;
+                        break;
                 }
             }
         }
 
-        Log.Info($"[BattleOfCellV1] 初始化世界完成: 生成形状 {shapes.Count} 个 (凹形 {concaveGenerated}, 试探 {attempts} 次)");
+        Log.Info($"[BattleOfCellV1] 初始化世界完成: 生成形状 {shapes.Count} 个 (三角形 {triGenerated}, 凹形 {concaveGenerated}, 凸形 {convexGenerated}, 试探 {attempts} 次)");
 
         for (int i = 0; i < shapes.Count; i++)
         {
@@ -172,6 +194,86 @@ public class BattleOfCellV1 : SimBase
         return new Triangle(new Vec2D<uint>(sax, say), new Vec2D<uint>(sbx, sby), new Vec2D<uint>(scx, scy));
     }
 
+
+    /// <summary>
+    /// 随机生成凸 N 边形，面积尽量靠近 <paramref name="targetArea2"/>。
+    /// <param name="n">顶点数（≥3）。</param>
+    /// 圆周散点 + 角度排序保证凸性，面积缩放靠 PickScale 择优。
+    /// </summary>
+    private static ConvexPolygon? RandomConvexPolygon(global::System.Random rng, int w, int h, long targetArea2, int n)
+    {
+        double cx = TriangleMaxSpan * 0.5;
+        double cy = TriangleMaxSpan * 0.5;
+        double baseR = TriangleMaxSpan * 0.4;
+
+        // 圆周散点：等分角度 + 小抖动。角度排序后为凸多边形。
+        var pts = new (double x, double y, double ang)[n];
+        for (int i = 0; i < n; i++)
+        {
+            double ang = 2.0 * global::System.Math.PI * i / n + rng.NextDouble() * (global::System.Math.PI / (n * 2));
+            double r = baseR * (0.75 + 0.25 * rng.NextDouble());
+            pts[i] = (cx + r * global::System.Math.Cos(ang), cy + r * global::System.Math.Sin(ang), ang);
+        }
+        global::System.Array.Sort(pts, (a, b) => a.ang.CompareTo(b.ang));
+
+        // 取整 + 锚定原点
+        double minX = double.MaxValue, minY = double.MaxValue;
+        for (int i = 0; i < n; i++)
+        {
+            if (pts[i].x < minX) minX = pts[i].x;
+            if (pts[i].y < minY) minY = pts[i].y;
+        }
+        var skeleton = new Vec2D<int>[n];
+        for (int i = 0; i < n; i++)
+        {
+            skeleton[i] = new Vec2D<int>(
+                (int)global::System.Math.Round(pts[i].x - minX),
+                (int)global::System.Math.Round(pts[i].y - minY));
+        }
+
+        // 凸性验证：所有边叉积同号
+        int sign = 0;
+        for (int i = 0; i < n; i++)
+        {
+            int j = (i + 1) % n;
+            int kn = (i + 2) % n;
+            long cr = (long)(skeleton[j].X - skeleton[i].X) * (skeleton[kn].Y - skeleton[j].Y)
+                     - (long)(skeleton[j].Y - skeleton[i].Y) * (skeleton[kn].X - skeleton[j].X);
+            if (cr > 0) { if (sign < 0) return null; sign = 1; }
+            else if (cr < 0) { if (sign > 0) return null; sign = -1; }
+            else return null; // 共线退化
+        }
+
+        // 面积缩放 + 平移落位
+        long a0_2 = ShoelaceInt2(skeleton);
+        if (a0_2 == 0) return null;
+        int k = PickScale(targetArea2, a0_2);
+
+        long spanMaxX = 0, spanMaxY = 0;
+        for (int i = 0; i < n; i++)
+        {
+            long sxk = (long)skeleton[i].X * k;
+            long syk = (long)skeleton[i].Y * k;
+            if (sxk > spanMaxX) spanMaxX = sxk;
+            if (syk > spanMaxY) spanMaxY = syk;
+        }
+        if (spanMaxX > w - 2 * MapMargin || spanMaxY > h - 2 * MapMargin) return null;
+
+        int ox = rng.Next(MapMargin, global::System.Math.Max(MapMargin + 1, (int)(w - MapMargin - spanMaxX)));
+        int oy = rng.Next(MapMargin, global::System.Math.Max(MapMargin + 1, (int)(h - MapMargin - spanMaxY)));
+
+        var verts = new global::System.Collections.Generic.List<Vec2D<uint>>(n);
+        for (int i = 0; i < n; i++)
+        {
+            uint x = (uint)global::System.Math.Clamp((int)(ox + (long)skeleton[i].X * k), MapMargin, w - MapMargin);
+            uint y = (uint)global::System.Math.Clamp((int)(oy + (long)skeleton[i].Y * k), MapMargin, h - MapMargin);
+            verts.Add(new Vec2D<uint>(x, y));
+        }
+
+        return new ConvexPolygon(verts);
+    }
+
+
     /// <summary>
     /// 选整数缩放系数使 k²×a0_2 尽量靠近 targetArea2。
     /// 在 floor(sqrt) 与 ceil(sqrt) 二者间取更近者；下界 1。
@@ -226,12 +328,11 @@ public class BattleOfCellV1 : SimBase
     /// 随机生成一个凹多边形，面积尽量靠近 <paramref name="targetArea2"/>（2×面积）。
     /// 流程：圆周散点（角度排序保证简单多边形）→ 取整锚定原点 →
     /// 将一个顶点压向质心制造凹角 → 凹性自检 → 面积缩放 → 平移落位。
-    /// 顶点数随机 5~8，每次形状各异。浮点仅用于散布角度/半径，
+    /// <param name="n">顶点数（≥5）。由调用方指定。</param>
     /// 最终坐标取整落定，不影响帧同步确定性（仅服务器生成）。
     /// </summary>
-    private static ConcavePolygon? RandomConcavePolygon(global::System.Random rng, int w, int h, long targetArea2)
+    private static ConcavePolygon? RandomConcavePolygon(global::System.Random rng, int w, int h, long targetArea2, int n)
     {
-        int n = rng.Next(5, 9); // 5..8 顶点
         double cx = TriangleMaxSpan * 0.5;
         double cy = TriangleMaxSpan * 0.5;
         double baseR = TriangleMaxSpan * 0.4;
