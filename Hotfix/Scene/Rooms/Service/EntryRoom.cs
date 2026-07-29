@@ -53,8 +53,8 @@ public sealed partial class RoomsService
                 if (simManager.TryGet(roomId, out var sim) && sim is SimBase simBase)
                 {
                     resp.world = WorldInit.Create();
-                    resp.world.x_size = simBase.Config.Map.X;
-                    resp.world.y_size = simBase.Config.Map.Y;
+                    resp.world.x_size = simBase.Config.World.Map.X;
+                    resp.world.y_size = simBase.Config.World.Map.Y;
                     resp.world.shapes = ShapeDataBuilder.Build(simBase.SimState.ShapeView);
                     Log.Info($"RoomsService.EntryRoom 下发世界形状: room={roomId}, shapes={resp.world.shapes.Count}, userId={userId}");
                 }
