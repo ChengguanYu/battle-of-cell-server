@@ -3,6 +3,7 @@ using Entity.Managers;
 using Fantasy;
 using Fantasy.Async;
 using Hotfix.Database;
+using Hotfix.Simulation;
 using Hotfix.Simulation.Abstractions;
 using Hotfix.Simulation.System;
 
@@ -44,18 +45,20 @@ public sealed partial class RoomsService
         Log.Debug($"RoomsService.EntryRoom 命中匹配结果，继续 Entry: userId={userId}, roomId={roomId}");
         var entryResult = await Entry(userId, roomId);
 
-        if (entryResult.IsSuccess)
-        {
-            resp.room_id = roomId;
-
-            var simManager = Scene.GetComponent<SimulationManagerEntity>();
-            if (simManager.TryGet(roomId, out var sim) && sim is SimBase simBase)
+            if (entryResult.IsSuccess)
             {
-                resp.world = WorldInit.Create();
-                resp.world.x_size = simBase.Config.Map.X;
-                resp.world.y_size = simBase.Config.Map.Y;
+                resp.room_id = roomId;
+
+                var simManager = Scene.GetComponent<SimulationManagerEntity>();
+                if (simManager.TryGet(roomId, out var sim) && sim is SimBase simBase)
+                {
+                    resp.world = WorldInit.Create();
+                    resp.world.x_size = simBase.Config.Map.X;
+                    resp.world.y_size = simBase.Config.Map.Y;
+                    resp.world.shapes = ShapeDataBuilder.Build(simBase.SimState.ShapeView);
+                    Log.Info($"RoomsService.EntryRoom 下发世界形状: room={roomId}, shapes={resp.world.shapes.Count}, userId={userId}");
+                }
             }
-        }
 
         Log.Debug(
             $"RoomsService.EntryRoom 结束: userId={userId}, roomId={roomId}, ok={entryResult.IsSuccess}, reason={entryResult.Reason}");
