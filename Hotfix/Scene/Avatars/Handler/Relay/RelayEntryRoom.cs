@@ -27,6 +27,7 @@ public sealed class RelayEntryRoom : AddressRPC<FScene, AvatarRelayEntryRoomReq,
 
         resp.room_id = roomsResp.room_id;
         resp.world = roomsResp.world;
+        resp.position = roomsResp.position;
         resp.SetOk();
         reply();
     }

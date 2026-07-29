@@ -1034,24 +1034,34 @@ namespace Fantasy
                 world.Dispose();
                 world = null;
             }
-            room_id = default;
-            MessageObjectPool<EntryRoomResp>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.EntryRoomResp; } 
-        [ProtoMember(6)]
-        public uint ErrorCode { get; set; }
-        [ProtoMember(1)]
-        public MetaData meta { get; set; }
-        [ProtoMember(2)]
-        public List<RespError> error { get; set; } = new List<RespError>();
-        [ProtoMember(3)]
-        public bool ok { get; set; }
+           room_id = default;
+            if (position != null)
+            {
+                position.Dispose();
+                position = null;
+            }
+           MessageObjectPool<EntryRoomResp>.Return(this);
+       }
+       public uint OpCode() { return OuterOpcode.EntryRoomResp; } 
+       [ProtoMember(6)]
+       public uint ErrorCode { get; set; }
+       [ProtoMember(1)]
+       public MetaData meta { get; set; }
+       [ProtoMember(2)]
+       public List<RespError> error { get; set; } = new List<RespError>();
+       [ProtoMember(3)]
+       public bool ok { get; set; }
+       /// <summary>
+       /// 房间的世界参数
+       /// </summary>
+       [ProtoMember(4)]
+       public WorldInit world { get; set; }
+       [ProtoMember(5)]
+       public long room_id { get; set; }
         /// <summary>
-        /// 房间的世界参数
+        /// 玩家在房间中的出生坐标
         /// </summary>
-        [ProtoMember(4)]
-        public WorldInit world { get; set; }
-        [ProtoMember(5)]
-        public long room_id { get; set; }
-    }
+        [ProtoMember(7)]
+        public Position2d position { get; set; }
+   }
 }

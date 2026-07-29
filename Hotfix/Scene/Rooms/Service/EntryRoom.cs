@@ -5,6 +5,7 @@ using Fantasy.Async;
 using Hotfix.Database;
 using Hotfix.Simulation;
 using Hotfix.Simulation.Abstractions;
+using Hotfix.Scene.Rooms.System;
 using Hotfix.Simulation.System;
 
 namespace Hotfix.Scene.Rooms.Service;
@@ -57,6 +58,21 @@ public sealed partial class RoomsService
                     resp.world.y_size = simBase.Config.World.Map.Y;
                     resp.world.shapes = ShapeDataBuilder.Build(simBase.SimState.ShapeView);
                     Log.Info($"RoomsService.EntryRoom 下发世界形状: room={roomId}, shapes={resp.world.shapes.Count}, userId={userId}");
+
+                    // 从模拟器生成玩家出生坐标（默认半径 20px，超过重试次数则回卷入房）
+                    if (CoordGenerator.TryGenerateCoord(simBase, out var coord))
+                    {
+                        resp.position = Position2d.Create();
+                        resp.position.x = (int)coord.X;
+                        resp.position.y = (int)coord.Y;
+                        Log.Info($"RoomsService.EntryRoom 生成出生坐标: userId={userId}, x={coord.X}, y={coord.Y}");
+                    }
+                    else
+                    {
+                        Log.Warning($"RoomsService.EntryRoom 生成坐标失败，回卷入房: userId={userId}, roomId={roomId}");
+                        Manager.LeaveRoom(userId, reason: "coord_gen_failed");
+                        entryResult = InnerResult.Fail("坐标生成失败", userId, roomId);
+                    }
                 }
             }
 
