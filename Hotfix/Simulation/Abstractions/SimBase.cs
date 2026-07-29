@@ -51,8 +51,24 @@ public abstract class SimBase : ISimulation
                 return false;
         }
 
-        return true;
-    }
+       return true;
+   }
+
+    /// <summary>默认安全半径（px），确保生成坐标与障碍物保持此距离。</summary>
+    public const uint DefaultSpawnRadius = 20;
+
+    /// <summary>默认最大重试次数。</summary>
+    public const int DefaultSpawnMaxAttempts = 100;
+
+    /// <summary>
+    /// 在世界范围内随机生成一个合法出生坐标。
+    /// 合法条件：坐标在以 radius 为半径的圆范围内不越过地图边界，且不与任何形状相交。
+    /// </summary>
+    /// <param name="coord">生成的合法坐标，失败时为 default</param>
+    /// <param name="radius">安全半径（默认 20px）</param>
+    /// <param name="maxAttempts">最大重试次数（默认 100）</param>
+    /// <returns>成功返回 true，超过重试次数返回 false</returns>
+    public abstract bool TryGenerateCoord(out Vec2D<uint> coord, uint radius = DefaultSpawnRadius, int maxAttempts = DefaultSpawnMaxAttempts);
 
     /// <summary>
     /// 检查以 <paramref name="center"/> 为圆心、<paramref name="radius"/> 为半径的
@@ -74,8 +90,8 @@ public abstract class SimBase : ISimulation
         return true;
     }
 
-    /// <summary>
-    /// 判定圆（圆心 <paramref name="c"/>、半径平方 <paramref name="r2"/>）
+   /// <summary>
+   /// 判定圆（圆心 <paramref name="c"/>、半径平方 <paramref name="r2"/>）
     /// 是否与多边形 <paramref name="shape"/> 相交（含内含）。
     /// </summary>
     private static bool CircleOverlapsShape(AbstShape shape, Vec2D<uint> c, long r2)

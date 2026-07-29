@@ -59,9 +59,9 @@ public sealed partial class RoomsService
                     resp.world.shapes = ShapeDataBuilder.Build(simBase.SimState.ShapeView);
                     Log.Info($"RoomsService.EntryRoom 下发世界形状: room={roomId}, shapes={resp.world.shapes.Count}, userId={userId}");
 
-                    // 从模拟器生成玩家出生坐标（默认半径 20px，超过重试次数则回卷入房）
-                    if (CoordGenerator.TryGenerateCoord(simBase, out var coord))
-                    {
+                   // 从模拟器生成玩家出生坐标（默认半径 20px，超过重试次数则回卷入房）
+                    if (simBase.TryGenerateCoord(out var coord))
+                   {
                         resp.position = Position2d.Create();
                         resp.position.x = (int)coord.X;
                         resp.position.y = (int)coord.Y;
@@ -74,6 +74,8 @@ public sealed partial class RoomsService
                         entryResult = InnerResult.Fail("坐标生成失败", userId, roomId);
                     }
                 }
+                // TODO: simManager.TryGet 失败时（极低概率，仅当房间在 Entry 后被外部队列抢先删掉），
+                //       响应 ok=true 但 world/position 为 null。此时应回卷入房并返回失败。
             }
 
         Log.Debug(
