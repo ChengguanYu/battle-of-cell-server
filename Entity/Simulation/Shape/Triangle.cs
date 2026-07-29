@@ -13,6 +13,9 @@ public sealed class Triangle : AbstShape
     {
     }
 
+    /// <summary>三角形恒凸。</summary>
+    public override bool IsConvex => true;
+
     public Vec2D<uint> A => _vecs[0];
     public Vec2D<uint> B => _vecs[1];
     public Vec2D<uint> C => _vecs[2];

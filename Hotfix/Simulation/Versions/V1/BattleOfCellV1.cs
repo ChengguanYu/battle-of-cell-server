@@ -10,6 +10,8 @@ public class BattleOfCellV1 : SimBase
 {
     /// <summary>世界初始化给出的默认三角形数量。</summary>
     private const int DefaultTriangleCount = 10;
+    /// <summary>世界中凹多边形的数量；总数仍为 DefaultTriangleCount。</summary>
+    private const int DefaultConcaveCount = 3;
 
     /// <summary>
     /// 世界随机种子。固定值保证帧同步可复现；
@@ -34,33 +36,49 @@ public class BattleOfCellV1 : SimBase
     }
 
     /// <summary>
-    /// 初始化世界：生成默认 10 个互不重叠的三角形，并打印顶点坐标。
+    /// 初始化世界：生成默认 10 个互不重叠的形状，
+    /// 其中前 DefaultConcaveCount 个为凹多边形，其余为三角形，并打印顶点坐标。
     /// </summary>
     private void InitWorld()
     {
         int target = DefaultTriangleCount;
+        int targetConcave = DefaultConcaveCount;
         int w = (int)Config.Map.X;
         int h = (int)Config.Map.Y;
 
         var rng = new global::System.Random(WorldSeed);
         int attempts = 0;
+        int concaveGenerated = 0;
 
         var shapes = SimState.Shapes;
         while (shapes.Count < target && attempts < MaxGenerateAttempts)
         {
             attempts++;
 
-            var tri = RandomTriangle(rng, w, h);
-            if (tri.IsDegenerate)
+            AbstShape? shape = null;
+            if (concaveGenerated < targetConcave)
             {
-                continue;
+                shape = RandomConcavePolygon(rng, w, h);
+                if (shape == null)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                var tri = RandomTriangle(rng, w, h);
+                if (tri.IsDegenerate)
+                {
+                    continue;
+                }
+                shape = tri;
             }
 
-            // 与已有任一形状重叠则丢弃重试
+            // 与已有任一形状重叠则丢弃重试（凸/凹混合由基类 OverlapsWith 统一分派）
             bool overlap = false;
             foreach (var exist in shapes)
             {
-                if (tri.OverlapsWith(exist))
+                if (shape.OverlapsWith(exist))
                 {
                     overlap = true;
                     break;
@@ -69,18 +87,26 @@ public class BattleOfCellV1 : SimBase
 
             if (!overlap)
             {
-                shapes.Add(tri);
+                shapes.Add(shape);
+                if (shape is ConcavePolygon)
+                {
+                    concaveGenerated++;
+                }
             }
         }
 
-        Log.Info($"[BattleOfCellV1] 初始化世界完成: 生成三角形 {shapes.Count} 个 (试探 {attempts} 次)");
+        Log.Info($"[BattleOfCellV1] 初始化世界完成: 生成形状 {shapes.Count} 个 (凹形 {concaveGenerated}, 试探 {attempts} 次)");
 
         for (int i = 0; i < shapes.Count; i++)
         {
-            if (shapes[i] is Triangle t)
+            var verts = shapes[i].Vertices;
+            var sb = new global::System.Text.StringBuilder();
+            for (int v = 0; v < verts.Count; v++)
             {
-                Log.Info($"[BattleOfCellV1] 三角形#{i} 顶点: ({t.A.X},{t.A.Y}) ({t.B.X},{t.B.Y}) ({t.C.X},{t.C.Y})");
+                if (v > 0) sb.Append(' ');
+                sb.Append('(').Append(verts[v].X).Append(',').Append(verts[v].Y).Append(')');
             }
+            Log.Info($"[BattleOfCellV1] 形状#{i} {shapes[i].GetType().Name} 顶点: {sb}");
         }
     }
 
@@ -102,4 +128,62 @@ public class BattleOfCellV1 : SimBase
 
         return new Triangle(new Vec2D<uint>(ax, ay), new Vec2D<uint>(bx, by), new Vec2D<uint>(ccx, ccy));
     }
+
+    /// <summary>
+    /// 在地图范围内基于模板随机生成一个凹多边形：整数缩放 + 平移，不做旋转（保整数确定性）。
+    /// 凹性自检失败返回 null，由调用方重试。
+    /// </summary>
+    private static ConcavePolygon? RandomConcavePolygon(global::System.Random rng, int w, int h)
+    {
+        var template = ConcaveTemplates[rng.Next(ConcaveTemplates.Length)];
+        int scale = rng.Next(1, 3); // 1 或 2
+
+        int spanMaxX = 0;
+        int spanMaxY = 0;
+        for (int i = 0; i < template.Length; i++)
+        {
+            spanMaxX = global::System.Math.Max(spanMaxX, template[i].X);
+            spanMaxY = global::System.Math.Max(spanMaxY, template[i].Y);
+        }
+
+        int finalMaxX = spanMaxX * scale;
+        int finalMaxY = spanMaxY * scale;
+        if (finalMaxX > w - 2 * MapMargin || finalMaxY > h - 2 * MapMargin)
+        {
+            return null;
+        }
+
+        int ox = rng.Next(MapMargin, global::System.Math.Max(MapMargin + 1, w - MapMargin - finalMaxX));
+        int oy = rng.Next(MapMargin, global::System.Math.Max(MapMargin + 1, h - MapMargin - finalMaxY));
+
+        var verts = new global::System.Collections.Generic.List<Vec2D<uint>>(template.Length);
+        for (int i = 0; i < template.Length; i++)
+        {
+            uint x = (uint)global::System.Math.Clamp(ox + template[i].X * scale, MapMargin, w - MapMargin);
+            uint y = (uint)global::System.Math.Clamp(oy + template[i].Y * scale, MapMargin, h - MapMargin);
+            verts.Add(new Vec2D<uint>(x, y));
+        }
+
+        var poly = new ConcavePolygon(verts);
+        return poly.IsConcaveShape ? poly : null;
+    }
+
+    /// <summary>凹多边形顶点模板（整数相对坐标），均经过凹性验证。</summary>
+    private static readonly Vec2D<int>[][] ConcaveTemplates =
+    {
+        // L 形（6 顶点）
+        new[]
+        {
+            new Vec2D<int>(0, 0), new Vec2D<int>(200, 0),
+            new Vec2D<int>(200, 100), new Vec2D<int>(100, 100),
+            new Vec2D<int>(100, 200), new Vec2D<int>(0, 200)
+        },
+        // 箭头形（5 顶点）
+        new[]
+        {
+            new Vec2D<int>(0, 0), new Vec2D<int>(200, 0),
+            new Vec2D<int>(200, 100), new Vec2D<int>(120, 60),
+            new Vec2D<int>(0, 100)
+        }
+    };
 }

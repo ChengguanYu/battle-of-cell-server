@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Entity.Simulation.Shape;
@@ -11,9 +12,15 @@ public abstract class AbstShape
     public IReadOnlyList<Vec2D<uint>> Vertices => _vecs;
 
     /// <summary>
+    /// 本形状是否为凸多边形。两形状均凸时走 SAT 快速路径；
+    /// 任一方为凹时退化为通用多边形相交判定（逐边 + 顶点包含）。
+    /// </summary>
+    public abstract bool IsConvex { get; }
+
+    /// <summary>
     /// 本形状是否与 <paramref name="other"/> 相交（含边界接触）。
-    /// 默认实现用分离轴定理（SAT）对凸多边形通用；
-    /// 子类可重写以提供更高效的特化判定。
+    /// 双凸时用分离轴定理（SAT）；否则用通用多边形相交（逐边线段相交 + 顶点包含），
+    /// 对凸/凹、凸/凹、凹/凹混合情形均正确。
     /// </summary>
     public virtual bool OverlapsWith(AbstShape other)
     {
@@ -24,7 +31,99 @@ public abstract class AbstShape
             return false;
         }
 
-        return !HasSeparatingAxis(va, vb) && !HasSeparatingAxis(vb, va);
+        if (IsConvex && other.IsConvex)
+        {
+            return !HasSeparatingAxis(va, vb) && !HasSeparatingAxis(vb, va);
+        }
+
+        return PolygonsOverlap(this, other);
+    }
+
+    /// <summary>
+    /// 通用多边形相交判定：先看任一对边是否相交（含端点接触），
+    /// 再看任一顶点是否落在对方内部，覆盖一个完全包含另一个的情况。
+    /// 对凸/凹/混合均正确，复杂度 O(n*m)。
+    /// </summary>
+    protected static bool PolygonsOverlap(AbstShape a, AbstShape b)
+    {
+        var va = a.Vertices;
+        var vb = b.Vertices;
+
+        for (int i = 0; i < va.Count; i++)
+        {
+            int j = (i + 1) % va.Count;
+            for (int k = 0; k < vb.Count; k++)
+            {
+                int l = (k + 1) % vb.Count;
+                if (SegmentsIntersect(va[i], va[j], vb[k], vb[l]))
+                {
+                    return true;
+                }
+            }
+        }
+
+        foreach (var p in va)
+        {
+            if (b.PointIsInShape(p))
+            {
+                return true;
+            }
+        }
+
+        foreach (var p in vb)
+        {
+            if (a.PointIsInShape(p))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>整数叉积：(a-o) x (b-o)，无除法，帧同步确定性安全。</summary>
+    protected static long Orient(Vec2D<uint> o, Vec2D<uint> a, Vec2D<uint> b)
+    {
+        long ax = (long)a.X - o.X;
+        long ay = (long)a.Y - o.Y;
+        long bx = (long)b.X - o.X;
+        long by = (long)b.Y - o.Y;
+        return ax * by - ay * bx;
+    }
+
+    /// <summary>
+    /// 线段 (p1,p2) 与 (p3,p4) 是否相交（含端点/共线接触）。
+    /// 规范相交用叉积同号法，退化情形（叉积为 0）退化为端点落在线段框内判定。
+    /// </summary>
+    protected static bool SegmentsIntersect(Vec2D<uint> p1, Vec2D<uint> p2, Vec2D<uint> p3, Vec2D<uint> p4)
+    {
+        long d1 = Orient(p3, p4, p1);
+        long d2 = Orient(p3, p4, p2);
+        long d3 = Orient(p1, p2, p3);
+        long d4 = Orient(p1, p2, p4);
+
+        if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+            ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
+        {
+            return true;
+        }
+
+        if (d1 == 0 && OnSegment(p3, p4, p1)) return true;
+        if (d2 == 0 && OnSegment(p3, p4, p2)) return true;
+        if (d3 == 0 && OnSegment(p1, p2, p3)) return true;
+        if (d4 == 0 && OnSegment(p1, p2, p4)) return true;
+
+        return false;
+    }
+
+    /// <summary>已知 q 在 p1p2 所在直线上时，q 是否落在线段 p1p2 框内（含端点）。</summary>
+    protected static bool OnSegment(Vec2D<uint> p1, Vec2D<uint> p2, Vec2D<uint> q)
+    {
+        long minx = Math.Min((long)p1.X, (long)p2.X);
+        long maxx = Math.Max((long)p1.X, (long)p2.X);
+        long miny = Math.Min((long)p1.Y, (long)p2.Y);
+        long maxy = Math.Max((long)p1.Y, (long)p2.Y);
+        return q.X >= minx && q.X <= maxx && q.Y >= miny && q.Y <= maxy;
     }
 
     /// <summary>
