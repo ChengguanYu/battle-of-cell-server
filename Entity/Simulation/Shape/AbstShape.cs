@@ -18,6 +18,23 @@ public abstract class AbstShape
     public abstract bool IsConvex { get; }
 
     /// <summary>
+    /// 鞋带公式：返回 |2 × 多边形面积|（带符号面积取绝对值）。
+    /// 对凸/凹简单多边形均正确；自交多边形无意义，调用方需先保证简单性。
+    /// 全程 long 运算，无除法，确定性安全。
+    /// </summary>
+    public static long ShoelaceArea2(IReadOnlyList<Vec2D<uint>> v)
+    {
+        long sum = 0;
+        int n = v.Count;
+        for (int i = 0; i < n; i++)
+        {
+            int j = (i + 1) % n;
+            sum += (long)v[i].X * v[j].Y - (long)v[j].X * v[i].Y;
+        }
+        return sum < 0 ? -sum : sum;
+    }
+
+    /// <summary>
     /// 本形状是否与 <paramref name="other"/> 相交（含边界接触）。
     /// 双凸时用分离轴定理（SAT）；否则用通用多边形相交（逐边线段相交 + 顶点包含），
     /// 对凸/凹、凸/凹、凹/凹混合情形均正确。

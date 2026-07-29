@@ -21,8 +21,13 @@ public class BattleOfCellV1 : SimBase
 
     private const int MapMargin = 50;
     private const int TriangleMinSpan = 20;
-    private const int TriangleMaxSpan = 200;
+    /// <summary>骨架散布上限；地图 5000×5000 下控制在 500。</summary>
+    private const int TriangleMaxSpan = 500;
     private const int MaxGenerateAttempts = 5000;
+    /// <summary>目标面积与 500 跨度骨架同量级；2×面积计量，PickScale 在 k=1/2 间择优。</summary>
+    private const long TargetShapeArea = 50000;
+    /// <summary>targetArea2 = 2 × TargetShapeArea，与 ShoelaceArea2 计量对齐。</summary>
+    private const long TargetShapeArea2 = 2L * TargetShapeArea;
 
     public BattleOfCellV1(SimulateConfig config, SimStateEntity simState) : base(config, simState)
     {
@@ -58,7 +63,7 @@ public class BattleOfCellV1 : SimBase
             AbstShape? shape = null;
             if (concaveGenerated < targetConcave)
             {
-                shape = RandomConcavePolygon(rng, w, h);
+                shape = RandomConcavePolygon(rng, w, h, TargetShapeArea2);
                 if (shape == null)
                 {
                     continue;
@@ -66,7 +71,7 @@ public class BattleOfCellV1 : SimBase
             }
             else
             {
-                var tri = RandomTriangle(rng, w, h);
+                var tri = RandomTriangle(rng, w, h, TargetShapeArea2);
                 if (tri.IsDegenerate)
                 {
                     continue;
@@ -111,56 +116,171 @@ public class BattleOfCellV1 : SimBase
     }
 
     /// <summary>
-    /// 在地图范围内随机生成一个三角形：以一点为中心，在半径区间内散布顶点。
-    /// 坐标经 Clamp 处理，避免越界与 uint 下溢。
+    /// 在地图范围内生成一个三角形，面积尽量靠近 <paramref name="targetArea2"/>（2×面积）。
+    /// 流程：散布骨架（角点锚定原点）→ 鞋带算骨架 2×面积 → 整数缩放 k 使 k²×A0 靠近目标，
+    /// 其中 k 在 floor/ceil 中选逼近更优者 → 随机平移落位。退化三角形照常返回交调用方判定。
     /// </summary>
-    private static Triangle RandomTriangle(global::System.Random rng, int w, int h)
+    private static Triangle RandomTriangle(global::System.Random rng, int w, int h, long targetArea2)
     {
-        int cx = rng.Next(MapMargin, w - MapMargin);
-        int cy = rng.Next(MapMargin, h - MapMargin);
+        // 骨架："角点锚定原点"的相对坐标，三个顶点散布在 [TriangleMinSpan, TriangleMaxSpan]
+        // 取正区间保证相对偏移非负，缩放不改变符号、避免 uint 下溢。
+        long ax = rng.Next(TriangleMinSpan, TriangleMaxSpan + 1);
+        long ay = rng.Next(TriangleMinSpan, TriangleMaxSpan + 1);
+        long bx = rng.Next(TriangleMinSpan, TriangleMaxSpan + 1);
+        long by = rng.Next(TriangleMinSpan, TriangleMaxSpan + 1);
+        long cx = rng.Next(TriangleMinSpan, TriangleMaxSpan + 1);
+        long cy = rng.Next(TriangleMinSpan, TriangleMaxSpan + 1);
 
-        uint ax = (uint)global::System.Math.Clamp(cx + rng.Next(-TriangleMaxSpan, TriangleMaxSpan), MapMargin, w - MapMargin);
-        uint ay = (uint)global::System.Math.Clamp(cy + rng.Next(-TriangleMaxSpan, TriangleMaxSpan), MapMargin, h - MapMargin);
-        uint bx = (uint)global::System.Math.Clamp(cx + rng.Next(-TriangleMaxSpan, TriangleMaxSpan), MapMargin, w - MapMargin);
-        uint by = (uint)global::System.Math.Clamp(cy + rng.Next(-TriangleMaxSpan, TriangleMaxSpan), MapMargin, h - MapMargin);
-        uint ccx = (uint)global::System.Math.Clamp(cx + rng.Next(-TriangleMaxSpan, TriangleMaxSpan), MapMargin, w - MapMargin);
-        uint ccy = (uint)global::System.Math.Clamp(cy + rng.Next(-TriangleMaxSpan, TriangleMaxSpan), MapMargin, h - MapMargin);
+        // 骨架 2×面积（带符号取绝对值）；0 表示共线退化。
+        long a0_2 = global::System.Math.Abs((bx - ax) * (cy - ay) - (cx - ax) * (by - ay));
+        if (a0_2 == 0)
+        {
+            // 退化：原样构造，交由调用方 IsDegenerate 重试。
+            return new Triangle(
+                new Vec2D<uint>((uint)global::System.Math.Clamp((int)ax, MapMargin, w - MapMargin),
+                                (uint)global::System.Math.Clamp((int)ay, MapMargin, h - MapMargin)),
+                new Vec2D<uint>((uint)global::System.Math.Clamp((int)bx, MapMargin, w - MapMargin),
+                                (uint)global::System.Math.Clamp((int)by, MapMargin, h - MapMargin)),
+                new Vec2D<uint>((uint)global::System.Math.Clamp((int)cx, MapMargin, w - MapMargin),
+                                (uint)global::System.Math.Clamp((int)cy, MapMargin, h - MapMargin)));
+        }
 
-        return new Triangle(new Vec2D<uint>(ax, ay), new Vec2D<uint>(bx, by), new Vec2D<uint>(ccx, ccy));
+        int k = PickScale(targetArea2, a0_2);
+
+        // 缩放后骨架跨度（相对原点），用于随机平移的安全区间。
+        long spanMaxX = global::System.Math.Max(global::System.Math.Max(ax, bx), cx) * k;
+        long spanMaxY = global::System.Math.Max(global::System.Math.Max(ay, by), cy) * k;
+        if (spanMaxX > w - 2 * MapMargin || spanMaxY > h - 2 * MapMargin)
+        {
+            // 缩放过头放不下，跌回 k=1 用原骨架跨度重算平移区间。
+            k = 1;
+            spanMaxX = global::System.Math.Max(global::System.Math.Max(ax, bx), cx);
+            spanMaxY = global::System.Math.Max(global::System.Math.Max(ay, by), cy);
+        }
+
+        int ox = rng.Next(MapMargin, global::System.Math.Max(MapMargin + 1, (int)(w - MapMargin - spanMaxX)));
+        int oy = rng.Next(MapMargin, global::System.Math.Max(MapMargin + 1, (int)(h - MapMargin - spanMaxY)));
+
+        uint sax = (uint)global::System.Math.Clamp((int)(ox + ax * k), MapMargin, w - MapMargin);
+        uint say = (uint)global::System.Math.Clamp((int)(oy + ay * k), MapMargin, h - MapMargin);
+        uint sbx = (uint)global::System.Math.Clamp((int)(ox + bx * k), MapMargin, w - MapMargin);
+        uint sby = (uint)global::System.Math.Clamp((int)(oy + by * k), MapMargin, h - MapMargin);
+        uint scx = (uint)global::System.Math.Clamp((int)(ox + cx * k), MapMargin, w - MapMargin);
+        uint scy = (uint)global::System.Math.Clamp((int)(oy + cy * k), MapMargin, h - MapMargin);
+
+        return new Triangle(new Vec2D<uint>(sax, say), new Vec2D<uint>(sbx, sby), new Vec2D<uint>(scx, scy));
     }
 
     /// <summary>
-    /// 在地图范围内基于模板随机生成一个凹多边形：整数缩放 + 平移，不做旋转（保整数确定性）。
-    /// 凹性自检失败返回 null，由调用方重试。
+    /// 选整数缩放系数使 k²×a0_2 尽量靠近 targetArea2。
+    /// 在 floor(sqrt) 与 ceil(sqrt) 二者间取更近者；下界 1。
     /// </summary>
-    private static ConcavePolygon? RandomConcavePolygon(global::System.Random rng, int w, int h)
+    private static int PickScale(long targetArea2, long a0_2)
     {
-        var template = ConcaveTemplates[rng.Next(ConcaveTemplates.Length)];
-        int scale = rng.Next(1, 3); // 1 或 2
+        double root = global::System.Math.Sqrt((double)targetArea2 / a0_2);
+        int kf = (int)global::System.Math.Floor(root);
+        if (kf < 1) kf = 1;
+        int kc = kf + 1;
+        long af = a0_2 * (long)kf * kf;
+        long ac = a0_2 * (long)kc * kc;
+        return global::System.Math.Abs(af - targetArea2) <= global::System.Math.Abs(ac - targetArea2) ? kf : kc;
+    }
 
-        int spanMaxX = 0;
-        int spanMaxY = 0;
-        for (int i = 0; i < template.Length; i++)
+    /// <summary>Vec2D&lt;int&gt; 模板的鞋带 2×面积（long 运算，无除法）。</summary>
+    private static long ShoelaceInt2(Vec2D<int>[] t)
+    {
+        long sum = 0;
+        int n = t.Length;
+        for (int i = 0; i < n; i++)
         {
-            spanMaxX = global::System.Math.Max(spanMaxX, template[i].X);
-            spanMaxY = global::System.Math.Max(spanMaxY, template[i].Y);
+            int j = (i + 1) % n;
+            sum += (long)t[i].X * t[j].Y - (long)t[j].X * t[i].Y;
+        }
+        return sum < 0 ? -sum : sum;
+    }
+
+    /// <summary>
+    /// 随机生成一个凹多边形，面积尽量靠近 <paramref name="targetArea2"/>（2×面积）。
+    /// 流程：圆周散点（角度排序保证简单多边形）→ 取整锚定原点 →
+    /// 将一个顶点压向质心制造凹角 → 凹性自检 → 面积缩放 → 平移落位。
+    /// 顶点数随机 5~8，每次形状各异。浮点仅用于散布角度/半径，
+    /// 最终坐标取整落定，不影响帧同步确定性（仅服务器生成）。
+    /// </summary>
+    private static ConcavePolygon? RandomConcavePolygon(global::System.Random rng, int w, int h, long targetArea2)
+    {
+        int n = rng.Next(5, 9); // 5..8 顶点
+        double cx = TriangleMaxSpan * 0.5;
+        double cy = TriangleMaxSpan * 0.5;
+        double baseR = TriangleMaxSpan * 0.4;
+
+        // 圆周散点 + 角度抖动 + 半径抖动 → 角度排序后为简单多边形（近凸）
+        var pts = new (double x, double y, double ang)[n];
+        for (int i = 0; i < n; i++)
+        {
+            double ang = 2.0 * global::System.Math.PI * i / n + rng.NextDouble() * (global::System.Math.PI / n);
+            double r = baseR * (0.65 + 0.35 * rng.NextDouble());
+            pts[i] = (cx + r * global::System.Math.Cos(ang), cy + r * global::System.Math.Sin(ang), ang);
+        }
+        global::System.Array.Sort(pts, (a, b) => a.ang.CompareTo(b.ang));
+
+        // 取整 + 锚定原点
+        double minX = double.MaxValue, minY = double.MaxValue;
+        for (int i = 0; i < n; i++)
+        {
+            if (pts[i].x < minX) minX = pts[i].x;
+            if (pts[i].y < minY) minY = pts[i].y;
+        }
+        var skeleton = new Vec2D<int>[n];
+        long sumX = 0, sumY = 0;
+        for (int i = 0; i < n; i++)
+        {
+            int ix = (int)global::System.Math.Round(pts[i].x - minX);
+            int iy = (int)global::System.Math.Round(pts[i].y - minY);
+            skeleton[i] = new Vec2D<int>(ix, iy);
+            sumX += ix;
+            sumY += iy;
         }
 
-        int finalMaxX = spanMaxX * scale;
-        int finalMaxY = spanMaxY * scale;
-        if (finalMaxX > w - 2 * MapMargin || finalMaxY > h - 2 * MapMargin)
+        // 将一个顶点压向质心制造凹角
+        double ctrX = (double)sumX / n;
+        double ctrY = (double)sumY / n;
+        int notch = rng.Next(n);
+        double push = 0.3 + 0.5 * rng.NextDouble(); // 30%~80% 压向质心
+        int nx = (int)global::System.Math.Round(skeleton[notch].X * (1.0 - push) + ctrX * push);
+        int ny = (int)global::System.Math.Round(skeleton[notch].Y * (1.0 - push) + ctrY * push);
+        if (nx < 0) nx = 0;
+        if (ny < 0) ny = 0;
+        skeleton[notch] = new Vec2D<int>(nx, ny);
+
+        // 凹性验证（缩放保号，验证骨架即可）
+        if (!IsConcaveInt(skeleton))
         {
             return null;
         }
 
-        int ox = rng.Next(MapMargin, global::System.Math.Max(MapMargin + 1, w - MapMargin - finalMaxX));
-        int oy = rng.Next(MapMargin, global::System.Math.Max(MapMargin + 1, h - MapMargin - finalMaxY));
+        // 面积缩放 + 平移落位
+        long a0_2 = ShoelaceInt2(skeleton);
+        if (a0_2 == 0) return null;
+        int k = PickScale(targetArea2, a0_2);
 
-        var verts = new global::System.Collections.Generic.List<Vec2D<uint>>(template.Length);
-        for (int i = 0; i < template.Length; i++)
+        long spanMaxX = 0, spanMaxY = 0;
+        for (int i = 0; i < n; i++)
         {
-            uint x = (uint)global::System.Math.Clamp(ox + template[i].X * scale, MapMargin, w - MapMargin);
-            uint y = (uint)global::System.Math.Clamp(oy + template[i].Y * scale, MapMargin, h - MapMargin);
+            long sxk = (long)skeleton[i].X * k;
+            long syk = (long)skeleton[i].Y * k;
+            if (sxk > spanMaxX) spanMaxX = sxk;
+            if (syk > spanMaxY) spanMaxY = syk;
+        }
+        if (spanMaxX > w - 2 * MapMargin || spanMaxY > h - 2 * MapMargin) return null;
+
+        int ox = rng.Next(MapMargin, global::System.Math.Max(MapMargin + 1, (int)(w - MapMargin - spanMaxX)));
+        int oy = rng.Next(MapMargin, global::System.Math.Max(MapMargin + 1, (int)(h - MapMargin - spanMaxY)));
+
+        var verts = new global::System.Collections.Generic.List<Vec2D<uint>>(n);
+        for (int i = 0; i < n; i++)
+        {
+            uint x = (uint)global::System.Math.Clamp((int)(ox + (long)skeleton[i].X * k), MapMargin, w - MapMargin);
+            uint y = (uint)global::System.Math.Clamp((int)(oy + (long)skeleton[i].Y * k), MapMargin, h - MapMargin);
             verts.Add(new Vec2D<uint>(x, y));
         }
 
@@ -168,22 +288,20 @@ public class BattleOfCellV1 : SimBase
         return poly.IsConcaveShape ? poly : null;
     }
 
-    /// <summary>凹多边形顶点模板（整数相对坐标），均经过凹性验证。</summary>
-    private static readonly Vec2D<int>[][] ConcaveTemplates =
+    /// <summary>Vec2D&lt;int&gt; 骨架的凹性判定：相邻边叉积符号有正有负即为凹。</summary>
+    private static bool IsConcaveInt(Vec2D<int>[] v)
     {
-        // L 形（6 顶点）
-        new[]
+        int n = v.Length;
+        if (n < 4) return false;
+        int pos = 0, neg = 0;
+        for (int i = 0; i < n; i++)
         {
-            new Vec2D<int>(0, 0), new Vec2D<int>(200, 0),
-            new Vec2D<int>(200, 100), new Vec2D<int>(100, 100),
-            new Vec2D<int>(100, 200), new Vec2D<int>(0, 200)
-        },
-        // 箭头形（5 顶点）
-        new[]
-        {
-            new Vec2D<int>(0, 0), new Vec2D<int>(200, 0),
-            new Vec2D<int>(200, 100), new Vec2D<int>(120, 60),
-            new Vec2D<int>(0, 100)
+            int j = (i + 1) % n;
+            int kn = (i + 2) % n;
+            long cr = (long)(v[j].X - v[i].X) * (v[kn].Y - v[j].Y) - (long)(v[j].Y - v[i].Y) * (v[kn].X - v[j].X);
+            if (cr > 0) pos++;
+            else if (cr < 0) neg++;
         }
-    };
+        return pos > 0 && neg > 0;
+    }
 }
