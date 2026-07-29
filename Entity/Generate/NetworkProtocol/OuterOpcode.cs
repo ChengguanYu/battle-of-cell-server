@@ -20,6 +20,8 @@ namespace Fantasy
         public const uint ServerFrame = 134227732;
         public const uint SessionHeartbeatPing = 268445461;
         public const uint SessionHeartbeatPong = 402663189;
-        public const uint WorldInit = 134227733;
+        public const uint ShapeData = 134227733;
+        public const uint ShapeVertex = 134227734;
+        public const uint WorldInit = 134227735;
     }
 }

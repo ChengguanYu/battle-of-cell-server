@@ -24,6 +24,187 @@ using Fantasy.Serialize;
 namespace Fantasy
 {
     /// <summary>
+    /// 定点数向量（单位取小数点后3位），防止平台浮点差异
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class Vec2d : AMessage, IDisposable
+    {
+        public static Vec2d Create(bool autoReturn = true)
+        {
+            var vec2d = MessageObjectPool<Vec2d>.Rent();
+            vec2d.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                vec2d.SetIsPool(false);
+            }
+            
+            return vec2d;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            x = default;
+            y = default;
+            MessageObjectPool<Vec2d>.Return(this);
+        }
+        [ProtoMember(1)]
+        public long x { get; set; }
+        [ProtoMember(2)]
+        public long y { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class Position2d : AMessage, IDisposable
+    {
+        public static Position2d Create(bool autoReturn = true)
+        {
+            var position2d = MessageObjectPool<Position2d>.Rent();
+            position2d.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                position2d.SetIsPool(false);
+            }
+            
+            return position2d;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            x = default;
+            y = default;
+            MessageObjectPool<Position2d>.Return(this);
+        }
+        [ProtoMember(1)]
+        public int x { get; set; }
+        [ProtoMember(2)]
+        public int y { get; set; }
+    }
+    /// <summary>
+    /// 形状顶点（定点数坐标，uint 世界坐标直接以 int64 透传）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class ShapeVertex : AMessage, IMessage
+    {
+        public static ShapeVertex Create(bool autoReturn = true)
+        {
+            var shapeVertex = MessageObjectPool<ShapeVertex>.Rent();
+            shapeVertex.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                shapeVertex.SetIsPool(false);
+            }
+            
+            return shapeVertex;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            x = default;
+            y = default;
+            MessageObjectPool<ShapeVertex>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.ShapeVertex; } 
+        [ProtoMember(1)]
+        public long x { get; set; }
+        [ProtoMember(2)]
+        public long y { get; set; }
+    }
+    /// <summary>
+    /// 世界中的一个形状（凸多边形顶点数组）
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class ShapeData : AMessage, IMessage
+    {
+        public static ShapeData Create(bool autoReturn = true)
+        {
+            var shapeData = MessageObjectPool<ShapeData>.Rent();
+            shapeData.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                shapeData.SetIsPool(false);
+            }
+            
+            return shapeData;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            foreach (var __t in vertices) __t.Dispose();
+            vertices.Clear();
+            MessageObjectPool<ShapeData>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.ShapeData; } 
+        [ProtoMember(1)]
+        public List<ShapeVertex> vertices { get; set; } = new List<ShapeVertex>();
+    }
+    /// <summary>
     /// 客户端进家园请求
     /// </summary>
     [Serializable]
@@ -222,192 +403,6 @@ namespace Fantasy
     }
     [Serializable]
     [ProtoContract]
-    public partial class ServerFrame : AMessage, IMessage
-    {
-        public static ServerFrame Create(bool autoReturn = true)
-        {
-            var serverFrame = MessageObjectPool<ServerFrame>.Rent();
-            serverFrame.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                serverFrame.SetIsPool(false);
-            }
-            
-            return serverFrame;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            foreach (var __t in frames) __t.Dispose();
-            frames.Clear();
-            frame_number = default;
-            random_seed = default;
-            if (meta != null)
-            {
-                meta.Dispose();
-                meta = null;
-            }
-            MessageObjectPool<ServerFrame>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.ServerFrame; } 
-        [ProtoMember(1)]
-        public List<Frame> frames { get; set; } = new List<Frame>();
-        [ProtoMember(2)]
-        public ulong frame_number { get; set; }
-        [ProtoMember(3)]
-        public uint random_seed { get; set; }
-        [ProtoMember(4)]
-        public MetaData meta { get; set; }
-    }
-    [Serializable]
-    [ProtoContract]
-    public partial class ClientFrame : AMessage, IMessage
-    {
-        public static ClientFrame Create(bool autoReturn = true)
-        {
-            var clientFrame = MessageObjectPool<ClientFrame>.Rent();
-            clientFrame.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                clientFrame.SetIsPool(false);
-            }
-            
-            return clientFrame;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            foreach (var __t in frames) __t.Dispose();
-            frames.Clear();
-            frame_number = default;
-            MessageObjectPool<ClientFrame>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.ClientFrame; } 
-        [ProtoMember(1)]
-        public List<Frame> frames { get; set; } = new List<Frame>();
-        [ProtoMember(2)]
-        public ulong frame_number { get; set; }
-    }
-    [Serializable]
-    [ProtoContract]
-    public partial class Vec2d : AMessage, IDisposable
-    {
-        public static Vec2d Create(bool autoReturn = true)
-        {
-            var vec2d = MessageObjectPool<Vec2d>.Rent();
-            vec2d.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                vec2d.SetIsPool(false);
-            }
-            
-            return vec2d;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            x = default;
-            y = default;
-            MessageObjectPool<Vec2d>.Return(this);
-        }
-        [ProtoMember(1)]
-        public long x { get; set; }
-        [ProtoMember(2)]
-        public long y { get; set; }
-    }
-    [Serializable]
-    [ProtoContract]
-    public partial class Position2d : AMessage, IDisposable
-    {
-        public static Position2d Create(bool autoReturn = true)
-        {
-            var position2d = MessageObjectPool<Position2d>.Rent();
-            position2d.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                position2d.SetIsPool(false);
-            }
-            
-            return position2d;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            x = default;
-            y = default;
-            MessageObjectPool<Position2d>.Return(this);
-        }
-        [ProtoMember(1)]
-        public int x { get; set; }
-        [ProtoMember(2)]
-        public int y { get; set; }
-    }
-    [Serializable]
-    [ProtoContract]
     public partial class Player : AMessage, IDisposable
     {
         public static Player Create(bool autoReturn = true)
@@ -510,6 +505,106 @@ namespace Fantasy
         [ProtoMember(3)]
         public Player data { get; set; }
     }
+    [Serializable]
+    [ProtoContract]
+    public partial class ServerFrame : AMessage, IMessage
+    {
+        public static ServerFrame Create(bool autoReturn = true)
+        {
+            var serverFrame = MessageObjectPool<ServerFrame>.Rent();
+            serverFrame.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                serverFrame.SetIsPool(false);
+            }
+            
+            return serverFrame;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            foreach (var __t in frames) __t.Dispose();
+            frames.Clear();
+            frame_number = default;
+            random_seed = default;
+            if (meta != null)
+            {
+                meta.Dispose();
+                meta = null;
+            }
+            MessageObjectPool<ServerFrame>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.ServerFrame; } 
+        [ProtoMember(1)]
+        public List<Frame> frames { get; set; } = new List<Frame>();
+        [ProtoMember(2)]
+        public ulong frame_number { get; set; }
+        [ProtoMember(3)]
+        public uint random_seed { get; set; }
+        [ProtoMember(4)]
+        public MetaData meta { get; set; }
+    }
+    [Serializable]
+    [ProtoContract]
+    public partial class ClientFrame : AMessage, IMessage
+    {
+        public static ClientFrame Create(bool autoReturn = true)
+        {
+            var clientFrame = MessageObjectPool<ClientFrame>.Rent();
+            clientFrame.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                clientFrame.SetIsPool(false);
+            }
+            
+            return clientFrame;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            foreach (var __t in frames) __t.Dispose();
+            frames.Clear();
+            frame_number = default;
+            MessageObjectPool<ClientFrame>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.ClientFrame; } 
+        [ProtoMember(1)]
+        public List<Frame> frames { get; set; } = new List<Frame>();
+        [ProtoMember(2)]
+        public ulong frame_number { get; set; }
+    }
     /// <summary>
     /// 客户端主动退出房间请求
     /// </summary>
@@ -606,14 +701,8 @@ namespace Fantasy
         public MetaData meta { get; set; }
         [ProtoMember(2)]
         public List<RespError> error { get; set; } = new List<RespError>();
-        /// <summary>
-        /// 业务是否成功（与 meta 同级；true 时 LightProto 会写出该字段）
-        /// </summary>
         [ProtoMember(3)]
         public bool ok { get; set; }
-        /// <summary>
-        /// 离开成功后的房间 ID；失败时为 0
-        /// </summary>
         [ProtoMember(5)]
         public long room_id { get; set; }
     }
@@ -704,6 +793,57 @@ namespace Fantasy
         public string message { get; set; }
         [ProtoMember(2)]
         public List<string> args { get; set; } = new List<string>();
+    }
+    /// <summary>
+    /// 世界初始化参数（尺寸 + 初始形状列表），作为进房响应的嵌入数据透传
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class WorldInit : AMessage, IMessage
+    {
+        public static WorldInit Create(bool autoReturn = true)
+        {
+            var worldInit = MessageObjectPool<WorldInit>.Rent();
+            worldInit.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                worldInit.SetIsPool(false);
+            }
+            
+            return worldInit;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            x_size = default;
+            y_size = default;
+            foreach (var __t in shapes) __t.Dispose();
+            shapes.Clear();
+            MessageObjectPool<WorldInit>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.WorldInit; } 
+        [ProtoMember(1)]
+        public ulong x_size { get; set; }
+        [ProtoMember(2)]
+        public ulong y_size { get; set; }
+        [ProtoMember(3)]
+        public List<ShapeData> shapes { get; set; } = new List<ShapeData>();
     }
     /// <summary>
     /// 客户端匹配请求
@@ -904,64 +1044,14 @@ namespace Fantasy
         public MetaData meta { get; set; }
         [ProtoMember(2)]
         public List<RespError> error { get; set; } = new List<RespError>();
-        /// <summary>
-        /// 业务是否成功（与 meta 同级；true 时 LightProto 会写出该字段）
-        /// </summary>
         [ProtoMember(3)]
         public bool ok { get; set; }
         /// <summary>
-        /// 房间的世界参数；注意 field 6 避免与 IResponse.ErrorCode 的 ProtoMember(4) 冲突
+        /// 房间的世界参数
         /// </summary>
         [ProtoMember(4)]
         public WorldInit world { get; set; }
-        /// <summary>
-        /// 进入成功后的房间 ID；失败时为 0
-        /// </summary>
         [ProtoMember(5)]
         public long room_id { get; set; }
-    }
-    [Serializable]
-    [ProtoContract]
-    public partial class WorldInit : AMessage, IMessage
-    {
-        public static WorldInit Create(bool autoReturn = true)
-        {
-            var worldInit = MessageObjectPool<WorldInit>.Rent();
-            worldInit.AutoReturn = autoReturn;
-            
-            if (!autoReturn)
-            {
-                worldInit.SetIsPool(false);
-            }
-            
-            return worldInit;
-        }
-        
-        public void Return()
-        {
-            if (!AutoReturn)
-            {
-                SetIsPool(true);
-                AutoReturn = true;
-            }
-            else if (!IsPool())
-            {
-                return;
-            }
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (!IsPool()) return; 
-            x_size = default;
-            y_size = default;
-            MessageObjectPool<WorldInit>.Return(this);
-        }
-        public uint OpCode() { return OuterOpcode.WorldInit; } 
-        [ProtoMember(1)]
-        public ulong x_size { get; set; }
-        [ProtoMember(2)]
-        public ulong y_size { get; set; }
     }
 }

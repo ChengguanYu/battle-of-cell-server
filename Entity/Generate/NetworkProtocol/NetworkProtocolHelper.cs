@@ -9,6 +9,31 @@ namespace Fantasy
    public static class NetworkProtocolHelper
    {
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void ShapeVertex(this Session session, ShapeVertex ShapeVertex_message)
+		{
+			session.Send(ShapeVertex_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void ShapeVertex(this Session session, long x, long y)
+		{
+			using var ShapeVertex_message = Fantasy.ShapeVertex.Create();
+			ShapeVertex_message.x = x;
+			ShapeVertex_message.y = y;
+			session.Send(ShapeVertex_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void ShapeData(this Session session, ShapeData ShapeData_message)
+		{
+			session.Send(ShapeData_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void ShapeData(this Session session, List<ShapeVertex> vertices)
+		{
+			using var ShapeData_message = Fantasy.ShapeData.Create();
+			ShapeData_message.vertices = vertices;
+			session.Send(ShapeData_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static async FTask<EntryHomeResp> EntryHomeReq(this Session session, EntryHomeReq EntryHomeReq_request)
 		{
 			return (EntryHomeResp)await session.Call(EntryHomeReq_request);
@@ -98,6 +123,20 @@ namespace Fantasy
 			session.Send(RespError_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WorldInit(this Session session, WorldInit WorldInit_message)
+		{
+			session.Send(WorldInit_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WorldInit(this Session session, ulong x_size, ulong y_size, List<ShapeData> shapes)
+		{
+			using var WorldInit_message = Fantasy.WorldInit.Create();
+			WorldInit_message.x_size = x_size;
+			WorldInit_message.y_size = y_size;
+			WorldInit_message.shapes = shapes;
+			session.Send(WorldInit_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static async FTask<MatchResp> MatchReq(this Session session, MatchReq MatchReq_request)
 		{
 			return (MatchResp)await session.Call(MatchReq_request);
@@ -119,19 +158,6 @@ namespace Fantasy
 		{
 			using var EntryRoomReq_request = Fantasy.EntryRoomReq.Create();
 			return (EntryRoomResp)await session.Call(EntryRoomReq_request);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void WorldInit(this Session session, WorldInit WorldInit_message)
-		{
-			session.Send(WorldInit_message);
-		}
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void WorldInit(this Session session, ulong x_size, ulong y_size)
-		{
-			using var WorldInit_message = Fantasy.WorldInit.Create();
-			WorldInit_message.x_size = x_size;
-			WorldInit_message.y_size = y_size;
-			session.Send(WorldInit_message);
 		}
 
    }
