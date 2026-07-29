@@ -28,6 +28,8 @@ public class BattleOfCellV1 : SimBase
     private const long TargetShapeArea = 50000;
     /// <summary>targetArea2 = 2 × TargetShapeArea，与 ShoelaceArea2 计量对齐。</summary>
     private const long TargetShapeArea2 = 2L * TargetShapeArea;
+    /// <summary>三角形最小内角（弧度）；20°，过滤过窄的退化三角形。</summary>
+    private const double MinInteriorAngleRad = 15.0 * global::System.Math.PI / 180.0;
 
     public BattleOfCellV1(SimulateConfig config, SimStateEntity simState) : base(config, simState)
     {
@@ -72,7 +74,7 @@ public class BattleOfCellV1 : SimBase
             else
             {
                 var tri = RandomTriangle(rng, w, h, TargetShapeArea2);
-                if (tri.IsDegenerate)
+                if (tri == null || tri.IsDegenerate)
                 {
                     continue;
                 }
@@ -120,7 +122,7 @@ public class BattleOfCellV1 : SimBase
     /// 流程：散布骨架（角点锚定原点）→ 鞋带算骨架 2×面积 → 整数缩放 k 使 k²×A0 靠近目标，
     /// 其中 k 在 floor/ceil 中选逼近更优者 → 随机平移落位。退化三角形照常返回交调用方判定。
     /// </summary>
-    private static Triangle RandomTriangle(global::System.Random rng, int w, int h, long targetArea2)
+    private static Triangle? RandomTriangle(global::System.Random rng, int w, int h, long targetArea2)
     {
         // 骨架："角点锚定原点"的相对坐标，三个顶点散布在 [TriangleMinSpan, TriangleMaxSpan]
         // 取正区间保证相对偏移非负，缩放不改变符号、避免 uint 下溢。
@@ -135,14 +137,13 @@ public class BattleOfCellV1 : SimBase
         long a0_2 = global::System.Math.Abs((bx - ax) * (cy - ay) - (cx - ax) * (by - ay));
         if (a0_2 == 0)
         {
-            // 退化：原样构造，交由调用方 IsDegenerate 重试。
-            return new Triangle(
-                new Vec2D<uint>((uint)global::System.Math.Clamp((int)ax, MapMargin, w - MapMargin),
-                                (uint)global::System.Math.Clamp((int)ay, MapMargin, h - MapMargin)),
-                new Vec2D<uint>((uint)global::System.Math.Clamp((int)bx, MapMargin, w - MapMargin),
-                                (uint)global::System.Math.Clamp((int)by, MapMargin, h - MapMargin)),
-                new Vec2D<uint>((uint)global::System.Math.Clamp((int)cx, MapMargin, w - MapMargin),
-                                (uint)global::System.Math.Clamp((int)cy, MapMargin, h - MapMargin)));
+            return null;
+        }
+
+        // 最小内角约束：任一内角 < 20° 视为过窄，丢弃重试。
+        if (MinAngle(ax, ay, bx, by, cx, cy) < MinInteriorAngleRad)
+        {
+            return null;
         }
 
         int k = PickScale(targetArea2, a0_2);
@@ -184,6 +185,28 @@ public class BattleOfCellV1 : SimBase
         long af = a0_2 * (long)kf * kf;
         long ac = a0_2 * (long)kc * kc;
         return global::System.Math.Abs(af - targetArea2) <= global::System.Math.Abs(ac - targetArea2) ? kf : kc;
+    }
+
+    /// <summary>
+    /// 返回三角形三个内角中的最小值（弧度）。
+    /// 用点积+叉积计算，避免 acos 精度问题：atan2(|叉|, 点) 直接给夹角。
+    /// </summary>
+    private static double MinAngle(long ax, long ay, long bx, long by, long cx, long cy)
+    {
+        double angA = VertexAngle(ax, ay, bx, by, cx, cy);
+        double angB = VertexAngle(bx, by, ax, ay, cx, cy);
+        double angC = VertexAngle(cx, cy, ax, ay, bx, by);
+        return global::System.Math.Min(angA, global::System.Math.Min(angB, angC));
+    }
+
+    /// <summary>顶点 (px,py) 处两条边 (→a) 和 (→b) 的夹角（弧度）。</summary>
+    private static double VertexAngle(long px, long py, long ax, long ay, long bx, long by)
+    {
+        long ux = ax - px, uy = ay - py;
+        long vx = bx - px, vy = by - py;
+        double cross = (double)(ux * vy - uy * vx);
+        double dot = (double)(ux * vx + uy * vy);
+        return global::System.Math.Abs(global::System.Math.Atan2(cross, dot));
     }
 
     /// <summary>Vec2D&lt;int&gt; 模板的鞋带 2×面积（long 运算，无除法）。</summary>
