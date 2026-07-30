@@ -18,4 +18,13 @@ public sealed class SimStateEntity
 
     /// <summary>形状只读视图。</summary>
     public IReadOnlyList<AbstShape> ShapeView => Shapes;
+
+    /// <summary>玩家实体位置表：实体 uid -> 坐标。与 RoomUidGeneratorEntity 生成的 uid 同值。</summary>
+    public readonly Dictionary<uint, Vec2D<uint>> Players = new();
+
+    /// <summary>userId -> uid 正向映射（仅 Player 实体需要，供 LeaveRoom 回溯）。</summary>
+    public readonly Dictionary<long, uint> UidByUserId = new();
+
+    /// <summary>uid -> userId 反向映射（仅 Player 实体需要）。</summary>
+    public readonly Dictionary<uint, long> UserIdByUid = new();
 }

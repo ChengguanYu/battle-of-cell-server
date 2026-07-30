@@ -59,19 +59,20 @@ public sealed partial class RoomsService
                     resp.world.shapes = ShapeDataBuilder.Build(simBase.SimState.ShapeView);
                     Log.Info($"RoomsService.EntryRoom 下发世界形状: room={roomId}, shapes={resp.world.shapes.Count}, userId={userId}");
 
-                   // 从模拟器生成玩家出生坐标（默认半径 20px，超过重试次数则回卷入房）
-                    if (simBase.TryGenerateCoord(out var coord))
-                   {
+                    // 生成实体 uid 并注册到模拟器
+                    if (Manager.TryGetById(roomId, out var room) && room != null && room.TryNextUid(out var uid)
+                        && simBase.AddPlayer((uint)uid, userId, out var coord))
+                    {
                         resp.position = Position2d.Create();
                         resp.position.x = (int)coord.X;
                         resp.position.y = (int)coord.Y;
-                        Log.Info($"RoomsService.EntryRoom 生成出生坐标: userId={userId}, x={coord.X}, y={coord.Y}");
+                        Log.Info($"RoomsService.EntryRoom 玩家注册模拟器: userId={userId}, uid={uid}, x={coord.X}, y={coord.Y}");
                     }
                     else
                     {
-                        Log.Warning($"RoomsService.EntryRoom 生成坐标失败，回卷入房: userId={userId}, roomId={roomId}");
-                        Manager.LeaveRoom(userId, reason: "coord_gen_failed");
-                        entryResult = InnerResult.Fail("坐标生成失败", userId, roomId);
+                        Log.Warning($"RoomsService.EntryRoom 注册玩家失败，回卷入房: userId={userId}, roomId={roomId}");
+                        Manager.LeaveRoom(userId, reason: "add_player_failed");
+                        entryResult = InnerResult.Fail("注册玩家失败", userId, roomId);
                     }
                 }
                 // TODO: simManager.TryGet 失败时（极低概率，仅当房间在 Entry 后被外部队列抢先删掉），

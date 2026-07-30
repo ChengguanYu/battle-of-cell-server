@@ -1,5 +1,6 @@
 using Entity.Simulation;
 using Entity.Simulation.Shape;
+using Fantasy;
 using Fantasy.Async;
 using Hotfix.Simulation.Abstractions.Config;
 
@@ -37,6 +38,49 @@ public abstract class SimBase : ISimulation
     }
 
     public abstract FTask SimTickAsync();
+
+    /// <summary>
+    /// 为玩家实体生成出生坐标并注册到模拟器。玩家已存在时返回 false。
+    /// </summary>
+    public bool AddPlayer(uint uid, long userId, out Vec2D<uint> position)
+    {
+        position = default!;
+        if (SimState.Players.ContainsKey(uid))
+        {
+            Log.Warning($"[SimBase] AddPlayer 失败：玩家已存在, uid={uid}");
+            return false;
+        }
+
+        if (!TryGenerateCoord(out var coord))
+        {
+            Log.Warning($"[SimBase] AddPlayer 失败：无法生成合法坐标, uid={uid}");
+            return false;
+        }
+
+        SimState.Players[uid] = coord;
+        SimState.UidByUserId[userId] = uid;
+        SimState.UserIdByUid[uid] = userId;
+        position = coord;
+        Log.Debug($"[SimBase] AddPlayer 成功: uid={uid}, x={coord.X}, y={coord.Y}");
+        return true;
+    }
+
+    /// <summary>
+    /// 玩家离房时从模拟器清除位置和映射。
+    /// </summary>
+    public void RemovePlayer(long userId)
+    {
+        if (!SimState.UidByUserId.TryGetValue(userId, out var uid))
+        {
+            Log.Debug($"[SimBase] RemovePlayer 跳过：玩家未注册, userId={userId}");
+            return;
+        }
+
+        SimState.Players.Remove(uid);
+        SimState.UserIdByUid.Remove(uid);
+        SimState.UidByUserId.Remove(userId);
+        Log.Debug($"[SimBase] RemovePlayer: userId={userId}, uid={uid}");
+    }
 
     /// <summary>
     /// 检查世界坐标是否合法：在地图边界内，且不在任何形状内部。

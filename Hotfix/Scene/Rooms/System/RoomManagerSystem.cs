@@ -3,6 +3,7 @@ using Entity.Managers;
 using Entity.Runtime.room;
 using Entity.VOs.room;
 using Fantasy;
+using Hotfix.Simulation.Abstractions;
 using Hotfix.Simulation.System;
 using SimManager = Entity.Managers.SimulationManagerEntity;
 
@@ -150,6 +151,13 @@ public static class RoomManagerSystem
         if (!room.TryRemoveMember(userId))
         {
             return false;
+        }
+
+        // 玩家离房时从模拟器清除（幂等：未注册时静默跳过）
+        var simManager = self.Scene?.GetComponent<SimulationManagerEntity>();
+        if (simManager != null && simManager.TryGet(roomId, out var sim) && sim is SimBase simBase)
+        {
+            simBase.RemovePlayer(userId);
         }
 
         if (room.MemberCount == 0 && room.IsOpened())
