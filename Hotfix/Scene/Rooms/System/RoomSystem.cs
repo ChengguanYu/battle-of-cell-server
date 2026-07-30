@@ -3,6 +3,7 @@ using Entity.Managers;
 using Entity.Runtime.room;
 using Entity.VOs.room;
 using Fantasy;
+using Hotfix.Simulation.System;
 
 namespace Hotfix.Scene.Rooms.System;
 
@@ -252,6 +253,12 @@ public static class RoomSystem
     public static void OnTick(this RoomEntity self, long tickIndex)
     {
         self.FrameSync.OnTick(tickIndex, self.MemberUserIds);
+    
+        var simManager = self.Manager.Scene?.GetComponent<SimulationManagerEntity>();
+        if (simManager != null && simManager.TryGet(self.RoomId, out var sim) && sim != null)
+        {
+            _ = sim.SimTickAsync();
+        }
     }
 
     public static bool TryAppendClientOps(

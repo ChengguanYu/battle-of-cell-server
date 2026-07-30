@@ -17,6 +17,7 @@ public class BattleOfCellV1 : SimBase
 
     public override async FTask SimTickAsync()
     {
+        Log.Debug("[BattleOfCellV1] SimTickAsync called");
         // TODO: 实现 V1 的仿真步进逻辑
         await FTask.CompletedTask;
     }
