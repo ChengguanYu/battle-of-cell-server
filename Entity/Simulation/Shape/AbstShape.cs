@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 namespace Entity.Simulation.Shape;
 
-/// <summary>世界中的形状基类。顶点为整数坐标，满足帧同步确定性。</summary>
+/// <summary>世界中的形状基类。顶点存储为 uint（像素坐标），几何计算内部以 ×1000 定点数精度进行，
+/// 确保与服务端、客户端帧同步判定完全一致。</summary>
 public abstract class AbstShape
 {
     protected List<Vec2D<uint>> _vecs = new();
@@ -109,8 +110,9 @@ public abstract class AbstShape
     }
 
     /// <summary>
-    /// 线段 (p1,p2) 与 (p3,p4) 是否相交（含端点/共线接触）。
-    /// 规范相交用叉积同号法，退化情形（叉积为 0）退化为端点落在线段框内判定。
+    /// 线段 (p1,p2) 与 (p3,p4) 是否严格交叉（不含端点/共线接触）。
+    /// 仅检测定向叉积符号相反的规范相交，对齐客户端 segmentsIntersect。
+    /// 退化情形（叉积为 0）视为不相交，叠边/共线/端点接触由调用方自行兜底。
     /// </summary>
     protected static bool SegmentsIntersect(Vec2D<uint> p1, Vec2D<uint> p2, Vec2D<uint> p3, Vec2D<uint> p4)
     {
@@ -125,22 +127,7 @@ public abstract class AbstShape
             return true;
         }
 
-        if (d1 == 0 && OnSegment(p3, p4, p1)) return true;
-        if (d2 == 0 && OnSegment(p3, p4, p2)) return true;
-        if (d3 == 0 && OnSegment(p1, p2, p3)) return true;
-        if (d4 == 0 && OnSegment(p1, p2, p4)) return true;
-
         return false;
-    }
-
-    /// <summary>已知 q 在 p1p2 所在直线上时，q 是否落在线段 p1p2 框内（含端点）。</summary>
-    protected static bool OnSegment(Vec2D<uint> p1, Vec2D<uint> p2, Vec2D<uint> q)
-    {
-        long minx = Math.Min((long)p1.X, (long)p2.X);
-        long maxx = Math.Max((long)p1.X, (long)p2.X);
-        long miny = Math.Min((long)p1.Y, (long)p2.Y);
-        long maxy = Math.Max((long)p1.Y, (long)p2.Y);
-        return q.X >= minx && q.X <= maxx && q.Y >= miny && q.Y <= maxy;
     }
 
     /// <summary>
@@ -196,4 +183,18 @@ public abstract class AbstShape
     }
 
     public abstract bool PointIsInShape(Vec2D<uint> point);
+
+
+
+    /// <summary>
+    /// ×1000 定点数精度的点包含测试，对齐客户端 pointInPolygon 语义。
+    /// 默认实现截断到 uint 像素后调用 PointIsInShape(Vec2D<uint>)，
+    /// 子类（如 ConcavePolygon）应重写为 ×1000 精度实现。
+    /// </summary>
+    public virtual bool PointIsInShape1000(long px1000, long py1000)
+    {
+        return PointIsInShape(new Vec2D<uint>(
+            px1000 >= 0 ? (uint)(px1000 / 1000) : 0u,
+            py1000 >= 0 ? (uint)(py1000 / 1000) : 0u));
+    }
 }

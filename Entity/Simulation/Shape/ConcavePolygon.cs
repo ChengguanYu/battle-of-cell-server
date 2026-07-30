@@ -3,12 +3,14 @@ using System.Collections.Generic;
 namespace Entity.Simulation.Shape;
 
 /// <summary>
-/// 凹多边形：顶点按边界顺序（顺/逆时针）依次给出，允许存在内凹顶点。
+/// 凹多边形：顶点按边界顺序（顺/逆时针）依次给出，允许存在内凹多边形。
 /// 与凸多边形的 SAT 路径不同，相交判定走基类通用算法（逐边线段相交 + 顶点包含），
- /// 点包含采用射线计数法，全程整数运算，满足帧同步确定性。
+/// 点包含采用射线计数法，内部以 ×1000 定点数精度计算射线交点（对齐客户端 idiv 语义），
+/// 全程整数运算，满足帧同步确定性。
 /// </summary>
 public sealed class ConcavePolygon : AbstShape
 {
+    /// <summary>
     public ConcavePolygon(List<Vec2D<uint>> vertices) : base(vertices)
     {
     }
@@ -16,45 +18,44 @@ public sealed class ConcavePolygon : AbstShape
     /// <summary>凹多边形非凸。</summary>
     public override bool IsConvex => false;
 
-    /// <summary>
-    /// 点是否落在多边形内部（含边界）。用水平射线计数法，全程整数交叉相乘，无除法。
-    /// 边界点判定不保证稳定，但其相交场景的边界接触由 SegmentsIntersect 兜底。
+    /// 点是否落在多边形内部（含边界）。uint 入口→×1000 委托给 PointIsInShape1000。
     /// </summary>
     public override bool PointIsInShape(Vec2D<uint> point)
     {
+        return PointIsInShape1000((long)point.X * 1000, (long)point.Y * 1000);
+    }
+
+    /// <summary>
+    /// ×1000 定点数精度的点包含测试（射线计数法），对齐客户端 pointInPolygon。
+    /// 顶点转为 ×1000 再参与计算，保证 sub-pixel 偏移也能正确判定。
+    /// </summary>
+    public override bool PointIsInShape1000(long px1000, long py1000)
+    {
         var v = _vecs;
         int n = v.Count;
-        if (n < 3)
-        {
-            return false;
-        }
+        if (n < 3) return false;
 
         bool inside = false;
-        long py = point.Y;
-        long px = point.X;
-
         for (int i = 0, j = n - 1; i < n; j = i++)
         {
-            long xi = v[i].X;
-            long yi = v[i].Y;
-            long xj = v[j].X;
-            long yj = v[j].Y;
+            // 顶点升到 ×1000 再比较，保证跨尺度一致性
+            long xi1000 = (long)v[i].X * 1000;
+            long yi1000 = (long)v[i].Y * 1000;
+            long xj1000 = (long)v[j].X * 1000;
+            long yj1000 = (long)v[j].Y * 1000;
 
-            // 水平射线 y=py 是否穿越边 (j->i)
-            if ((yi > py) != (yj > py))
+            if ((yi1000 > py1000) != (yj1000 > py1000))
             {
-                long dy = yj - yi;
-                long num = (xj - xi) * (py - yi);
-                long compare = (px - xi) * dy;
-
-                // 交点相对 xi 的偏移 num/dy 是否在 px-xi 右侧，按 dy 符号变换不等号
-                if ((dy > 0 && num > compare) || (dy < 0 && num < compare))
+                // 在 ×1000 空间下计算射线交点
+                long num = (xj1000 - xi1000) * (py1000 - yi1000);
+                long dy = yj1000 - yi1000;
+                long intersectX1000 = xi1000 + num / dy;
+                if (px1000 < intersectX1000)
                 {
                     inside = !inside;
                 }
             }
         }
-
         return inside;
     }
 
