@@ -1,6 +1,7 @@
 using Entity.Simulation;
 using Entity.Simulation.Shape;
 using Fantasy;
+using Fantasy.Async;
 using Hotfix.Simulation.Abstractions;
 using Hotfix.Simulation.Abstractions.Config;
 using Hotfix.Simulation.Generation;
@@ -14,9 +15,10 @@ public class BattleOfCellV1 : SimBase
         WorldGenerator.Generate(SimState, Config.World, Config.Seed);
     }
 
-    public override void SimTick()
+    public override async FTask SimTickAsync()
     {
         // TODO: 实现 V1 的仿真步进逻辑
+        await FTask.CompletedTask;
     }
 
     /// <summary>

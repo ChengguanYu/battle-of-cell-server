@@ -1,3 +1,5 @@
+using Fantasy.Async;
+
 namespace Entity.Simulation;
 
 /// <summary>
@@ -8,5 +10,5 @@ public interface ISimulation
 {
     public void Run();
     public void Stop();
-    public void SimTick();
+    public FTask SimTickAsync();
 }

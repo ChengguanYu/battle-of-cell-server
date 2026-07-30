@@ -1,5 +1,6 @@
 using Entity.Simulation;
 using Entity.Simulation.Shape;
+using Fantasy.Async;
 using Hotfix.Simulation.Abstractions.Config;
 
 namespace Hotfix.Simulation.Abstractions;
@@ -35,7 +36,7 @@ public abstract class SimBase : ISimulation
         SimState.State = Entity.Simulation.SimState.Stop;
     }
 
-    public abstract void SimTick();
+    public abstract FTask SimTickAsync();
 
     /// <summary>
     /// 检查世界坐标是否合法：在地图边界内，且不在任何形状内部。
