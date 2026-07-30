@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Entity.Simulation.Shape;
+using Fantasy;
 
 namespace Entity.Simulation;
 
@@ -27,4 +28,7 @@ public sealed class SimStateEntity
 
     /// <summary>uid -> userId 反向映射（仅 Player 实体需要）。</summary>
     public readonly Dictionary<uint, long> UserIdByUid = new();
+
+    /// <summary>延迟帧广播后写入的聚合帧。SimTickAsync 消费后 Dispose 并置 null。</summary>
+    public ServerFrame? PendingSimFrame { get; set; }
 }

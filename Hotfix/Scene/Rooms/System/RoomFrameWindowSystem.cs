@@ -21,6 +21,15 @@ public static class RoomFrameWindowSystem
         }
     }
 
+    /// <summary>偷窥帧内容（不检查 Clearable 标记）。广播标记 Clearable 后同一 tick 内仍可读。</summary>
+    public static bool TryPeek(this RoomFrameWindowEntity self, ulong frameNumber, out ServerFrame? frame)
+    {
+        var index = SlotIndex(self, frameNumber);
+        ref var slot = ref self.Slots[index];
+        frame = !slot.Occupied || !Matches(slot, frameNumber) ? null : slot.Frame;
+        return frame != null;
+    }
+
     public static bool IsOccupied(this RoomFrameWindowEntity self, ulong frameNumber)
     {
         ref var slot = ref self.Slots[SlotIndex(self, frameNumber)];

@@ -17,14 +17,46 @@ public class BattleOfCellV1 : SimBase
 
     public override async FTask SimTickAsync()
     {
-        Log.Debug("[BattleOfCellV1] SimTickAsync called");
-        // TODO: 实现 V1 的仿真步进逻辑
+        // 打玩家位置（与聚合帧无关）
+        if (SimState.Players.Count == 0)
+        {
+            Log.Debug("房间内无玩家");
+        }
+        else
+        {
+            var posLog = "玩家位置:";
+            foreach (var kv in SimState.Players)
+            {
+                posLog += $" [{kv.Key}]({kv.Value.X},{kv.Value.Y})";
+            }
+            Log.Debug(posLog);
+        }
+
+        // 消费聚合帧
+        var frame = SimState.PendingSimFrame;
+        if (frame != null)
+        {
+            var log = $"聚合帧 #{frame.frame_number}";
+            if (frame.frames is { Count: > 0 })
+            {
+                foreach (var op in frame.frames)
+                {
+                    log += $" [op={op.op} eid={op.data?.eid}]";
+                }
+            }
+            else
+            {
+                log += " 无玩家操作";
+            }
+            Log.Debug(log);
+
+            frame.Dispose();
+            SimState.PendingSimFrame = null;
+        }
+
         await FTask.CompletedTask;
     }
 
-    /// <summary>
-    /// V1 随机生成：在安全区域内随机采样，通过 IsCircleValid 检测碰撞。
-    /// </summary>
     public override bool TryGenerateCoord(out Vec2D<uint> coord, uint radius = DefaultSpawnRadius, int maxAttempts = DefaultSpawnMaxAttempts)
     {
         coord = default!;
