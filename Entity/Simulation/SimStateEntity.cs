@@ -48,6 +48,8 @@ public class PlayerSimData
     public long Vx;
     /// <summary>fix: 速度 Y（px/s × 1000）</summary>
     public long Vy;
+    /// <summary>fix: 本次发射/反弹后的合成速度（px/s × 1000），用于对齐客户端动态子步。</summary>
+    public long InitSpeed;
     /// <summary>fix: 单位方向 X（×1000）</summary>
     public long DirX;
     /// <summary>fix: 单位方向 Y（×1000）</summary>

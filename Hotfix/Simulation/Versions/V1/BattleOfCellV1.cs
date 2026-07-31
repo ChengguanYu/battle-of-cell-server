@@ -7,7 +7,7 @@ using Hotfix.Simulation.Abstractions.Config;
 using Hotfix.Simulation.Generation;
 
 namespace Hotfix.Simulation.Versions.V1;
-
+//TODO:模拟器方案先弃用
 public class BattleOfCellV1 : SimBase
 {
     private ulong _logicFrameIndex;
@@ -54,8 +54,12 @@ public class BattleOfCellV1 : SimBase
 
                 if (op.op == Op.LAUNCH && op.data != null && op.data.direction != null && SimState.PlayerSimData.TryGetValue(op.data.eid, out var pd))
                 {
-                    pd.Vx += (op.data.direction.x * op.data.speed) / FIXED_SCALE;
-                    pd.Vy += (op.data.direction.y * op.data.speed) / FIXED_SCALE;
+                    log += $" dir=({op.data.direction.x},{op.data.direction.y}) speed={op.data.speed}";
+                    pd.Vx += FixedMul(op.data.direction.x, op.data.speed);
+                    pd.Vy += FixedMul(op.data.direction.y, op.data.speed);
+                    pd.InitSpeed = FixedHypot(pd.Vx, pd.Vy);
+                    pd.DirX = pd.InitSpeed == 0 ? 0 : FixedDiv(pd.Vx, pd.InitSpeed);
+                    pd.DirY = pd.InitSpeed == 0 ? 0 : FixedDiv(pd.Vy, pd.InitSpeed);
                 }
             }
         }
@@ -72,44 +76,78 @@ public class BattleOfCellV1 : SimBase
 
     private void TickPhysics()
     {
-        const long dt = 50; // 0.05s × 1000
         long mapX = (long)Config.World.Map.X * FIXED_SCALE;
         long mapY = (long)Config.World.Map.Y * FIXED_SCALE;
         long radius = DEFAULT_RADIUS;
+        const int ClientFramesPerSimTick = 3; // 50ms 模拟周期 / (1000/60 ms)
 
         foreach (var kv in SimState.PlayerSimData)
         {
             var pd = kv.Value;
-
-            // 减速
-            long speed = FixedHypot(pd.Vx, pd.Vy);
-            if (speed > 0)
+            if (pd.Vx == 0 && pd.Vy == 0)
             {
-                long decelAmount = FixedMul(DEFAULT_DECEL, dt);
-                if (decelAmount >= speed)
-                {
-                    pd.Vx = 0;
-                    pd.Vy = 0;
-                }
-                else
-                {
-                    long newSpeed = speed - decelAmount;
-                    long ratio = FixedDiv(newSpeed, speed);
-                    pd.Vx = FixedMul(pd.Vx, ratio);
-                    pd.Vy = FixedMul(pd.Vy, ratio);
-                }
+                continue;
             }
 
-            // 位置更新
-            pd.X += FixedMul(pd.Vx, dt);
-            pd.Y += FixedMul(pd.Vy, dt);
-
-            // 世界边界 clamp（停止不反弹）
-            if (pd.X < radius) { pd.X = radius; pd.Vx = 0; }
-            if (pd.X > mapX - radius) { pd.X = mapX - radius; pd.Vx = 0; }
-            if (pd.Y < radius) { pd.Y = radius; pd.Vy = 0; }
-            if (pd.Y > mapY - radius) { pd.Y = mapY - radius; pd.Vy = 0; }
+            for (int i = 0; i < ClientFramesPerSimTick && (pd.Vx != 0 || pd.Vy != 0); i++)
+            {
+                RunClientFrame(pd, mapX, mapY, radius);
+            }
         }
+    }
+
+    private void RunClientFrame(PlayerSimData pd, long mapX, long mapY, long radius)
+    {
+        if (pd.InitSpeed <= 0)
+        {
+            TickPlayer(pd, SimTickIntervalMs, mapX, mapY, radius);
+            return;
+        }
+
+        // 对齐客户端 useHero：每帧先按 initSpeed 定子步，再处理 1/60s 的剩余时间。
+        double initSpeedReal = pd.InitSpeed / (double)FIXED_SCALE;
+        double radiusReal = DEFAULT_RADIUS / (double)FIXED_SCALE;
+        double subDt = Math.Min(1.0 / 60.0, (radiusReal / initSpeedReal) * 0.5);
+        double remaining = 1.0 / 60.0;
+        while (remaining > 0 && (pd.Vx != 0 || pd.Vy != 0))
+        {
+            double step = Math.Min(subDt, remaining);
+            long dt = (long)Math.Floor(step * FIXED_SCALE + 0.5);
+            TickPlayer(pd, dt, mapX, mapY, radius);
+            remaining -= step;
+        }
+    }
+
+    private void TickPlayer(PlayerSimData pd, long dt, long mapX, long mapY, long radius)
+    {
+        // 位置更新（先位移再减速，对齐客户端 Hero.update 的积分顺序）
+        pd.X += FixedMul(pd.Vx, dt);
+        pd.Y += FixedMul(pd.Vy, dt);
+
+        // 减速
+        long speed = FixedHypot(pd.Vx, pd.Vy);
+        if (speed > 0)
+        {
+            long decelAmount = FixedMul(DEFAULT_DECEL, dt);
+            if (decelAmount >= speed)
+            {
+                pd.Vx = 0;
+                pd.Vy = 0;
+            }
+            else
+            {
+                long newSpeed = speed - decelAmount;
+                long ratio = FixedDiv(newSpeed, speed);
+                pd.Vx = FixedMul(pd.Vx, ratio);
+                pd.Vy = FixedMul(pd.Vy, ratio);
+            }
+        }
+
+        // 世界边界 clamp（停止不反弹）
+        if (pd.X < radius) { pd.X = radius; pd.Vx = 0; }
+        if (pd.X > mapX - radius) { pd.X = mapX - radius; pd.Vx = 0; }
+        if (pd.Y < radius) { pd.Y = radius; pd.Vy = 0; }
+        if (pd.Y > mapY - radius) { pd.Y = mapY - radius; pd.Vy = 0; }
     }
 
     private void LogPositions()

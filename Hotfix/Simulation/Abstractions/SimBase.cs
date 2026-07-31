@@ -66,9 +66,48 @@ public abstract class SimBase : ISimulation
     protected virtual void OnSimTimerTick() { SimTickAsync(); }
 
     // ===== 定点数工具（对齐客户端 fixed.ts） =====
-    protected static long FixedMul(long a, long b) => (a * b) / FIXED_SCALE;
-    protected static long FixedDiv(long a, long b) => b == 0 ? 0 : (a * FIXED_SCALE) / b;
-    protected static long FixedHypot(long x, long y) => SqrtU64(x * x + y * y);
+    protected static long FixedMul(long a, long b) => RoundDiv(a * b, FIXED_SCALE);
+    protected static long FixedDiv(long a, long b) => b == 0 ? 0 : RoundDiv(a * FIXED_SCALE, b);
+    protected static long FixedHypot(long x, long y) => RoundSqrt(x * x + y * y);
+
+    /// <summary>JS Math.round 语义：floor(x + 0.5)，不要用 C# Math.Round 的银行家舍入。</summary>
+    protected static long RoundDiv(long numerator, long denominator)
+    {
+        if (denominator < 0)
+        {
+            numerator = -numerator;
+            denominator = -denominator;
+        }
+
+        long quotient = numerator / denominator;
+        long remainder = numerator % denominator;
+        if (2 * remainder >= denominator)
+        {
+            quotient++;
+        }
+        else if (2 * remainder < -denominator)
+        {
+            quotient--;
+        }
+
+        return quotient;
+    }
+
+    /// <summary>整数平方根按 JS Math.round 语义取最近整数。</summary>
+    private static long RoundSqrt(long n)
+    {
+        if (n < 0) return 0;
+
+        long root = SqrtU64(n);
+        long remainder = n - root * root;
+        long nextDiff = 2 * root + 1;
+        if (2 * remainder > nextDiff)
+        {
+            root++;
+        }
+
+        return root;
+    }
 
     /// <summary>
     /// 为玩家实体生成出生坐标并注册到模拟器。玩家已存在时返回 false。
