@@ -8,6 +8,19 @@ namespace Hotfix.Simulation.Abstractions;
 
 public abstract class SimBase : ISimulation
 {
+    // ===== 定点数常量（对齐客户端 FIXED_SCALE=1000） =====
+    protected const long FIXED_SCALE = 1000;
+    protected const long DEFAULT_DECEL = 200 * FIXED_SCALE;
+    protected const long DEFAULT_MAX_SPEED = 150 * FIXED_SCALE;
+    protected const long DEFAULT_RADIUS = 20 * FIXED_SCALE;
+    protected const long DEFAULT_ELASTICITY = 700;
+
+    // ===== 独立循环（20Hz，对齐客户端 VITE_TICK=20） =====
+    private Fantasy.Scene? _scene;
+    private long _timerId;
+    protected const int SimTickIntervalMs = 50;
+    public void SetScene(Fantasy.Scene scene) => _scene = scene;
+
     /// <summary>模拟器内部状态实体（Entity 层，跨热更）。逻辑层只读写不持有副本。</summary>
     public SimStateEntity SimState { get; }
 
@@ -26,6 +39,8 @@ public abstract class SimBase : ISimulation
             throw new SimStateException(SimState.State, Entity.Simulation.SimState.Create, nameof(Run));
         }
         SimState.State = Entity.Simulation.SimState.Running;
+
+        StartTimer();
     }
 
     public void Stop()
@@ -35,9 +50,25 @@ public abstract class SimBase : ISimulation
             throw new SimStateException(SimState.State, Entity.Simulation.SimState.Running, nameof(Stop));
         }
         SimState.State = Entity.Simulation.SimState.Stop;
+
+        StopTimer();
     }
 
     public abstract FTask SimTickAsync();
+
+    // ===== 定时器 =====
+    private void StartTimer()
+    {
+        if (_scene == null) { Log.Warning("[SimBase] StartTimer 跳过"); return; }
+        _timerId = FTask.RepeatedTimer(_scene, SimTickIntervalMs, OnSimTimerTick);
+    }
+    private void StopTimer() { if (_timerId != 0 && _scene != null) FTask.RemoveTimer(_scene, ref _timerId); _timerId = 0; }
+    protected virtual void OnSimTimerTick() { SimTickAsync(); }
+
+    // ===== 定点数工具（对齐客户端 fixed.ts） =====
+    protected static long FixedMul(long a, long b) => (a * b) / FIXED_SCALE;
+    protected static long FixedDiv(long a, long b) => b == 0 ? 0 : (a * FIXED_SCALE) / b;
+    protected static long FixedHypot(long x, long y) => SqrtU64(x * x + y * y);
 
     /// <summary>
     /// 为玩家实体生成出生坐标并注册到模拟器。玩家已存在时返回 false。
@@ -58,6 +89,7 @@ public abstract class SimBase : ISimulation
         }
 
         SimState.Players[uid] = coord;
+        SimState.PlayerSimData[uid] = new PlayerSimData { X = (long)coord.X * FIXED_SCALE, Y = (long)coord.Y * FIXED_SCALE, Vx = 0, Vy = 0, DirX = 0, DirY = 0 };
         SimState.UidByUserId[userId] = uid;
         SimState.UserIdByUid[uid] = userId;
         position = coord;
@@ -77,6 +109,7 @@ public abstract class SimBase : ISimulation
         }
 
         SimState.Players.Remove(uid);
+        SimState.PlayerSimData.Remove(uid);
         SimState.UserIdByUid.Remove(uid);
         SimState.UidByUserId.Remove(userId);
         Log.Debug($"[SimBase] RemovePlayer: userId={userId}, uid={uid}");

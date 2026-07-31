@@ -255,42 +255,8 @@ public static class RoomSystem
     public static void OnTick(this RoomEntity self, long tickIndex)
     {
         self.FrameSync.OnTick(tickIndex, self.MemberUserIds);
-
-        // 将延迟广播后的聚合帧写入模拟器状态
-        if (tickIndex >= RoomConfig.DelayFrame)
-        {
-            var delayFrameNumber = (ulong)(tickIndex - RoomConfig.DelayFrame);
-            PassAggregatedFrame(self, delayFrameNumber);
-        }
-
-        var simManager = self.Manager.Scene?.GetComponent<SimulationManagerEntity>();
-        if (simManager != null && simManager.TryGet(self.RoomId, out var sim) && sim != null)
-        {
-            _ = sim.SimTickAsync();
-        }
     }
 
-    private static void PassAggregatedFrame(RoomEntity self, ulong frameNumber)
-    {
-        var simManager = self.Manager.Scene?.GetComponent<SimulationManagerEntity>();
-        if (simManager == null)
-            return;
-
-        if (!simManager.StateByRoomId.TryGetValue(self.RoomId, out var simState) || simState == null)
-            return;
-
-        // 归还上次 SimTickAsync 没消费的帧
-        if (simState.PendingSimFrame != null)
-        {
-            simState.PendingSimFrame.Dispose();
-            simState.PendingSimFrame = null;
-        }
-
-        if (!self.FrameSync.FrameWindow.TryPeek(frameNumber, out var buffered) || buffered == null)
-            return;
-
-        simState.PendingSimFrame = FrameMessageUtil.CreateServerFrameForSend(buffered);
-    }
 
     public static bool TryAppendClientOps(
         this RoomEntity self,

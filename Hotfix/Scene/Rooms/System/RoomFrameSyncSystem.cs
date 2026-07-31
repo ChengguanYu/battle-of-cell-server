@@ -38,6 +38,7 @@ public static class RoomFrameSyncSystem
         }
 
         BroadcastFrame(self, (ulong)(tickIndex - delayFrame), memberUserIds);
+        FeedSimulatorFrame(self, (ulong)(tickIndex - delayFrame));
     }
 
     public static bool TryAppendClientOps(
@@ -157,4 +158,26 @@ public static class RoomFrameSyncSystem
             }
         }
     }
+    private static void FeedSimulatorFrame(RoomFrameSyncEntity self, ulong frameNumber)
+    {
+        var simManager = self.Room.Manager.Scene?.GetComponent<SimulationManagerEntity>();
+        if (simManager == null)
+            return;
+
+        if (!simManager.StateByRoomId.TryGetValue(self.Room.RoomId, out var simState) || simState == null)
+            return;
+
+        if (!self.FrameWindow.TryPeek(frameNumber, out var buffered) || buffered == null)
+            return;
+
+        // 归还上次没被模拟器消费的帧
+        if (simState.PendingSimFrame != null)
+        {
+            simState.PendingSimFrame.Dispose();
+            simState.PendingSimFrame = null;
+        }
+
+        simState.PendingSimFrame = FrameMessageUtil.CreateServerFrameForSend(buffered);
+    }
+
 }

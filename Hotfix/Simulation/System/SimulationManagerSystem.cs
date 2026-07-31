@@ -1,4 +1,5 @@
 using Entity.Managers;
+using Hotfix.Simulation.Abstractions;
 using Entity.Simulation;
 using Fantasy;
 using Hotfix.Simulation.Abstractions.Config;
@@ -6,9 +7,9 @@ using Hotfix.Simulation.Versions.V1;
 
 namespace Hotfix.Simulation.System;
 
-/// <summary>
-/// 模拟器管理器扩展方法：房间与模拟器 1:1 绑定的逻辑。
-/// 字段持有在 <see cref="SimulationManagerEntity"/>，逻辑在此。
+    /// <summary>
+    /// 为房间创建模拟器。roomId 已存在则失败。成功时通过 sim 返回实例，自动启动独立循环。
+    /// </summary>
 /// </summary>
 public static class SimulationManagerSystem
 {
@@ -39,6 +40,8 @@ public static class SimulationManagerSystem
             }
 
             sim = newSim;
+            ((SimBase)newSim).SetScene(self.Scene);
+            newSim.Run();
             return true;
         }
 

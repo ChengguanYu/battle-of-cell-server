@@ -21,14 +21,35 @@ public sealed class SimStateEntity
     public IReadOnlyList<AbstShape> ShapeView => Shapes;
 
     /// <summary>玩家实体位置表：实体 uid -> 坐标。与 RoomUidGeneratorEntity 生成的 uid 同值。</summary>
-    public readonly Dictionary<uint, Vec2D<uint>> Players = new();
+   public readonly Dictionary<uint, Vec2D<uint>> Players = new();
+    /// <summary>模拟器物理状态：玩家 uid -> 定点数位置/速度/方向（×1000 精度）。</summary>
+    public readonly Dictionary<uint, PlayerSimData> PlayerSimData = new();
 
-    /// <summary>userId -> uid 正向映射（仅 Player 实体需要，供 LeaveRoom 回溯）。</summary>
-    public readonly Dictionary<long, uint> UidByUserId = new();
+   /// <summary>userId -> uid 正向映射（仅 Player 实体需要，供 LeaveRoom 回溯）。</summary>
+   public readonly Dictionary<long, uint> UidByUserId = new();
 
-    /// <summary>uid -> userId 反向映射（仅 Player 实体需要）。</summary>
-    public readonly Dictionary<uint, long> UserIdByUid = new();
+   /// <summary>uid -> userId 反向映射（仅 Player 实体需要）。</summary>
+   public readonly Dictionary<uint, long> UserIdByUid = new();
 
-    /// <summary>延迟帧广播后写入的聚合帧。SimTickAsync 消费后 Dispose 并置 null。</summary>
-    public ServerFrame? PendingSimFrame { get; set; }
+   /// <summary>延迟帧广播后写入的聚合帧。SimTickAsync 消费后 Dispose 并置 null。</summary>
+   public ServerFrame? PendingSimFrame { get; set; }
+}
+/// <summary>
+/// 模拟器中玩家的运动状态（定点数 ×1000 精度）。
+/// 属性与客户端 Entity/Hero 的 _x/_y/_vx/_vy/_dirX/_dirY 对齐。
+/// </summary>
+public class PlayerSimData
+{
+    /// <summary>fix: 世界坐标 X（px × 1000）</summary>
+    public long X;
+    /// <summary>fix: 世界坐标 Y（px × 1000）</summary>
+    public long Y;
+    /// <summary>fix: 速度 X（px/s × 1000）</summary>
+    public long Vx;
+    /// <summary>fix: 速度 Y（px/s × 1000）</summary>
+    public long Vy;
+    /// <summary>fix: 单位方向 X（×1000）</summary>
+    public long DirX;
+    /// <summary>fix: 单位方向 Y（×1000）</summary>
+    public long DirY;
 }

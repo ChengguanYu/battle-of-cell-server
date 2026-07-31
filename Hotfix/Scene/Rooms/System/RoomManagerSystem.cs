@@ -103,8 +103,6 @@ public static class RoomManagerSystem
             return null;
         }
 
-        // 状态转移：Created -> Running，由房间创建方显式驱动
-        sim.Run();
 
         Log.Debug($"RoomManager.Create 成功: roomId={roomId}, capacity={capacity}");
         return room;
