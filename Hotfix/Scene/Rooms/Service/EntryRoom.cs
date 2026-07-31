@@ -56,8 +56,10 @@ public sealed partial class RoomsService
                     resp.world = WorldInit.Create();
                     resp.world.x_size = simBase.Config.World.Map.X;
                     resp.world.y_size = simBase.Config.World.Map.Y;
-                    resp.world.shapes = ShapeDataBuilder.Build(simBase.SimState.ShapeView);
-                    Log.Info($"RoomsService.EntryRoom 下发世界形状: room={roomId}, shapes={resp.world.shapes.Count}, userId={userId}");
+                    // [已关闭] 形状生成功能停用，不再向客户端下发 world.shapes。
+                    // 需要恢复时取消下面两行注释即可，下发逻辑（ShapeDataBuilder）本身未删除。
+                    // resp.world.shapes = ShapeDataBuilder.Build(simBase.SimState.ShapeView);
+                    // Log.Info($"RoomsService.EntryRoom 下发世界形状: room={roomId}, shapes={resp.world.shapes.Count}, userId={userId}");
 
                     // 生成实体 uid 并注册到模拟器
                     if (Manager.TryGetById(roomId, out var room) && room != null && room.TryNextUid(out var uid)
@@ -78,7 +80,7 @@ public sealed partial class RoomsService
                     }
                 }
                 // TODO: simManager.TryGet 失败时（极低概率，仅当房间在 Entry 后被外部队列抢先删掉），
-                //       响应 ok=true 但 world/position 为 null。此时应回卷入房并返回失败。
+                //       响应 ok=true 但 world/hero_init 为 null。此时应回卷入房并返回失败。
             }
 
         Log.Debug(
