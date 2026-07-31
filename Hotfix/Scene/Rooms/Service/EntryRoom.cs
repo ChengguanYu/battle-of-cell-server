@@ -63,9 +63,11 @@ public sealed partial class RoomsService
                     if (Manager.TryGetById(roomId, out var room) && room != null && room.TryNextUid(out var uid)
                         && simBase.AddPlayer((uint)uid, userId, out var coord))
                     {
-                        resp.position = Position2d.Create();
-                        resp.position.x = (int)coord.X;
-                        resp.position.y = (int)coord.Y;
+                        resp.hero_init = HeroInit.Create();
+                        resp.hero_init.position = Position2d.Create();
+                        resp.hero_init.position.x = (int)coord.X;
+                        resp.hero_init.position.y = (int)coord.Y;
+                        resp.hero_init.entity_id = (uint)uid;
                         Log.Info($"RoomsService.EntryRoom 玩家注册模拟器: userId={userId}, uid={uid}, x={coord.X}, y={coord.Y}");
                     }
                     else

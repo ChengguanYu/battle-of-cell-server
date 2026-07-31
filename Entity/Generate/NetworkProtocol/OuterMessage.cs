@@ -846,6 +846,63 @@ namespace Fantasy
         public List<ShapeData> shapes { get; set; } = new List<ShapeData>();
     }
     /// <summary>
+    /// 玩家进入房间后的英雄初始化信息
+    /// </summary>
+    [Serializable]
+    [ProtoContract]
+    public partial class HeroInit : AMessage, IMessage
+    {
+        public static HeroInit Create(bool autoReturn = true)
+        {
+            var heroInit = MessageObjectPool<HeroInit>.Rent();
+            heroInit.AutoReturn = autoReturn;
+            
+            if (!autoReturn)
+            {
+                heroInit.SetIsPool(false);
+            }
+            
+            return heroInit;
+        }
+        
+        public void Return()
+        {
+            if (!AutoReturn)
+            {
+                SetIsPool(true);
+                AutoReturn = true;
+            }
+            else if (!IsPool())
+            {
+                return;
+            }
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            if (position != null)
+            {
+                position.Dispose();
+                position = null;
+            }
+            entity_id = default;
+            MessageObjectPool<HeroInit>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.HeroInit; } 
+        /// <summary>
+        /// 出生坐标
+        /// </summary>
+        [ProtoMember(1)]
+        public Position2d position { get; set; }
+        /// <summary>
+        /// 实体 ID（客户端后续帧操作需携带此 entity_id）
+        /// </summary>
+        [ProtoMember(2)]
+        public uint entity_id { get; set; }
+    }
+    /// <summary>
     /// 客户端匹配请求
     /// </summary>
     [Serializable]
@@ -1034,34 +1091,44 @@ namespace Fantasy
                 world.Dispose();
                 world = null;
             }
-           room_id = default;
+            room_id = default;
             if (position != null)
             {
                 position.Dispose();
                 position = null;
             }
-           MessageObjectPool<EntryRoomResp>.Return(this);
-       }
-       public uint OpCode() { return OuterOpcode.EntryRoomResp; } 
-       [ProtoMember(6)]
-       public uint ErrorCode { get; set; }
-       [ProtoMember(1)]
-       public MetaData meta { get; set; }
-       [ProtoMember(2)]
-       public List<RespError> error { get; set; } = new List<RespError>();
-       [ProtoMember(3)]
-       public bool ok { get; set; }
-       /// <summary>
-       /// 房间的世界参数
-       /// </summary>
-       [ProtoMember(4)]
-       public WorldInit world { get; set; }
-       [ProtoMember(5)]
-       public long room_id { get; set; }
+            if (hero_init != null)
+            {
+                hero_init.Dispose();
+                hero_init = null;
+            }
+            MessageObjectPool<EntryRoomResp>.Return(this);
+        }
+        public uint OpCode() { return OuterOpcode.EntryRoomResp; } 
+        [ProtoMember(6)]
+        public uint ErrorCode { get; set; }
+        [ProtoMember(1)]
+        public MetaData meta { get; set; }
+        [ProtoMember(2)]
+        public List<RespError> error { get; set; } = new List<RespError>();
+        [ProtoMember(3)]
+        public bool ok { get; set; }
         /// <summary>
-        /// 玩家在房间中的出生坐标
+        /// 房间的世界参数
+        /// </summary>
+        [ProtoMember(4)]
+        public WorldInit world { get; set; }
+        [ProtoMember(5)]
+        public long room_id { get; set; }
+        /// <summary>
+        /// 玩家在房间中的出生坐标（由模拟器生成，半径 20px 内无碰撞）
         /// </summary>
         [ProtoMember(7)]
         public Position2d position { get; set; }
-   }
+        /// <summary>
+        /// 英雄初始化信息（含位置和实体 ID）
+        /// </summary>
+        [ProtoMember(8)]
+        public HeroInit hero_init { get; set; }
+    }
 }

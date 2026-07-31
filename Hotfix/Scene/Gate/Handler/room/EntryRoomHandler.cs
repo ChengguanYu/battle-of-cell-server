@@ -37,6 +37,7 @@ public sealed class EntryRoomHandler : MessageRPC<EntryRoomReq, EntryRoomResp>
             response.room_id = roomsResp.room_id;
             response.world = roomsResp.world;
             response.position = roomsResp.position;
+            response.hero_init = roomsResp.hero_init;
             response.SetOk();
             reply();
         }

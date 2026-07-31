@@ -383,38 +383,42 @@ namespace Fantasy
             Dispose();
         }
 
-       public void Dispose()
-       {
-           if (!IsPool()) return; 
-           ErrorCode = 0;
-           world = default;
-           room_id = default;
-            if (position != null)
-            {
-                position.Dispose();
-                position = null;
-            }
-           MessageObjectPool<AvatarRelayEntryRoomResp>.Return(this);
-       }
-       public uint OpCode() { return InnerOpcode.AvatarRelayEntryRoomResp; } 
-       [ProtoMember(1)]
-       public uint ErrorCode { get; set; }
-       /// <summary>
-       /// 房间的世界参数
-       /// </summary>
-       [ProtoMember(3)]
-       public WorldInit world { get; set; }
-       /// <summary>
-       /// 进入成功后的房间 ID；失败时为 0
-       /// </summary>
-       [ProtoMember(2)]
-       public long room_id { get; set; }
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            world = default;
+            room_id = default;
+            position = default;
+            hero_init = default;
+            MessageObjectPool<AvatarRelayEntryRoomResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.AvatarRelayEntryRoomResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
         /// <summary>
+        /// 房间的世界参数
+        /// </summary>
+        [ProtoMember(3)]
+        public WorldInit world { get; set; }
+        /// <summary>
+        /// 进入成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
+        /// <summary>
+        /// 玩家在房间中的出生坐标
+        /// 玩家在房间中的出生坐标
         /// 玩家在房间中的出生坐标
         /// </summary>
         [ProtoMember(4)]
         public Position2d position { get; set; }
-   }
+        /// <summary>
+        /// 英雄初始化信息（含位置和实体 ID，透传自 RoomsEntryRoomResp）
+        /// </summary>
+        [ProtoMember(5)]
+        public HeroInit hero_init { get; set; }
+    }
     /// <summary>
     /// Gate -> Avatar 清理玩家通知（Avatar 本域下线编排，非跨 Scene 业务转发）
     /// </summary>
@@ -1145,36 +1149,40 @@ namespace Fantasy
             Dispose();
         }
 
-       public void Dispose()
-       {
-           if (!IsPool()) return; 
-           ErrorCode = 0;
-           world = default;
-           room_id = default;
-            if (position != null)
-            {
-                position.Dispose();
-                position = null;
-            }
-           MessageObjectPool<RoomsEntryRoomResp>.Return(this);
-       }
-       public uint OpCode() { return InnerOpcode.RoomsEntryRoomResp; } 
-       [ProtoMember(1)]
-       public uint ErrorCode { get; set; }
-       /// <summary>
-       /// 房间的世界参数
-       /// </summary>
-       [ProtoMember(3)]
-       public WorldInit world { get; set; }
-       /// <summary>
-       /// 进入成功后的房间 ID；失败时为 0
-       /// </summary>
-       [ProtoMember(2)]
-       public long room_id { get; set; }
+        public void Dispose()
+        {
+            if (!IsPool()) return; 
+            ErrorCode = 0;
+            world = default;
+            room_id = default;
+            position = default;
+            hero_init = default;
+            MessageObjectPool<RoomsEntryRoomResp>.Return(this);
+        }
+        public uint OpCode() { return InnerOpcode.RoomsEntryRoomResp; } 
+        [ProtoMember(1)]
+        public uint ErrorCode { get; set; }
         /// <summary>
+        /// 房间的世界参数
+        /// </summary>
+        [ProtoMember(3)]
+        public WorldInit world { get; set; }
+        /// <summary>
+        /// 进入成功后的房间 ID；失败时为 0
+        /// </summary>
+        [ProtoMember(2)]
+        public long room_id { get; set; }
+        /// <summary>
+        /// 玩家在房间中的出生坐标
+        /// 玩家在房间中的出生坐标
         /// 玩家在房间中的出生坐标
         /// </summary>
         [ProtoMember(4)]
         public Position2d position { get; set; }
-   }
+        /// <summary>
+        /// 英雄初始化信息（含位置和实体 ID，透传自 RoomEntry）
+        /// </summary>
+        [ProtoMember(5)]
+        public HeroInit hero_init { get; set; }
+    }
 }

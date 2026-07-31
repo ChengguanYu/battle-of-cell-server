@@ -11,17 +11,18 @@ namespace Fantasy
         public const uint EntryHomeResp = 402663185;
         public const uint EntryRoomReq = 268445458;
         public const uint EntryRoomResp = 402663186;
+        public const uint HeroInit = 134227730;
         public const uint MatchReq = 268445459;
         public const uint MatchResp = 402663187;
-        public const uint MetaData = 134227730;
+        public const uint MetaData = 134227731;
         public const uint PlayerLeaveRoomReq = 268445460;
         public const uint PlayerLeaveRoomResp = 402663188;
-        public const uint RespError = 134227731;
-        public const uint ServerFrame = 134227732;
+        public const uint RespError = 134227732;
+        public const uint ServerFrame = 134227733;
         public const uint SessionHeartbeatPing = 268445461;
         public const uint SessionHeartbeatPong = 402663189;
-        public const uint ShapeData = 134227733;
-        public const uint ShapeVertex = 134227734;
-        public const uint WorldInit = 134227735;
+        public const uint ShapeData = 134227734;
+        public const uint ShapeVertex = 134227735;
+        public const uint WorldInit = 134227736;
     }
 }
