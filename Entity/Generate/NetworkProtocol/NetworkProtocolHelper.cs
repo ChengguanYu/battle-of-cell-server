@@ -137,6 +137,19 @@ namespace Fantasy
 			session.Send(WorldInit_message);
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void HeroInit(this Session session, HeroInit HeroInit_message)
+		{
+			session.Send(HeroInit_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void HeroInit(this Session session, Position2d position, uint entity_id)
+		{
+			using var HeroInit_message = Fantasy.HeroInit.Create();
+			HeroInit_message.position = position;
+			HeroInit_message.entity_id = entity_id;
+			session.Send(HeroInit_message);
+		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static async FTask<MatchResp> MatchReq(this Session session, MatchReq MatchReq_request)
 		{
 			return (MatchResp)await session.Call(MatchReq_request);

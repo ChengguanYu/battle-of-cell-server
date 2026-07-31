@@ -1092,11 +1092,6 @@ namespace Fantasy
                 world = null;
             }
             room_id = default;
-            if (position != null)
-            {
-                position.Dispose();
-                position = null;
-            }
             if (hero_init != null)
             {
                 hero_init.Dispose();
@@ -1120,11 +1115,6 @@ namespace Fantasy
         public WorldInit world { get; set; }
         [ProtoMember(5)]
         public long room_id { get; set; }
-        /// <summary>
-        /// 玩家在房间中的出生坐标（由模拟器生成，半径 20px 内无碰撞）
-        /// </summary>
-        [ProtoMember(7)]
-        public Position2d position { get; set; }
         /// <summary>
         /// 英雄初始化信息（含位置和实体 ID）
         /// </summary>

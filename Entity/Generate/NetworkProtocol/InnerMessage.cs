@@ -389,7 +389,6 @@ namespace Fantasy
             ErrorCode = 0;
             world = default;
             room_id = default;
-            position = default;
             hero_init = default;
             MessageObjectPool<AvatarRelayEntryRoomResp>.Return(this);
         }
@@ -406,13 +405,6 @@ namespace Fantasy
         /// </summary>
         [ProtoMember(2)]
         public long room_id { get; set; }
-        /// <summary>
-        /// 玩家在房间中的出生坐标
-        /// 玩家在房间中的出生坐标
-        /// 玩家在房间中的出生坐标
-        /// </summary>
-        [ProtoMember(4)]
-        public Position2d position { get; set; }
         /// <summary>
         /// 英雄初始化信息（含位置和实体 ID，透传自 RoomsEntryRoomResp）
         /// </summary>
@@ -1155,7 +1147,6 @@ namespace Fantasy
             ErrorCode = 0;
             world = default;
             room_id = default;
-            position = default;
             hero_init = default;
             MessageObjectPool<RoomsEntryRoomResp>.Return(this);
         }
@@ -1172,13 +1163,6 @@ namespace Fantasy
         /// </summary>
         [ProtoMember(2)]
         public long room_id { get; set; }
-        /// <summary>
-        /// 玩家在房间中的出生坐标
-        /// 玩家在房间中的出生坐标
-        /// 玩家在房间中的出生坐标
-        /// </summary>
-        [ProtoMember(4)]
-        public Position2d position { get; set; }
         /// <summary>
         /// 英雄初始化信息（含位置和实体 ID，透传自 RoomEntry）
         /// </summary>
